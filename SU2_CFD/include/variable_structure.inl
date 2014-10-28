@@ -29,6 +29,8 @@ inline void CVariable::SetVelSolutionOldDVector(void) { }
 inline void CVariable::SetVelSolutionDVector(void) { }
 
 inline void CVariable::SetStress(unsigned short iVar, unsigned short jVar, double val_stress) { }
+
+inline void CVariable::AddStress(unsigned short iVar, unsigned short jVar, double val_stress) { }
   
 inline double **CVariable::GetStress(void) { return 0; }
   
@@ -39,6 +41,12 @@ inline double CVariable::GetVonMises_Stress(void) { return 0; }
 inline void CVariable::SetFlow_Pressure(double val_pressure) { }
 
 inline double CVariable::GetFlow_Pressure(void) { return 0; }
+
+inline void CVariable::Initialize_Connectivity(void) { }
+
+inline void CVariable::Upgrade_Connectivity(void) { }
+
+inline unsigned short CVariable::Get_Connectivity(void) { }
 
 inline double CVariable::GetBetaInc2(void) { return 0; }
 
@@ -734,6 +742,8 @@ inline void CLinEulerVariable::SetDeltaVel_Old(double *val_deltavel) { for (unsi
 inline double CLinEulerVariable::GetDeltaPressure(void) { return DeltaPressure; }
 
 inline void CFEAVariable::SetStress(unsigned short iVar, unsigned short jVar, double val_stress) { Stress[iVar][jVar] = val_stress; }
+
+inline void CFEAVariable::AddStress(unsigned short iVar, unsigned short jVar, double val_stress) { Stress[iVar][jVar] += val_stress; }
   
 inline double **CFEAVariable::GetStress(void) { return Stress; }
   
@@ -744,6 +754,12 @@ inline double CFEAVariable::GetVonMises_Stress(void) { return VonMises_Stress; }
 inline void CFEAVariable::SetFlow_Pressure(double val_pressure) { Flow_Pressure = val_pressure; }
 
 inline double CFEAVariable::GetFlow_Pressure(void) { return Flow_Pressure; }
+
+inline void CFEAVariable::Initialize_Connectivity(void) { nAttachedElements = 0; }
+
+inline void CFEAVariable::Upgrade_Connectivity(void) { nAttachedElements += 1; }
+
+inline unsigned short CFEAVariable::Get_Connectivity(void) { return nAttachedElements; }
 
 inline double* CWaveVariable::GetSolution_Direct() { return Solution_Direct;}
 

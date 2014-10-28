@@ -2095,7 +2095,8 @@ void COutput::MergeSolution(CConfig *config, CGeometry *geometry, CSolver **solv
   if (Kind_Solver == LINEAR_ELASTICITY) {
     /*--- Surface sensitivity coefficient, and solution sensor ---*/
     iVar_FEA   = nVar_Total;
-    nVar_Total += 2;
+    nVar_Total += 5;
+    if (geometry->GetnDim() == 3) nVar_Total += 3;
   }
   
   if (config->GetExtraOutput()) {
@@ -2449,6 +2450,28 @@ void COutput::MergeSolution(CConfig *config, CGeometry *geometry, CSolver **solv
           break;
           
         case LINEAR_ELASTICITY:
+          double **Stress;
+          Stress = solver[FEA_SOL]->node[iPoint]->GetStress();
+		  /*--- Sigma xx ---*/
+		  Data[jVar][jPoint] = Stress[0][0];
+		  jVar++;
+		  /*--- Sigma yy ---*/
+		  Data[jVar][jPoint] = Stress[1][1];
+		  jVar++;
+		  /*--- Sigma xy ---*/
+		  Data[jVar][jPoint] = Stress[0][1];
+		  jVar++;
+          if (geometry->GetnDim() == 3){
+        	  /*--- Sigma zz ---*/
+        	  Data[jVar][jPoint] = Stress[2][2];
+          	  jVar++;
+        	  /*--- Sigma xz ---*/
+        	  Data[jVar][jPoint] = Stress[0][2];
+          	  jVar++;
+        	  /*--- Sigma yz ---*/
+        	  Data[jVar][jPoint] = Stress[1][2];
+          	  jVar++;
+          }
           Data[jVar][jPoint] = solver[FEA_SOL]->node[iPoint]->GetVonMises_Stress();
           jVar++;
           Data[jVar][jPoint] = solver[FEA_SOL]->node[iPoint]->GetFlow_Pressure();

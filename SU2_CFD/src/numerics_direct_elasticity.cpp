@@ -2,6 +2,7 @@
  * \file numerics_direct_elasticity.cpp
  * \brief This file contains all the convective term discretization.
  * \author Aerospace Design Laboratory (Stanford University) <http://su2.stanford.edu>.
+ * \author Load Control and Aeroelastics (Imperial College London)
  * \version 3.2.2 "eagle"
  *
  * SU2, Copyright (C) 2012-2014 Aerospace Design Laboratory (ADL).
@@ -41,17 +42,17 @@ double CGalerkin_FEA::ShapeFunc_Triangle(double Xi, double Eta, double CoordCorn
   double xs[3][3], ad[3][3];
   
   /*--- Shape functions ---*/
-  
-  DShapeFunction[0][3] = 1-Xi-Eta;
-  DShapeFunction[1][3] = Xi;
-  DShapeFunction[2][3] = Eta;
+
+    DShapeFunction[0][3] = Xi;
+    DShapeFunction[1][3] = Eta;
+    DShapeFunction[2][3] = 1-Xi-Eta;
   
   /*--- dN/d xi, dN/d eta, dN/d mu ---*/
-  
-  DShapeFunction[0][0] = -1.0;  DShapeFunction[0][1] = -1.0;
-  DShapeFunction[1][0] = 1;     DShapeFunction[1][1] = 0.0;
-  DShapeFunction[2][0] = 0;     DShapeFunction[2][1] = 1;
-  
+
+    DShapeFunction[0][0] = 1.0;  		DShapeFunction[0][1] = 0.0;
+    DShapeFunction[1][0] = 0.0;     	DShapeFunction[1][1] = 1.0;
+    DShapeFunction[2][0] = -1.0;     	DShapeFunction[2][1] = -1.0;
+
   /*--- Jacobian transformation ---*/
   
   for (i = 0; i < 2; i++) {
@@ -168,15 +169,15 @@ double CGalerkin_FEA::ShapeFunc_Tetra(double Xi, double Eta, double Zeta, double
   
   DShapeFunction[0][3] = Xi;
   DShapeFunction[1][3] = Eta;
-  DShapeFunction[2][3] = Mu;
-  DShapeFunction[3][3] = 1.0 - Xi - Eta - Mu;
+  DShapeFunction[2][3] = 1.0 - Xi - Eta - Zeta;
+  DShapeFunction[3][3] = Zeta;
   
   /*--- dN/d xi, dN/d eta, dN/d mu ---*/
   
   DShapeFunction[0][0] = 1.0;   DShapeFunction[0][1] = 0.0;   DShapeFunction[0][2] = 0.0;
   DShapeFunction[1][0] = 0.0;   DShapeFunction[1][1] = 1.0;   DShapeFunction[1][2] = 0.0;
-  DShapeFunction[2][0] = 0.0;   DShapeFunction[2][1] = 0.0;   DShapeFunction[2][2] = 1.0;
-  DShapeFunction[3][0] = -1.0;  DShapeFunction[3][1] = -1.0;  DShapeFunction[3][2] = -1.0;
+  DShapeFunction[2][0] = -1.0;  DShapeFunction[2][1] = -1.0;  DShapeFunction[2][2] = -1.0;
+  DShapeFunction[3][0] = 0.0;   DShapeFunction[3][1] = 0.0;   DShapeFunction[3][2] = 1.0;
   
   /*--- Jacobian transformation ---*/
   
@@ -236,31 +237,31 @@ double CGalerkin_FEA::ShapeFunc_Pyram(double Xi, double Eta, double Zeta, double
   
   /*--- Shape functions ---*/
   
-  double Den = 4.0*(1.0 - Mu);
+  double Den = 4.0*(1.0 - Zeta);
   
-  DShapeFunction[0][3] = (-Xi+Eta+Mu-1.0)*(-Xi-Eta+Mu-1.0)/Den;
-  DShapeFunction[1][3] = (-Xi-Eta+Mu-1.0)*(Xi-Eta+Mu-1.0)/Den;
-  DShapeFunction[2][3] = (Xi+Eta+Mu-1.0)*(Xi-Eta+Mu-1.0)/Den;
-  DShapeFunction[3][3] = (Xi+Eta+Mu-1.0)*(-Xi+Eta+Mu-1.0)/Den;
-  DShapeFunction[4][3] = Mu;
+  DShapeFunction[0][3] = (-Xi+Eta+Zeta-1.0)*(-Xi-Eta+Zeta-1.0)/Den;
+  DShapeFunction[1][3] = (-Xi-Eta+Zeta-1.0)*(Xi-Eta+Zeta-1.0)/Den;
+  DShapeFunction[2][3] = (Xi+Eta+Zeta-1.0)*(Xi-Eta+Zeta-1.0)/Den;
+  DShapeFunction[3][3] = (Xi+Eta+Zeta-1.0)*(-Xi+Eta+Zeta-1.0)/Den;
+  DShapeFunction[4][3] = Zeta;
   
-  /*--- dN/d xi, dN/d eta, dN/d mu ---*/
+  /*--- dN/d xi, dN/d eta, dN/d Zeta ---*/
   
-  DShapeFunction[0][0] = 0.5 + (0.5*Xi)/(1.0 - Mu);
-  DShapeFunction[0][1] = (0.5*Eta)/(-1.0 + Mu);
-  DShapeFunction[0][2] = (-0.25 - 0.25*Eta*Eta + (0.5 - 0.25*Mu)*Mu + 0.25*Xi*Xi)/((-1.0 + Mu)*(-1.0 + Mu));
+  DShapeFunction[0][0] = 0.5 + (0.5*Xi)/(1.0 - Zeta);
+  DShapeFunction[0][1] = (0.5*Eta)/(-1.0 + Zeta);
+  DShapeFunction[0][2] = (-0.25 - 0.25*Eta*Eta + (0.5 - 0.25*Zeta)*Zeta + 0.25*Xi*Xi)/((-1.0 + Zeta)*(-1.0 + Zeta));
   
-  DShapeFunction[1][0] = (0.5*Xi)/(-1.0 + Mu);
-  DShapeFunction[1][1] = (-0.5 - 0.5*Eta + 0.5*Mu)/(-1.0 + Mu);
-  DShapeFunction[1][2] = (-0.25 + 0.25*Eta*Eta + (0.5 - 0.25*Mu)*Mu - 0.25*Xi*Xi)/((-1.0 + Mu)*(-1.0 + Mu));
+  DShapeFunction[1][0] = (0.5*Xi)/(-1.0 + Zeta);
+  DShapeFunction[1][1] = (-0.5 - 0.5*Eta + 0.5*Zeta)/(-1.0 + Zeta);
+  DShapeFunction[1][2] = (-0.25 + 0.25*Eta*Eta + (0.5 - 0.25*Zeta)*Zeta - 0.25*Xi*Xi)/((-1.0 + Zeta)*(-1.0 + Zeta));
   
-  DShapeFunction[2][0] = -0.5 + (0.5*Xi)/(1.0 - 1.0*Mu);
-  DShapeFunction[2][1] = (0.5*Eta)/(-1.0 + Mu);
-  DShapeFunction[2][2] = (-0.25 - 0.25*Eta*Eta + (0.5 - 0.25*Mu)*Mu + 0.25*Xi*Xi)/((-1.0 + Mu)*(-1.0 + Mu));
+  DShapeFunction[2][0] = -0.5 + (0.5*Xi)/(1.0 - 1.0*Zeta);
+  DShapeFunction[2][1] = (0.5*Eta)/(-1.0 + Zeta);
+  DShapeFunction[2][2] = (-0.25 - 0.25*Eta*Eta + (0.5 - 0.25*Zeta)*Zeta + 0.25*Xi*Xi)/((-1.0 + Zeta)*(-1.0 + Zeta));
   
-  DShapeFunction[3][0] = (0.5*Xi)/(-1.0 + Mu);
-  DShapeFunction[3][1] = (0.5 - 0.5*Eta - 0.5*Mu)/(-1.0 + Mu);
-  DShapeFunction[3][2] = (-0.25 + 0.25*Eta*Eta + (0.5 - 0.25*Mu)*Mu - 0.25*Xi*Xi)/((-1.0 + Mu)*(-1.0 + Mu));
+  DShapeFunction[3][0] = (0.5*Xi)/(-1.0 + Zeta);
+  DShapeFunction[3][1] = (0.5 - 0.5*Eta - 0.5*Zeta)/(-1.0 + Zeta);
+  DShapeFunction[3][2] = (-0.25 + 0.25*Eta*Eta + (0.5 - 0.25*Zeta)*Zeta - 0.25*Xi*Xi)/((-1.0 + Zeta)*(-1.0 + Zeta));
   
   DShapeFunction[4][0] = 0.0;
   DShapeFunction[4][1] = 0.0;
@@ -309,7 +310,7 @@ double CGalerkin_FEA::ShapeFunc_Pyram(double Xi, double Eta, double Zeta, double
     c2 = xs[2][0]*DShapeFunction[k][0]+xs[2][1]*DShapeFunction[k][1]+xs[2][2]*DShapeFunction[k][2]; // dN/dz
     DShapeFunction[k][0] = c0; // store dN/dx instead of dN/d xi
     DShapeFunction[k][1] = c1; // store dN/dy instead of dN/d eta
-    DShapeFunction[k][2] = c2; // store dN/dz instead of dN/d mu
+    DShapeFunction[k][2] = c2; // store dN/dz instead of dN/d Zeta
   }
   
   return xsj;
@@ -325,20 +326,20 @@ double CGalerkin_FEA::ShapeFunc_Wedge(double Xi, double Eta, double Zeta, double
   /*--- Shape functions ---*/
   
   DShapeFunction[0][3] = 0.5*Eta*(1.0-Xi);
-  DShapeFunction[1][3] = 0.5*Mu*(1.0-Xi);;
-  DShapeFunction[2][3] = 0.5*(1.0-Eta-Mu)*(1.0-Xi);
+  DShapeFunction[1][3] = 0.5*Zeta*(1.0-Xi);
+  DShapeFunction[2][3] = 0.5*(1.0-Eta-Zeta)*(1.0-Xi);
   DShapeFunction[3][3] = 0.5*Eta*(Xi+1.0);
-  DShapeFunction[4][3] = 0.5*Mu*(Xi+1.0);
-  DShapeFunction[5][3] = 0.5*(1.0-Eta-Mu)*(Xi+1.0);
+  DShapeFunction[4][3] = 0.5*Zeta*(Xi+1.0);
+  DShapeFunction[5][3] = 0.5*(1.0-Eta-Zeta)*(Xi+1.0);
   
-  /*--- dN/d Xi, dN/d Eta, dN/d Mu ---*/
+  /*--- dN/d Xi, dN/d Eta, dN/d Zeta ---*/
   
   DShapeFunction[0][0] = -0.5*Eta;            DShapeFunction[0][1] = 0.5*(1.0-Xi);      DShapeFunction[0][2] = 0.0;
-  DShapeFunction[1][0] = -0.5*Mu;             DShapeFunction[1][1] = 0.0;               DShapeFunction[1][2] = 0.5*(1.0-Xi);
-  DShapeFunction[2][0] = -0.5*(1.0-Eta-Mu);   DShapeFunction[2][1] = -0.5*(1.0-Xi);     DShapeFunction[2][2] = -0.5*(1.0-Xi);
+  DShapeFunction[1][0] = -0.5*Zeta;             DShapeFunction[1][1] = 0.0;               DShapeFunction[1][2] = 0.5*(1.0-Xi);
+  DShapeFunction[2][0] = -0.5*(1.0-Eta-Zeta);   DShapeFunction[2][1] = -0.5*(1.0-Xi);     DShapeFunction[2][2] = -0.5*(1.0-Xi);
   DShapeFunction[3][0] = 0.5*Eta;             DShapeFunction[3][1] = 0.5*(Xi+1.0);      DShapeFunction[3][2] = 0.0;
-  DShapeFunction[4][0] = 0.5*Mu;              DShapeFunction[4][1] = 0.0;               DShapeFunction[4][2] = 0.5*(Xi+1.0);
-  DShapeFunction[5][0] = 0.5*(1.0-Eta-Mu);    DShapeFunction[5][1] = -0.5*(Xi+1.0);     DShapeFunction[5][2] = -0.5*(Xi+1.0);
+  DShapeFunction[4][0] = 0.5*Zeta;              DShapeFunction[4][1] = 0.0;               DShapeFunction[4][2] = 0.5*(Xi+1.0);
+  DShapeFunction[5][0] = 0.5*(1.0-Eta-Zeta);    DShapeFunction[5][1] = -0.5*(Xi+1.0);     DShapeFunction[5][2] = -0.5*(Xi+1.0);
   
   /*--- Jacobian transformation ---*/
   
@@ -383,7 +384,7 @@ double CGalerkin_FEA::ShapeFunc_Wedge(double Xi, double Eta, double Zeta, double
     c2 = xs[2][0]*DShapeFunction[k][0]+xs[2][1]*DShapeFunction[k][1]+xs[2][2]*DShapeFunction[k][2]; // dN/dz
     DShapeFunction[k][0] = c0; // store dN/dx instead of dN/d xi
     DShapeFunction[k][1] = c1; // store dN/dy instead of dN/d eta
-    DShapeFunction[k][2] = c2; // store dN/dz instead of dN/d mu
+    DShapeFunction[k][2] = c2; // store dN/dz instead of dN/d Zeta
   }
   
   return xsj;
@@ -393,27 +394,54 @@ double CGalerkin_FEA::ShapeFunc_Wedge(double Xi, double Eta, double Zeta, double
 double CGalerkin_FEA::ShapeFunc_Hexa(double Xi, double Eta, double Zeta, double CoordCorners[8][3], double DShapeFunction[8][4]) {
   
   int i, j, k;
-  double a0, a1, a2, c0, c1, c2, xsj;
-  double ss[3], xs[3][3], ad[3][3];
-  double s0[8] = {-0.5, 0.5, 0.5,-0.5,-0.5, 0.5,0.5,-0.5};
-  double s1[8] = {-0.5,-0.5, 0.5, 0.5,-0.5,-0.5,0.5, 0.5};
-  double s2[8] = {-0.5,-0.5,-0.5,-0.5, 0.5, 0.5,0.5, 0.5};
-  
-  ss[0] = Xi;
-  ss[1] = Eta;
-  ss[2] = Mu;
-  
+  double c0, c1, c2, xsj;
+  double xs[3][3], ad[3][3];
+
+
   /*--- Shape functions ---*/
   
-  for (i = 0; i < 8; i++) {
-    a0 = 0.5+s0[i]*ss[0]; // shape function in xi-direction
-    a1 = 0.5+s1[i]*ss[1]; // shape function in eta-direction
-    a2 = 0.5+s2[i]*ss[2]; // shape function in mu-direction
-    DShapeFunction[i][0] = s0[i]*a1*a2; // dN/d xi
-    DShapeFunction[i][1] = s1[i]*a0*a2; // dN/d eta
-    DShapeFunction[i][2] = s2[i]*a0*a1; // dN/d mu
-    DShapeFunction[i][3] = a0*a1*a2; // actual shape function N
-  }
+  DShapeFunction[0][3] = 0.125*(1.0-Xi)*(1.0-Eta)*(1.0-Zeta);
+  DShapeFunction[1][3] = 0.125*(1.0+Xi)*(1.0-Eta)*(1.0-Zeta);
+  DShapeFunction[2][3] = 0.125*(1.0+Xi)*(1.0+Eta)*(1.0-Zeta);
+  DShapeFunction[3][3] = 0.125*(1.0-Xi)*(1.0+Eta)*(1.0-Zeta);
+  DShapeFunction[4][3] = 0.125*(1.0-Xi)*(1.0-Eta)*(1.0+Zeta);
+  DShapeFunction[5][3] = 0.125*(1.0+Xi)*(1.0-Eta)*(1.0+Zeta);
+  DShapeFunction[6][3] = 0.125*(1.0+Xi)*(1.0+Eta)*(1.0+Zeta);
+  DShapeFunction[7][3] = 0.125*(1.0-Xi)*(1.0+Eta)*(1.0+Zeta);
+
+  /*--- dN/d xi ---*/
+
+  DShapeFunction[0][0] = -0.125*(1.0-Eta)*(1.0-Zeta);
+  DShapeFunction[1][0] = 0.125*(1.0-Eta)*(1.0-Zeta);
+  DShapeFunction[2][0] = 0.125*(1.0+Eta)*(1.0-Zeta);
+  DShapeFunction[3][0] = -0.125*(1.0+Eta)*(1.0-Zeta);
+  DShapeFunction[4][0] = -0.125*(1.0-Eta)*(1.0+Zeta);
+  DShapeFunction[5][0] = 0.125*(1.0-Eta)*(1.0+Zeta);
+  DShapeFunction[6][0] = 0.125*(1.0+Eta)*(1.0+Zeta);
+  DShapeFunction[7][0] = -0.125*(1.0+Eta)*(1.0+Zeta);
+
+  /*--- dN/d eta ---*/
+
+  DShapeFunction[0][1] = -0.125*(1.0-Xi)*(1.0-Zeta);
+  DShapeFunction[1][1] = -0.125*(1.0+Xi)*(1.0-Zeta);
+  DShapeFunction[2][1] = 0.125*(1.0+Xi)*(1.0-Zeta);
+  DShapeFunction[3][1] = 0.125*(1.0-Xi)*(1.0-Zeta);
+  DShapeFunction[4][1] = -0.125*(1.0-Xi)*(1.0+Zeta);
+  DShapeFunction[5][1] = -0.125*(1.0+Xi)*(1.0+Zeta);
+  DShapeFunction[6][1] = 0.125*(1.0+Xi)*(1.0+Zeta);
+  DShapeFunction[7][1] = 0.125*(1.0-Xi)*(1.0+Zeta);
+
+  /*--- dN/d mu ---*/
+
+  DShapeFunction[0][2] = -0.125*(1.0-Xi)*(1.0-Eta);
+  DShapeFunction[1][2] = -0.125*(1.0+Xi)*(1.0-Eta);
+  DShapeFunction[2][2] = -0.125*(1.0+Xi)*(1.0+Eta);
+  DShapeFunction[3][2] = -0.125*(1.0-Xi)*(1.0+Eta);
+  DShapeFunction[4][2] = 0.125*(1.0-Xi)*(1.0-Eta);
+  DShapeFunction[5][2] = 0.125*(1.0+Xi)*(1.0-Eta);
+  DShapeFunction[6][2] = 0.125*(1.0+Xi)*(1.0+Eta);
+  DShapeFunction[7][2] = 0.125*(1.0-Xi)*(1.0+Eta);
+
   
   /*--- Jacobian transformation ---*/
   
@@ -457,14 +485,14 @@ double CGalerkin_FEA::ShapeFunc_Hexa(double Xi, double Eta, double Zeta, double 
     c2 = xs[2][0]*DShapeFunction[k][0]+xs[2][1]*DShapeFunction[k][1]+xs[2][2]*DShapeFunction[k][2]; // dN/dz
     DShapeFunction[k][0] = c0; // store dN/dx instead of dN/d xi
     DShapeFunction[k][1] = c1; // store dN/dy instead of dN/d eta
-    DShapeFunction[k][2] = c2; // store dN/dz instead of dN/d mu
+    DShapeFunction[k][2] = c2; // store dN/dz instead of dN/d Zeta
   }
   
   return xsj;
   
 }
 
-void CGalerkin_FEA::SetFEA_StiffMatrix2D(double **StiffMatrix_Elem, double CoordCorners[8][3], unsigned short nNodes) {
+void CGalerkin_FEA::SetFEA_StiffMatrix2D(double **StiffMatrix_Elem, double CoordCorners[8][3], unsigned short nNodes, unsigned short form2d) {
   
   double B_Matrix[3][8], D_Matrix[3][3], Aux_Matrix[8][3];
   double Xi = 0.0, Eta = 0.0, Det = 0.0;
@@ -487,7 +515,7 @@ void CGalerkin_FEA::SetFEA_StiffMatrix2D(double **StiffMatrix_Elem, double Coord
   
   if (nNodes == 3) {
     nGauss = 1;
-    Location[0][0] = 0.333333333333333;  Location[0][1] = 0.333333333333333;  Weight[0] = 0.5;
+    Location[0][0] = 0.333333333333333;  Location[0][1] = 0.333333333333333;  Weight[0] = 0.5; // Note: W=1, A=1/2
   }
   
   /*--- Rectangle. Nodes of numerical integration at 4 points (order 2). ---*/
@@ -521,12 +549,39 @@ void CGalerkin_FEA::SetFEA_StiffMatrix2D(double **StiffMatrix_Elem, double Coord
       B_Matrix[2][1+iNode*nVar] = DShapeFunction[iNode][0];
     }
     
-    /*--- Compute the D Matrix (for plane strain and 3-D)---*/
+    if (form2d==0){
+
+    /*--- Compute the D Matrix (for plane stress and 2-D)---*/
+
+	D_Matrix[0][0] = E/(1-Nu*Nu);	  		D_Matrix[0][1] = (E*Nu)/(1-Nu*Nu);  D_Matrix[0][2] = 0.0;
+	D_Matrix[1][0] = (E*Nu)/(1-Nu*Nu);    	D_Matrix[1][1] = E/(1-Nu*Nu);   	D_Matrix[1][2] = 0.0;
+	D_Matrix[2][0] = 0.0;               	D_Matrix[2][1] = 0.0;               D_Matrix[2][2] = ((1-Nu)*E)/(2*(1-Nu*Nu));
+
+    }
+    else if (form2d==1){
+
+    /*--- Compute the D Matrix (for plane strain and 2-D) as a function of Mu and Lambda---*/
     
-    D_Matrix[0][0] = Lambda + 2.0*Mu;		D_Matrix[0][1] = Lambda;            D_Matrix[0][2] = 0.0;
+    D_Matrix[0][0] = Lambda + 2.0*Mu;	D_Matrix[0][1] = Lambda;            D_Matrix[0][2] = 0.0;
     D_Matrix[1][0] = Lambda;            D_Matrix[1][1] = Lambda + 2.0*Mu;   D_Matrix[1][2] = 0.0;
     D_Matrix[2][0] = 0.0;               D_Matrix[2][1] = 0.0;               D_Matrix[2][2] = Mu;
     
+    /*--- Compute the D Matrix (for plane strain and 2-D) as a function of E and Nu---*/
+
+//    D_Matrix[0][0] = (E*(1-Nu))/((1+Nu)*(1-2*Nu));	D_Matrix[0][1] = (E*Nu)/((1+Nu)*(1-2*Nu));          D_Matrix[0][2] = 0.0;
+//    D_Matrix[1][0] = (E*Nu)/((1+Nu)*(1-2*Nu));        D_Matrix[1][1] = (E*(1-Nu))/((1+Nu)*(1-2*Nu));      D_Matrix[1][2] = 0.0;
+//    D_Matrix[2][0] = 0.0;               				D_Matrix[2][1] = 0.0;               				D_Matrix[2][2] = (E*(1-2*Nu))/(2*(1+Nu)*(1-2*Nu));
+
+    }
+
+
+
+    /*--- Compute the D Matrix (for plane stress and 2-D)---*/
+
+//    D_Matrix[0][0] = E/(1-Nu*Nu);	  		D_Matrix[0][1] = (E*Nu)/(1-Nu*Nu);  D_Matrix[0][2] = 0.0;
+//    D_Matrix[1][0] = (E*Nu)/(1-Nu*Nu);    	D_Matrix[1][1] = E/(1-Nu*Nu);   	D_Matrix[1][2] = 0.0;
+//    D_Matrix[2][0] = 0.0;               	D_Matrix[2][1] = 0.0;               D_Matrix[2][2] = ((1-Nu)*E)/(2*(1-Nu*Nu));
+
     /*--- Compute the BT.D Matrix ---*/
     
     for (iVar = 0; iVar < nNodes*nVar; iVar++) {
@@ -555,7 +610,7 @@ void CGalerkin_FEA::SetFEA_StiffMatrix2D(double **StiffMatrix_Elem, double Coord
 void CGalerkin_FEA::SetFEA_StiffMatrix3D(double **StiffMatrix_Elem, double CoordCorners[8][3], unsigned short nNodes) {
   
   double B_Matrix[6][24], D_Matrix[6][6], Aux_Matrix[24][6];
-  double Xi = 0.0, Eta = 0.0, Det = 0.0;
+  double Xi = 0.0, Eta = 0.0, Zeta = 0.0, Det = 0.0;
   unsigned short iNode, iVar, jVar, kVar, iGauss, nGauss = 0;
   double DShapeFunction[8][4] = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0},
     {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
@@ -576,7 +631,7 @@ void CGalerkin_FEA::SetFEA_StiffMatrix3D(double **StiffMatrix_Elem, double Coord
   
   if (nNodes == 4) {
     nGauss = 1;
-    Location[0][0] = 0.25;  Location[0][1] = 0.25;  Location[0][2] = 0.25;  Weight[0] = 0.166666666666666;
+    Location[0][0] = 0.25;  Location[0][1] = 0.25;  Location[0][2] = 0.25;  Weight[0] = 0.166666666666666; // Note: W=1, V=1/6
   }
   
   /*--- Pyramids. Nodes numerical integration at 5 points. ---*/
@@ -603,27 +658,28 @@ void CGalerkin_FEA::SetFEA_StiffMatrix3D(double **StiffMatrix_Elem, double Coord
   }
   
   /*--- Hexahedrons. Nodes of numerical integration at 6 points (order 3). ---*/
-  
+
   if (nNodes == 8) {
-    nGauss = 8;
-    Location[0][0] = -0.577350269189626;  Location[0][1] = -0.577350269189626;  Location[0][2] = -0.577350269189626;  Weight[0] = 1.0;
-    Location[1][0] = -0.577350269189626;  Location[1][1] = -0.577350269189626;  Location[1][2] = 0.577350269189626;   Weight[1] = 1.0;
-    Location[2][0] = -0.577350269189626;  Location[2][1] = 0.577350269189626;   Location[2][2] = -0.577350269189626;  Weight[2] = 1.0;
-    Location[3][0] = -0.577350269189626;  Location[3][1] = 0.577350269189626;   Location[3][2] = 0.577350269189626;   Weight[3] = 1.0;
-    Location[4][0] = 0.577350269189626;   Location[4][1] = -0.577350269189626;  Location[4][2] = -0.577350269189626;  Weight[4] = 1.0;
-    Location[5][0] = 0.577350269189626;   Location[5][1] = -0.577350269189626;  Location[5][2] = 0.577350269189626;   Weight[5] = 1.0;
-    Location[6][0] = 0.577350269189626;   Location[6][1] = 0.577350269189626;   Location[6][2] = -0.577350269189626;  Weight[6] = 1.0;
-    Location[7][0] = 0.577350269189626;   Location[7][1] = 0.577350269189626;   Location[7][2] = 0.577350269189626;   Weight[7] = 1.0;
+	nGauss = 8;
+	Location[0][0] = -0.577350269189626;  	Location[0][1] = -0.577350269189626;  Location[0][2] = -0.577350269189626;  Weight[0] = 1.0;
+	Location[1][0] = 0.577350269189626;  	Location[1][1] = -0.577350269189626;  Location[1][2] = -0.577350269189626;  Weight[1] = 1.0;
+	Location[2][0] = 0.577350269189626;  	Location[2][1] = 0.577350269189626;   Location[2][2] = -0.577350269189626;  Weight[2] = 1.0;
+	Location[3][0] = -0.577350269189626;  	Location[3][1] = 0.577350269189626;   Location[3][2] = -0.577350269189626;  Weight[3] = 1.0;
+	Location[4][0] = -0.577350269189626;   	Location[4][1] = -0.577350269189626;  Location[4][2] = 0.577350269189626;  	Weight[4] = 1.0;
+	Location[5][0] = 0.577350269189626;   	Location[5][1] = -0.577350269189626;  Location[5][2] = 0.577350269189626;   Weight[5] = 1.0;
+	Location[6][0] = 0.577350269189626;   	Location[6][1] = 0.577350269189626;   Location[6][2] = 0.577350269189626;  	Weight[6] = 1.0;
+	Location[7][0] = -0.577350269189626;   	Location[7][1] = 0.577350269189626;   Location[7][2] = 0.577350269189626;   Weight[7] = 1.0;
   }
+
   
   for (iGauss = 0; iGauss < nGauss; iGauss++) {
     
-    Xi = Location[iGauss][0]; Eta = Location[iGauss][1];  Mu = Location[iGauss][2];
+    Xi = Location[iGauss][0]; Eta = Location[iGauss][1];  Zeta = Location[iGauss][2];
     
-    if (nNodes == 4) Det = ShapeFunc_Tetra(Xi, Eta, Mu, CoordCorners, DShapeFunction);
-    if (nNodes == 5) Det = ShapeFunc_Pyram(Xi, Eta, Mu, CoordCorners, DShapeFunction);
-    if (nNodes == 6) Det = ShapeFunc_Wedge(Xi, Eta, Mu, CoordCorners, DShapeFunction);
-    if (nNodes == 8) Det = ShapeFunc_Hexa(Xi, Eta, Mu, CoordCorners, DShapeFunction);
+    if (nNodes == 4) Det = ShapeFunc_Tetra(Xi, Eta, Zeta, CoordCorners, DShapeFunction);
+    if (nNodes == 5) Det = ShapeFunc_Pyram(Xi, Eta, Zeta, CoordCorners, DShapeFunction);
+    if (nNodes == 6) Det = ShapeFunc_Wedge(Xi, Eta, Zeta, CoordCorners, DShapeFunction);
+    if (nNodes == 8) Det = ShapeFunc_Hexa(Xi, Eta, Zeta, CoordCorners, DShapeFunction);
     
     /*--- Compute the B Matrix ---*/
     
@@ -648,12 +704,12 @@ void CGalerkin_FEA::SetFEA_StiffMatrix3D(double **StiffMatrix_Elem, double Coord
     
     /*--- Compute the D Matrix (for plane strain and 3-D)---*/
     
-    D_Matrix[0][0] = Lambda + 2.0*Mu;	D_Matrix[0][1] = Lambda;					D_Matrix[0][2] = Lambda;					D_Matrix[0][3] = 0.0;	D_Matrix[0][4] = 0.0;	D_Matrix[0][5] = 0.0;
-    D_Matrix[1][0] = Lambda;					D_Matrix[1][1] = Lambda + 2.0*Mu;	D_Matrix[1][2] = Lambda;					D_Matrix[1][3] = 0.0;	D_Matrix[1][4] = 0.0;	D_Matrix[1][5] = 0.0;
-    D_Matrix[2][0] = Lambda;					D_Matrix[2][1] = Lambda;					D_Matrix[2][2] = Lambda + 2.0*Mu;	D_Matrix[2][3] = 0.0;	D_Matrix[2][4] = 0.0;	D_Matrix[2][5] = 0.0;
-    D_Matrix[3][0] = 0.0;							D_Matrix[3][1] = 0.0;							D_Matrix[3][2] = 0.0;							D_Matrix[3][3] = Mu;	D_Matrix[3][4] = 0.0;	D_Matrix[3][5] = 0.0;
-    D_Matrix[4][0] = 0.0;							D_Matrix[4][1] = 0.0;							D_Matrix[4][2] = 0.0;							D_Matrix[4][3] = 0.0;	D_Matrix[4][4] = Mu;	D_Matrix[4][5] = 0.0;
-    D_Matrix[5][0] = 0.0;							D_Matrix[5][1] = 0.0;							D_Matrix[5][2] = 0.0;							D_Matrix[5][3] = 0.0;	D_Matrix[5][4] = 0.0;	D_Matrix[5][5] = Mu;
+    D_Matrix[0][0] = Lambda + 2.0*Mu;	D_Matrix[0][1] = Lambda;			D_Matrix[0][2] = Lambda;			D_Matrix[0][3] = 0.0;	D_Matrix[0][4] = 0.0;	D_Matrix[0][5] = 0.0;
+    D_Matrix[1][0] = Lambda;			D_Matrix[1][1] = Lambda + 2.0*Mu;	D_Matrix[1][2] = Lambda;			D_Matrix[1][3] = 0.0;	D_Matrix[1][4] = 0.0;	D_Matrix[1][5] = 0.0;
+    D_Matrix[2][0] = Lambda;			D_Matrix[2][1] = Lambda;			D_Matrix[2][2] = Lambda + 2.0*Mu;	D_Matrix[2][3] = 0.0;	D_Matrix[2][4] = 0.0;	D_Matrix[2][5] = 0.0;
+    D_Matrix[3][0] = 0.0;				D_Matrix[3][1] = 0.0;				D_Matrix[3][2] = 0.0;				D_Matrix[3][3] = Mu;	D_Matrix[3][4] = 0.0;	D_Matrix[3][5] = 0.0;
+    D_Matrix[4][0] = 0.0;				D_Matrix[4][1] = 0.0;				D_Matrix[4][2] = 0.0;				D_Matrix[4][3] = 0.0;	D_Matrix[4][4] = Mu;	D_Matrix[4][5] = 0.0;
+    D_Matrix[5][0] = 0.0;				D_Matrix[5][1] = 0.0;				D_Matrix[5][2] = 0.0;				D_Matrix[5][3] = 0.0;	D_Matrix[5][4] = 0.0;	D_Matrix[5][5] = Mu;
     
     
     /*--- Compute the BT.D Matrix ---*/
@@ -679,4 +735,229 @@ void CGalerkin_FEA::SetFEA_StiffMatrix3D(double **StiffMatrix_Elem, double Coord
     
   }
   
+}
+
+
+void CGalerkin_FEA::GetFEA_StressNodal2D(double StressNodal[8][3], double DispElement[8], double CoordCorners[8][3], unsigned short nNodes, unsigned short form2d) {
+
+
+	  double B_Matrix[3][8], D_Matrix[3][3], StrainVector[3];
+	  double Xi = 0.0, Eta = 0.0, Det = 0.0;
+	  unsigned short iNode, iVar, jVar, kVar, iNodal, nNodal = 0;
+	  double DShapeFunction[8][4] = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0},
+	    {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
+	  double Location[4][3];
+	  unsigned short nVar = 2;
+
+	  /*--- Triangle. Nodes of numerical integration at 1 point (order 1). ---*/
+
+	  if (nNodes == 3) {
+	    Location[0][0] = 1.0;  Location[0][1] = 0.0;
+	    Location[0][0] = 0.0;  Location[0][1] = 1.0;
+	    Location[0][0] = 0.0;  Location[0][1] = 0.0;
+	  }
+
+	  /*--- Rectangle. Nodes of numerical integration at 4 points (order 2). ---*/
+
+	  if (nNodes == 4) {
+	    Location[0][0] = -1.0;  Location[0][1] = -1.0;
+	    Location[1][0] = 1.0;   Location[1][1] = -1.0;
+	    Location[2][0] = 1.0;   Location[2][1] = 1.0;
+	    Location[3][0] = -1.0;  Location[3][1] = 1.0;
+	  }
+
+	  for (iNodal = 0; iNodal < nNodes; iNodal++) {
+
+	    Xi = Location[iNodal][0]; Eta = Location[iNodal][1];
+
+	    if (nNodes == 3) Det = ShapeFunc_Triangle(Xi, Eta, CoordCorners, DShapeFunction);
+	    if (nNodes == 4) Det = ShapeFunc_Rectangle(Xi, Eta, CoordCorners, DShapeFunction);
+
+	    /*--- Compute the B Matrix ---*/
+
+	      for (iVar = 0; iVar < 3; iVar++){
+	    	  for (jVar = 0; jVar < nNodes*nVar; jVar++)
+	    		  B_Matrix[iVar][jVar] = 0.0;
+	      }
+
+	      for (iNode = 0; iNode < nNodes; iNode++) {
+
+	      B_Matrix[0][0+iNode*nVar] = DShapeFunction[iNode][0];
+	      B_Matrix[1][1+iNode*nVar] = DShapeFunction[iNode][1];
+
+	      B_Matrix[2][0+iNode*nVar] = DShapeFunction[iNode][1];
+	      B_Matrix[2][1+iNode*nVar] = DShapeFunction[iNode][0];
+
+	    }
+
+	    if (form2d==0){
+
+	    /*--- Compute the D Matrix (for plane stress and 2-D)---*/
+
+		D_Matrix[0][0] = E/(1-Nu*Nu);	  		D_Matrix[0][1] = (E*Nu)/(1-Nu*Nu);  D_Matrix[0][2] = 0.0;
+		D_Matrix[1][0] = (E*Nu)/(1-Nu*Nu);    	D_Matrix[1][1] = E/(1-Nu*Nu);   	D_Matrix[1][2] = 0.0;
+		D_Matrix[2][0] = 0.0;               	D_Matrix[2][1] = 0.0;               D_Matrix[2][2] = ((1-Nu)*E)/(2*(1-Nu*Nu));
+
+	    }
+	    else if (form2d==1){
+
+	    /*--- Compute the D Matrix (for plane strain and 2-D) as a function of Mu and Lambda---*/
+
+	    D_Matrix[0][0] = Lambda + 2.0*Mu;	D_Matrix[0][1] = Lambda;            D_Matrix[0][2] = 0.0;
+	    D_Matrix[1][0] = Lambda;            D_Matrix[1][1] = Lambda + 2.0*Mu;   D_Matrix[1][2] = 0.0;
+	    D_Matrix[2][0] = 0.0;               D_Matrix[2][1] = 0.0;               D_Matrix[2][2] = Mu;
+
+	    /*--- Compute the D Matrix (for plane strain and 2-D) as a function of E and Nu---*/
+
+	//    D_Matrix[0][0] = (E*(1-Nu))/((1+Nu)*(1-2*Nu));	D_Matrix[0][1] = (E*Nu)/((1+Nu)*(1-2*Nu));          D_Matrix[0][2] = 0.0;
+	//    D_Matrix[1][0] = (E*Nu)/((1+Nu)*(1-2*Nu));        D_Matrix[1][1] = (E*(1-Nu))/((1+Nu)*(1-2*Nu));      D_Matrix[1][2] = 0.0;
+	//    D_Matrix[2][0] = 0.0;               				D_Matrix[2][1] = 0.0;               				D_Matrix[2][2] = (E*(1-2*Nu))/(2*(1+Nu)*(1-2*Nu));
+
+	    }
+
+	    /*--- Compute the Strain vector (e=B*D) ---*/
+
+	    for (iVar = 0; iVar < 3; iVar++) {
+	        StrainVector[iVar] = 0.0;
+	        for (kVar = 0; kVar < nNodes*nVar; kVar++)
+	          StrainVector[iVar] += B_Matrix[iVar][kVar]*DispElement[kVar];
+	    }
+
+	    /*--- Compute the Stress vector (s=D*e) ---*/
+
+	    for (iVar = 0; iVar < 3; iVar++) {
+	        StressNodal[iNodal][iVar] = 0.0;
+	        for (kVar = 0; kVar < 3; kVar++)
+	          StressNodal[iNodal][iVar] += D_Matrix[iVar][kVar]*StrainVector[kVar];
+	    }
+
+	  }
+
+}
+
+void CGalerkin_FEA::GetFEA_StressNodal3D(double StressNodal[8][6], double DispElement[24], double CoordCorners[8][3], unsigned short nNodes) {
+
+
+	  double B_Matrix[6][24], D_Matrix[6][6], StrainVector[6];
+	  double Xi = 0.0, Eta = 0.0, Zeta=0.0, Det = 0.0;
+	  unsigned short iNode, iVar, jVar, kVar, iNodal, nNodal = 0;
+	  double DShapeFunction[8][4] = {{0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0},
+	    {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}, {0.0, 0.0, 0.0, 0.0}};
+	  double Location[8][3];
+
+	  unsigned short nVar = 3;
+
+	  /*--- Tetrahedrons. Nodes of numerical integration at 1 point (order 1). ---*/
+
+	  if (nNodes == 4) {
+		nNodal = 4;
+	    Location[0][0] = 1.0;  Location[0][1] = 0.0;  Location[0][2] = 0.0;
+	    Location[1][0] = 0.0;  Location[1][1] = 1.0;  Location[1][2] = 0.0;
+	    Location[2][0] = 0.0;  Location[2][1] = 0.0;  Location[2][2] = 0.0;
+	    Location[3][0] = 0.0;  Location[3][1] = 0.0;  Location[3][2] = 1.0;
+	  }
+
+	  /*--- Pyramids. Nodes numerical integration at 5 points. ---*/
+
+	  if (nNodes == 5) {
+	    nNodal = 5;
+	    Location[0][0] = 0.5;   Location[0][1] = 0.0;   Location[0][2] = 0.1531754163448146;
+	    Location[1][0] = 0.0;   Location[1][1] = 0.5;   Location[1][2] = 0.1531754163448146;
+	    Location[2][0] = -0.5;  Location[2][1] = 0.0;   Location[2][2] = 0.1531754163448146;
+	    Location[3][0] = 0.0;   Location[3][1] = -0.5;  Location[3][2] = 0.1531754163448146;
+	    Location[4][0] = 0.0;   Location[4][1] = 0.0;   Location[4][2] = 0.6372983346207416;
+	  }
+
+	  /*--- Wedge. Nodes of numerical integration at 6 points (order 3 in Xi, order 2 in Eta and Mu ). ---*/
+
+	  if (nNodes == 6) {
+	    nNodal = 6;
+	    Location[0][0] = 0.5;                 Location[0][1] = 0.5;                 Location[0][2] = -0.577350269189626;
+	    Location[1][0] = -0.577350269189626;  Location[1][1] = 0.0;                 Location[1][2] = 0.5;
+	    Location[2][0] = 0.5;                 Location[2][1] = -0.577350269189626;  Location[2][2] = 0.0;
+	    Location[3][0] = 0.5;                 Location[3][1] = 0.5;                 Location[3][2] = 0.577350269189626;
+	    Location[4][0] = 0.577350269189626;   Location[4][1] = 0.0;                 Location[4][2] = 0.5;
+	    Location[5][0] = 0.5;                 Location[5][1] = 0.577350269189626;   Location[5][2] = 0.0;
+	  }
+
+	  /*--- Hexahedrons. Nodes of numerical integration at 6 points (order 3). ---*/
+
+	  if (nNodes == 8) {
+	    nNodal = 8;
+	    Location[0][0] = -1.0;  Location[0][1] = -1.0;  Location[0][2] = -1.0;
+	    Location[1][0] = 1.0;  	Location[1][1] = -1.0;  Location[1][2] = -1.0;
+	    Location[2][0] = 1.0;  	Location[2][1] = 1.0;   Location[2][2] = -1.0;
+	    Location[3][0] = -1.0;  Location[3][1] = 1.0;   Location[3][2] = -1.0;
+	    Location[4][0] = -1.0;  Location[4][1] = -1.0;  Location[4][2] = 1.0;
+	    Location[5][0] = 1.0;   Location[5][1] = -1.0;  Location[5][2] = 1.0;
+	    Location[6][0] = 1.0;   Location[6][1] = 1.0;   Location[6][2] = 1.0;
+	    Location[7][0] = -1.0;  Location[7][1] = 1.0;   Location[7][2] = 1.0;
+	  }
+
+	  for (iNodal = 0; iNodal < nNodal; iNodal++) {
+
+	    Xi = Location[iNodal][0]; Eta = Location[iNodal][1];  Zeta = Location[iNodal][2];
+
+	    if (nNodes == 4) Det = ShapeFunc_Tetra(Xi, Eta, Zeta, CoordCorners, DShapeFunction);
+	    if (nNodes == 5) Det = ShapeFunc_Pyram(Xi, Eta, Zeta, CoordCorners, DShapeFunction);
+	    if (nNodes == 6) Det = ShapeFunc_Wedge(Xi, Eta, Zeta, CoordCorners, DShapeFunction);
+	    if (nNodes == 8) Det = ShapeFunc_Hexa(Xi, Eta, Zeta, CoordCorners, DShapeFunction);
+
+	    /*--- Compute the B Matrix ---*/
+
+	    for (iVar = 0; iVar < 6; iVar++)
+	      for (jVar = 0; jVar < nNodes*nVar; jVar++)
+	        B_Matrix[iVar][jVar] = 0.0;
+
+	    for (iNode = 0; iNode < nNodes; iNode++) {
+	      B_Matrix[0][0+iNode*nVar] = DShapeFunction[iNode][0];
+	      B_Matrix[1][1+iNode*nVar] = DShapeFunction[iNode][1];
+	      B_Matrix[2][2+iNode*nVar] = DShapeFunction[iNode][2];
+
+	      B_Matrix[3][0+iNode*nVar] = DShapeFunction[iNode][1];
+	      B_Matrix[3][1+iNode*nVar] = DShapeFunction[iNode][0];
+
+	      B_Matrix[4][1+iNode*nVar] = DShapeFunction[iNode][2];
+	      B_Matrix[4][2+iNode*nVar] = DShapeFunction[iNode][1];
+
+	      B_Matrix[5][0+iNode*nVar] = DShapeFunction[iNode][2];
+	      B_Matrix[5][2+iNode*nVar] = DShapeFunction[iNode][0];
+	    }
+
+	    /*--- Compute the D Matrix (for plane strain and 3-D)---*/
+
+	    D_Matrix[0][0] = Lambda + 2.0*Mu;	D_Matrix[0][1] = Lambda;			D_Matrix[0][2] = Lambda;			D_Matrix[0][3] = 0.0;	D_Matrix[0][4] = 0.0;	D_Matrix[0][5] = 0.0;
+	    D_Matrix[1][0] = Lambda;			D_Matrix[1][1] = Lambda + 2.0*Mu;	D_Matrix[1][2] = Lambda;			D_Matrix[1][3] = 0.0;	D_Matrix[1][4] = 0.0;	D_Matrix[1][5] = 0.0;
+	    D_Matrix[2][0] = Lambda;			D_Matrix[2][1] = Lambda;			D_Matrix[2][2] = Lambda + 2.0*Mu;	D_Matrix[2][3] = 0.0;	D_Matrix[2][4] = 0.0;	D_Matrix[2][5] = 0.0;
+	    D_Matrix[3][0] = 0.0;				D_Matrix[3][1] = 0.0;				D_Matrix[3][2] = 0.0;				D_Matrix[3][3] = Mu;	D_Matrix[3][4] = 0.0;	D_Matrix[3][5] = 0.0;
+	    D_Matrix[4][0] = 0.0;				D_Matrix[4][1] = 0.0;				D_Matrix[4][2] = 0.0;				D_Matrix[4][3] = 0.0;	D_Matrix[4][4] = Mu;	D_Matrix[4][5] = 0.0;
+	    D_Matrix[5][0] = 0.0;				D_Matrix[5][1] = 0.0;				D_Matrix[5][2] = 0.0;				D_Matrix[5][3] = 0.0;	D_Matrix[5][4] = 0.0;	D_Matrix[5][5] = Mu;
+
+//	    D_Matrix[0][0] = (E*(1-Nu))/((1+Nu)*(1-2*Nu));	D_Matrix[0][1] = (E*Nu)/((1+Nu)*(1-2*Nu));		D_Matrix[0][2] = (E*Nu)/((1+Nu)*(1-2*Nu));			D_Matrix[0][3] = 0.0;				D_Matrix[0][4] = 0.0;				D_Matrix[0][5] = 0.0;
+//	    D_Matrix[1][0] = (E*Nu)/((1+Nu)*(1-2*Nu));		D_Matrix[1][1] = (E*(1-Nu))/((1+Nu)*(1-2*Nu));	D_Matrix[1][2] = (E*Nu)/((1+Nu)*(1-2*Nu));			D_Matrix[1][3] = 0.0;				D_Matrix[1][4] = 0.0;				D_Matrix[1][5] = 0.0;
+//	    D_Matrix[2][0] = (E*Nu)/((1+Nu)*(1-2*Nu));		D_Matrix[2][1] = (E*Nu)/((1+Nu)*(1-2*Nu));		D_Matrix[2][2] = (E*(1-Nu))/((1+Nu)*(1-2*Nu));		D_Matrix[2][3] = 0.0;				D_Matrix[2][4] = 0.0;				D_Matrix[2][5] = 0.0;
+//	    D_Matrix[3][0] = 0.0;							D_Matrix[3][1] = 0.0;							D_Matrix[3][2] = 0.0;								D_Matrix[3][3] = E/(2*(1+Nu));		D_Matrix[3][4] = 0.0;				D_Matrix[3][5] = 0.0;
+//	    D_Matrix[4][0] = 0.0;							D_Matrix[4][1] = 0.0;							D_Matrix[4][2] = 0.0;								D_Matrix[4][3] = 0.0;				D_Matrix[4][4] = E/(2*(1+Nu));		D_Matrix[4][5] = 0.0;
+//	    D_Matrix[5][0] = 0.0;							D_Matrix[5][1] = 0.0;							D_Matrix[5][2] = 0.0;								D_Matrix[5][3] = 0.0;				D_Matrix[5][4] = 0.0;				D_Matrix[5][5] = E/(2*(1+Nu));
+//
+	    /*--- Compute the Strain vector (e=B*D) ---*/
+
+	    for (iVar = 0; iVar < 6; iVar++) {
+	        StrainVector[iVar] = 0.0;
+	        for (kVar = 0; kVar < nNodes*nVar; kVar++)
+	          StrainVector[iVar] += B_Matrix[iVar][kVar]*DispElement[kVar];
+	    }
+
+	    /*--- Compute the Stress vector (s=D*e) ---*/
+
+	    for (iVar = 0; iVar < 6; iVar++) {
+	        StressNodal[iNodal][iVar] = 0.0;
+	        for (kVar = 0; kVar < 6; kVar++)
+	          StressNodal[iNodal][iVar] += D_Matrix[iVar][kVar]*StrainVector[kVar];
+	    }
+
+	  }
+
+
+
 }

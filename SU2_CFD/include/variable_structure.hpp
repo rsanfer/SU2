@@ -1333,6 +1333,11 @@ public:
   
 	/*!
 	 * \brief A virtual member.
+	 */
+  virtual void AddStress(unsigned short iVar, unsigned short jVar, double val_stress);
+
+	/*!
+	 * \brief A virtual member.
    
 	 */
   virtual double **GetStress(void);
@@ -1358,6 +1363,21 @@ public:
    
 	 */
   virtual double GetFlow_Pressure(void);
+
+    /*!
+	 * \brief A virtual member.
+	 */
+  virtual void Initialize_Connectivity(void);
+
+  /*!
+	 * \brief A virtual member.
+	 */
+  virtual void Upgrade_Connectivity(void);
+
+  /*!
+	 * \brief A virtual member.
+	 */
+  virtual unsigned short Get_Connectivity(void);
 
 	/*!
 	 * \brief A virtual member.
@@ -1878,7 +1898,8 @@ protected:
 	double Flow_Pressure;	/*!< \brief Pressure of the fluid. */
   double **Stress;  /*!< \brief Stress tensor. */
   double VonMises_Stress; /*!< \brief Von Mises stress. */
-  
+  unsigned short nAttachedElements; /*!< \brief Number of elements connected to the node. */
+
 public:
 
 	/*!
@@ -1909,6 +1930,14 @@ public:
   void SetStress(unsigned short iVar, unsigned short jVar, double val_stress);
   
   /*!
+	 * \brief Add a value to the stress matrix in the element.
+   * \param[in] iVar - i index.
+	 * \param[in] jVar - j index.
+	 * \param[in] val_stress - Value of the stress.
+	 */
+  void AddStress(unsigned short iVar, unsigned short jVar, double val_stress);
+
+  /*!
 	 * \brief Get the value of the stress.
    * \return Value of the stress.
 	 */
@@ -1937,6 +1966,26 @@ public:
    * \return Value of the Von Mises stress.
 	 */
   double GetFlow_Pressure(void);
+
+  /*!
+	 * \brief Initialize the value of the number of attached elements to a node.
+   * \return Value of the Von Mises stress.
+	 */
+  void Initialize_Connectivity(void);
+
+
+  /*!
+	 * \brief Add a 1 to the value of the number of attached elements to a node.
+   * \return Value of the Von Mises stress.
+	 */
+  void Upgrade_Connectivity(void);
+
+
+  /*!
+	 * \brief Returns the value of the number of attached elements to a node.
+   * \return Value of the Von Mises stress.
+	 */
+  unsigned short Get_Connectivity(void);
 
 };
 

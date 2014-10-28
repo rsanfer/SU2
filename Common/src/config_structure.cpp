@@ -88,7 +88,8 @@ void CConfig::SetPointersNull(void){
   Marker_Isothermal=NULL;     Marker_HeatFlux=NULL;         Marker_NacelleInflow=NULL;
   Marker_IsothermalCatalytic=NULL; Marker_IsothermalNonCatalytic=NULL;
   Marker_HeatFluxNonCatalytic=NULL; Marker_HeatFluxCatalytic=NULL;
-  Marker_NacelleExhaust=NULL; Marker_Displacement=NULL;     Marker_Load=NULL;
+  Marker_NacelleExhaust=NULL; Marker_Clamped=NULL;	Marker_Displacement=NULL;     Marker_Load=NULL;
+  Marker_Load_Dir=NULL;
   Marker_FlowLoad=NULL;       Marker_Neumann=NULL;          Marker_Neumann_Elec=NULL;
   Marker_All_TagBound=NULL;        Marker_CfgFile_TagBound=NULL;       Marker_All_KindBC=NULL;
   Marker_CfgFile_KindBC=NULL;    Marker_All_SendRecv=NULL; Marker_All_PerBound=NULL;
@@ -104,6 +105,8 @@ void CConfig::SetPointersNull(void){
   FlowLoad_Value=NULL;        Periodic_RotCenter=NULL;      Periodic_RotAngles=NULL;
   Periodic_Translation=NULL;  Periodic_Center=NULL;         Periodic_Rotation=NULL;
   Periodic_Translate=NULL;    Wall_Catalycity=NULL;
+
+  Load_Dir=NULL;	          Load_Dir_Value=NULL;          Load_Dir_Multiplier=NULL;
 
   /*--- Miscellaneous/unsorted ---*/
 
@@ -422,10 +425,15 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /* DESCRIPTION: Nacelle exhaust boundary marker(s)
    Format: (nacelle exhaust marker, total nozzle temp, total nozzle pressure, ... )*/
   addInletFixedOption("MARKER_NACELLE_EXHAUST", nMarker_NacelleExhaust, Marker_NacelleExhaust, Nozzle_Ttotal, Nozzle_Ptotal);
+  /* DESCRIPTION: Clamped boundary marker(s) */
+  addStringListOption("MARKER_CLAMPED", nMarker_Clamped, Marker_Clamped);
   /* DESCRIPTION: Displacement boundary marker(s) */
   addStringDoubleListOption("MARKER_NORMAL_DISPL", nMarker_Displacement, Marker_Displacement, Displ_Value);
   /* DESCRIPTION: Load boundary marker(s) */
   addStringDoubleListOption("MARKER_NORMAL_LOAD", nMarker_Load, Marker_Load, Load_Value);
+  /* DESCRIPTION: % Load boundary marker(s)
+   Format: (inlet marker, load, multiplier, dir_x, dir_y, dir_z, ... ), i.e. primitive variables specified. */
+  addInletOption("MARKER_LOAD", nMarker_Load_Dir, Marker_Load_Dir, Load_Dir_Value, Load_Dir_Multiplier, Load_Dir);
   /* DESCRIPTION: Flow load boundary marker(s) */
   addStringDoubleListOption("MARKER_FLOWLOAD", nMarker_FlowLoad, Marker_FlowLoad, FlowLoad_Value);
   /* DESCRIPTION: Damping factor for engine inlet condition */
@@ -1006,6 +1014,8 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   addDoubleOption("POISSON_RATIO", PoissonRatio, 0.30);
   /* DESCRIPTION: Material density */
   addDoubleOption("MATERIAL_DENSITY", MaterialDensity, 7854);
+  /* DESCRIPTION: Formulation for bidimensional elasticity solver */
+  addEnumOption("FORMULATION_ELASTICITY_2D", Kind_2DElasForm, ElasForm_2D, PLANE_STRESS);
 
   /* CONFIG_CATEGORY: Wave solver */
   /*--- options related to the wave solver ---*/
@@ -2692,7 +2702,7 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
   nMarker_Outlet + nMarker_Isothermal + nMarker_IsothermalCatalytic +
   nMarker_IsothermalNonCatalytic + nMarker_HeatFlux + nMarker_HeatFluxCatalytic +
   nMarker_HeatFluxNonCatalytic + nMarker_NacelleInflow + nMarker_NacelleExhaust +
-  nMarker_Dirichlet_Elec + nMarker_Displacement + nMarker_Load +
+  nMarker_Dirichlet_Elec + nMarker_Clamped + nMarker_Displacement + nMarker_Load + nMarker_Load_Dir +
   nMarker_FlowLoad + nMarker_Pressure + nMarker_Custom +
   nMarker_ActDisk_Inlet + nMarker_ActDisk_Outlet + nMarker_Out_1D + 2*nDomain;
 
@@ -2714,7 +2724,7 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
   iMarker_Inlet, iMarker_Riemann, iMarker_Outlet, iMarker_Isothermal, iMarker_IsothermalCatalytic,
   iMarker_IsothermalNonCatalytic, iMarker_HeatFlux, iMarker_HeatFluxNoncatalytic,
   iMarker_HeatFluxCatalytic, iMarker_NacelleInflow, iMarker_NacelleExhaust,
-  iMarker_Displacement, iMarker_Load, iMarker_FlowLoad, iMarker_Neumann,
+  iMarker_Clamped, iMarker_Displacement, iMarker_Load, iMarker_Load_Dir, iMarker_FlowLoad, iMarker_Neumann,
   iMarker_Monitoring, iMarker_Designing, iMarker_GeoEval, iMarker_Plotting,
   iMarker_DV, iMarker_Moving, iMarker_Supersonic_Inlet,
   iMarker_ActDisk_Inlet, iMarker_ActDisk_Outlet, iMarker_Out_1D;
@@ -2739,7 +2749,7 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
   nMarker_Outlet + nMarker_Isothermal + nMarker_IsothermalNonCatalytic +
   nMarker_IsothermalCatalytic + nMarker_HeatFlux + nMarker_HeatFluxNonCatalytic +
   nMarker_HeatFluxCatalytic + nMarker_NacelleInflow + nMarker_NacelleExhaust +
-  nMarker_Supersonic_Inlet + nMarker_Displacement + nMarker_Load +
+  nMarker_Supersonic_Inlet + nMarker_Clamped + nMarker_Displacement + nMarker_Load + nMarker_Load_Dir +
   nMarker_FlowLoad + nMarker_Custom +
   nMarker_ActDisk_Inlet + nMarker_ActDisk_Outlet + nMarker_Out_1D;
 
@@ -2918,6 +2928,12 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
     iMarker_Config++;
   }
 
+  for (iMarker_Clamped = 0; iMarker_Clamped < nMarker_Clamped; iMarker_Clamped++) {
+    Marker_CfgFile_TagBound[iMarker_Config] = Marker_Clamped[iMarker_Clamped];
+    Marker_CfgFile_KindBC[iMarker_Config] = CLAMPED_BOUNDARY;
+    iMarker_Config++;
+  }
+
   for (iMarker_Displacement = 0; iMarker_Displacement < nMarker_Displacement; iMarker_Displacement++) {
     Marker_CfgFile_TagBound[iMarker_Config] = Marker_Displacement[iMarker_Displacement];
     Marker_CfgFile_KindBC[iMarker_Config] = DISPLACEMENT_BOUNDARY;
@@ -2929,6 +2945,13 @@ void CConfig::SetMarkers(unsigned short val_software, unsigned short val_izone) 
     Marker_CfgFile_KindBC[iMarker_Config] = LOAD_BOUNDARY;
     iMarker_Config++;
   }
+
+  for (iMarker_Load_Dir = 0; iMarker_Load_Dir < nMarker_Load_Dir; iMarker_Load_Dir++) {
+    Marker_CfgFile_TagBound[iMarker_Config] = Marker_Load_Dir[iMarker_Load_Dir];
+    Marker_CfgFile_KindBC[iMarker_Config] = LOAD_DIR_BOUNDARY;
+    iMarker_Config++;
+  }
+
 
   for (iMarker_FlowLoad = 0; iMarker_FlowLoad < nMarker_FlowLoad; iMarker_FlowLoad++) {
     Marker_CfgFile_TagBound[iMarker_Config] = Marker_FlowLoad[iMarker_FlowLoad];
@@ -2995,8 +3018,8 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
   iMarker_InterfaceBound, iMarker_Dirichlet, iMarker_Inlet, iMarker_Outlet,
   iMarker_Isothermal, iMarker_IsothermalNonCatalytic, iMarker_IsothermalCatalytic,
   iMarker_HeatFlux, iMarker_HeatFluxNonCatalytic, iMarker_HeatFluxCatalytic,
-  iMarker_NacelleInflow, iMarker_NacelleExhaust, iMarker_Displacement,
-  iMarker_Load, iMarker_FlowLoad,  iMarker_Neumann, iMarker_Monitoring,
+  iMarker_NacelleInflow, iMarker_NacelleExhaust, iMarker_Clamped, iMarker_Displacement,
+  iMarker_Load, iMarker_Load_Dir, iMarker_FlowLoad,  iMarker_Neumann, iMarker_Monitoring,
   iMarker_Designing, iMarker_GeoEval, iMarker_Plotting, iMarker_DV,
   iMarker_Moving, iMarker_Supersonic_Inlet, iMarker_ActDisk_Inlet,
   iMarker_ActDisk_Outlet;
@@ -4258,6 +4281,15 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
     }
   }
 
+  if (nMarker_Clamped != 0) {
+    cout << "Clamped boundary marker(s): ";
+    for (iMarker_Clamped = 0; iMarker_Clamped < nMarker_Clamped; iMarker_Clamped++) {
+      cout << Marker_Clamped[iMarker_Clamped];
+      if (iMarker_Clamped < nMarker_Clamped-1) cout << ", ";
+      else cout <<"."<<endl;
+    }
+  }
+
   if (nMarker_Displacement != 0) {
     cout << "Displacement boundary marker(s): ";
     for (iMarker_Displacement = 0; iMarker_Displacement < nMarker_Displacement; iMarker_Displacement++) {
@@ -4268,10 +4300,19 @@ void CConfig::SetOutput(unsigned short val_software, unsigned short val_izone) {
   }
 
   if (nMarker_Load != 0) {
-    cout << "Load boundary marker(s): ";
+    cout << "Normal load boundary marker(s): ";
     for (iMarker_Load = 0; iMarker_Load < nMarker_Load; iMarker_Load++) {
       cout << Marker_Load[iMarker_Load];
       if (iMarker_Load < nMarker_Load-1) cout << ", ";
+      else cout <<"."<<endl;
+    }
+  }
+
+  if (nMarker_Load_Dir != 0) {
+    cout << "Load boundary marker(s) in cartesian coordinates: ";
+    for (iMarker_Load_Dir = 0; iMarker_Load_Dir < nMarker_Load_Dir; iMarker_Load_Dir++) {
+      cout << Marker_Load_Dir[iMarker_Load_Dir];
+      if (iMarker_Load_Dir < nMarker_Load_Dir-1) cout << ", ";
       else cout <<"."<<endl;
     }
   }
@@ -4874,6 +4915,9 @@ CConfig::~CConfig(void)
   if (Heat_FluxCatalytic!=NULL)    delete[] Heat_FluxCatalytic;
   if (Displ_Value!=NULL)    delete[] Displ_Value;
   if (Load_Value!=NULL)    delete[] Load_Value;
+  if (Load_Dir!=NULL)    delete[] Load_Dir;
+  if (Load_Dir_Multiplier!=NULL)    delete[] Load_Dir_Multiplier;
+  if (Load_Dir_Value!=NULL)    delete[] Load_Dir_Value;
   if (FlowLoad_Value!=NULL)    delete[] FlowLoad_Value;
   if (Periodic_RotCenter!=NULL)    delete[] Periodic_RotCenter;
   if (Periodic_RotAngles!=NULL)    delete[] Periodic_RotAngles;
@@ -4914,6 +4958,7 @@ CConfig::~CConfig(void)
   if (Marker_NacelleExhaust!=NULL )     delete[] Marker_NacelleExhaust;
   if (Marker_Displacement!=NULL )       delete[] Marker_Displacement;
   if (Marker_Load!=NULL )               delete[] Marker_Load;
+  if (Marker_Load_Dir!=NULL )               delete[] Marker_Load_Dir;
   if (Marker_FlowLoad!=NULL )           delete[] Marker_FlowLoad;
   if (Marker_Neumann!=NULL )            delete[] Marker_Neumann;
   if (Marker_Neumann_Elec!=NULL )       delete[] Marker_Neumann_Elec;
@@ -5636,6 +5681,27 @@ double CConfig::GetLoad_Value(string val_marker) {
   for (iMarker_Load = 0; iMarker_Load < nMarker_Load; iMarker_Load++)
     if (Marker_Load[iMarker_Load] == val_marker) break;
   return Load_Value[iMarker_Load];
+}
+
+double CConfig::GetLoad_Dir_Value(string val_marker) {
+  unsigned short iMarker_Load_Dir;
+  for (iMarker_Load_Dir = 0; iMarker_Load_Dir < nMarker_Load_Dir; iMarker_Load_Dir++)
+    if (Marker_Load_Dir[iMarker_Load_Dir] == val_marker) break;
+  return Load_Dir_Value[iMarker_Load_Dir];
+}
+
+double CConfig::GetLoad_Dir_Multiplier(string val_marker) {
+  unsigned short iMarker_Load_Dir;
+  for (iMarker_Load_Dir = 0; iMarker_Load_Dir < nMarker_Load_Dir; iMarker_Load_Dir++)
+    if (Marker_Load_Dir[iMarker_Load_Dir] == val_marker) break;
+  return Load_Dir_Multiplier[iMarker_Load_Dir];
+}
+
+double* CConfig::GetLoad_Dir(string val_marker) {
+  unsigned short iMarker_Load_Dir;
+  for (iMarker_Load_Dir = 0; iMarker_Load_Dir < nMarker_Load_Dir; iMarker_Load_Dir++)
+    if (Marker_Load_Dir[iMarker_Load_Dir] == val_marker) break;
+  return Load_Dir[iMarker_Load_Dir];
 }
 
 double CConfig::GetFlowLoad_Value(string val_marker) {

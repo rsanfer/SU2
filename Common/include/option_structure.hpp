@@ -621,6 +621,8 @@ enum BC_TYPE {
   DISPLACEMENT_BOUNDARY = 15,		/*!< \brief Boundary displacement definition. */
   LOAD_BOUNDARY = 16,		/*!< \brief Boundary Load definition. */
   FLOWLOAD_BOUNDARY = 17,		/*!< \brief Boundary Load definition. */
+  CLAMPED_BOUNDARY = 18,		/*!< \brief Clamped Boundary definition. */
+  LOAD_DIR_BOUNDARY = 19,		/*!< \brief Boundary Load definition. */
   ELEC_DIELEC_BOUNDARY = 22,	/*!< \brief Dipoisson boundary definition for the poissonal potential. */
   ELEC_NEUMANN = 23,		/*!< \brief Boundary Neumann definition. */
   SUPERSONIC_INLET = 24,		/*!< \brief Boundary supersonic inlet definition. */
@@ -638,6 +640,19 @@ enum BC_TYPE {
   SEND_RECEIVE = 99,		/*!< \brief Boundary send-receive definition. */
   RIEMANN_BOUNDARY= 100   /*!< \brief Riemann Boundary definition. */
 };
+
+
+/*!
+ * \brief different regime modes
+ */
+enum ENUM_2DFORM {
+  PLANE_STRESS = 0,			/*!< \brief Definition of plane stress solver. */
+  PLANE_STRAIN = 1,			/*!< \brief Definition of plane strain solver. */
+};
+static const map<string, ENUM_2DFORM> ElasForm_2D = CCreateMap<string, ENUM_2DFORM>
+("PLANE_STRESS", PLANE_STRESS)
+("PLANE_STRAIN", PLANE_STRAIN);
+
 
 /*!
  * \brief types inlet boundary treatments

@@ -68,6 +68,7 @@ protected:
 	nDim;													/*!< \brief Number of dimensions of the problem. */
 	unsigned long nPoint;					/*!< \brief Number of points of the computational grid. */
   unsigned long nPointDomain; 	/*!< \brief Number of points of the computational grid. */
+  unsigned long nElem;			/*!< \brief Number of elements of the computational grid. */
 	double Max_Delta_Time,	/*!< \brief Maximum value of the delta time for all the control volumes. */
 	Min_Delta_Time;					/*!< \brief Minimum value of the delta time for all the control volumes. */
 	double *Residual_RMS,	/*!< \brief Vector with the mean residual for each variable. */
@@ -106,14 +107,17 @@ public:
   CSysVector LinSysSol;		/*!< \brief vector to store iterative solution of implicit linear system. */
   CSysVector LinSysRes;		/*!< \brief vector to store iterative residual of implicit linear system. */
   CSysVector LinSysAux;		/*!< \brief vector to store iterative residual of implicit linear system. */
-	CSysMatrix Jacobian; /*!< \brief Complete sparse Jacobian structure for implicit computations. */
+
+  CSysVector LinSysReact;		/*!< \brief vector to store the reactions of implicit linear system. */
+
+  CSysMatrix Jacobian; /*!< \brief Complete sparse Jacobian structure for implicit computations. */
   
-	CSysMatrix StiffMatrix; /*!< \brief Sparse structure for storing the stiffness matrix in Galerkin computations, and grid movement. */
+  CSysMatrix StiffMatrix; /*!< \brief Sparse structure for storing the stiffness matrix in Galerkin computations, and grid movement. */
 
   CSysVector OutputVariables;		/*!< \brief vector to store the extra variables to be written. */
   string* OutputHeadingNames; /*< \brief vector of strings to store the headings for the exra variables */
   
-	CVariable** node;	/*!< \brief Vector which the define the variables for each problem. */
+  CVariable** node;	/*!< \brief Vector which the define the variables for each problem. */
   CVariable* node_infty; /*!< \brief CVariable storing the free stream conditions. */
   
 	/*!
@@ -421,6 +425,16 @@ public:
                                 unsigned short iMesh);
     
 	/*!
+	 * \brief A virtual member, overloaded.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] solver_container - Container vector with all the solutions.
+	 * \param[in] config - Definition of the particular problem.
+	 *
+	 * \param[in] iMesh - Index of the mesh in multigrid computations.
+	 */
+	virtual void Postprocessing(CGeometry *geometry, CSolver **solver_container, CConfig *config, CNumerics **numerics,
+                                unsigned short iMesh);
+	/*!
 	 * \brief A virtual member.
 	 * \param[in] geometry - Geometrical definition of the problem.
 	 * \param[in] solver_container - Container vector with all the solutions.
@@ -508,6 +522,7 @@ public:
 	virtual void BC_Euler_Wall(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
                                unsigned short val_marker);
     
+
 	/*!
 	 * \brief A virtual member.
 	 * \param[in] geometry - Geometrical definition of the problem.
@@ -516,6 +531,34 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
 	 */
+
+
+	virtual void BC_Clamped(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
+                                 unsigned short val_marker);
+
+	/*!
+	 * \brief A virtual member.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] solver_container - Container vector with all the solutions.
+	 * \param[in] solver - Description of the numerical method.
+	 * \param[in] config - Definition of the particular problem.
+	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
+	 */
+
+
+	virtual void BC_Clamped_Post(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
+                                 unsigned short val_marker);
+
+	/*!
+	 * \brief A virtual member.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] solver_container - Container vector with all the solutions.
+	 * \param[in] solver - Description of the numerical method.
+	 * \param[in] config - Definition of the particular problem.
+	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
+	 */
+
+
 	virtual void BC_Normal_Displacement(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
                                  unsigned short val_marker);
     
@@ -549,6 +592,20 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
 	 */
+
+	virtual void BC_Dir_Load(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
+                         unsigned short val_marker);
+
+  /*!
+	 * \brief A virtual member.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] solver_container - Container vector with all the solutions.
+	 * \param[in] solver - Description of the numerical method.
+	 * \param[in] config - Definition of the particular problem.
+	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
+	 */
+
+
 	virtual void BC_Pressure(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
                               unsigned short val_marker);
     
@@ -5273,8 +5330,10 @@ class CFEASolver : public CSolver {
 private:
   
 	double  Total_CFEA;			/*!< \brief Total FEA coefficient for all the boundaries. */
-  CSysMatrix StiffMatrixSpace; /*!< \brief Sparse structure for storing the stiffness matrix in Galerkin computations. */
+    CSysMatrix StiffMatrixSpace; /*!< \brief Sparse structure for storing the stiffness matrix in Galerkin computations. */
 	CSysMatrix StiffMatrixTime;	/*!< \brief Sparse structure for storing the stiffness matrix in Galerkin computations. */
+
+	CSysMatrix StiffMatrixReact;	/*!< \brief Sparse structure for assembling the stiffness matrix in Galerkin computations to obtain the reactions. */
   
   double **StiffMatrix_Elem,			/*!< \brief Auxiliary matrices for storing point to point Stiffness Matrices. */
 	**StiffMatrix_Node;							/*!< \brief Auxiliary matrices for storing point to point Stiffness Matrices. */
@@ -5308,6 +5367,27 @@ public:
 	 */
 	void Viscous_Residual(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
                          unsigned short iMesh, unsigned short iRKStep);
+
+	/*!
+	 * \brief Impose a displacement (constraint) boundary condition --> Clamped boundary.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] solver_container - Container vector with all the solutions.
+	 * \param[in] solver - Description of the numerical method.
+	 * \param[in] config - Definition of the particular problem.
+	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
+	 */
+	void BC_Clamped(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
+                         unsigned short val_marker);
+	/*!
+	 * \brief Impose a displacement (constraint) boundary condition --> Clamped boundary.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] solver_container - Container vector with all the solutions.
+	 * \param[in] solver - Description of the numerical method.
+	 * \param[in] config - Definition of the particular problem.
+	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
+	 */
+	void BC_Clamped_Post(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
+                         unsigned short val_marker);
     
 	/*!
 	 * \brief Impose a displacement (constraint) boundary condition.
@@ -5341,7 +5421,18 @@ public:
 	 */
 	void BC_Normal_Load(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
                  unsigned short val_marker);
-  
+
+	/*!
+	 * \brief Impose a load boundary condition in cartesian coordinates.
+	 * \param[in] geometry - Geometrical definition of the problem.
+	 * \param[in] solver_container - Container vector with all the solutions.
+	 * \param[in] solver - Description of the numerical method.
+	 * \param[in] config - Definition of the particular problem.
+	 * \param[in] val_marker - Surface marker where the boundary condition is applied.
+	 */
+	void BC_Dir_Load(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
+                 unsigned short val_marker);
+
   /*!
 	 * \brief Impose a load boundary condition.
 	 * \param[in] geometry - Geometrical definition of the problem.
@@ -5370,7 +5461,8 @@ public:
 	 * \param[in] config - Definition of the particular problem.
 	 * \param[in] iMesh - Index of the mesh in multigrid computations.
 	 */
-	void Postprocessing(CGeometry *geometry, CSolver **solver_container, CConfig *config, unsigned short iMesh);
+	void Postprocessing(CGeometry *geometry, CSolver **solver_container, CConfig *config,  CNumerics **numerics,
+			unsigned short iMesh);
     
 	/*!
 	 * \brief Source term computation.

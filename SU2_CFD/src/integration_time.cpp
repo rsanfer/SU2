@@ -767,7 +767,13 @@ void CSingleGridIntegration::SingleGrid_Iteration(CGeometry ***geometry, CSolver
   
   /*--- Postprocessing ---*/
   
-  solver_container[iZone][MESH_0][SolContainer_Position]->Postprocessing(geometry[iZone][MESH_0], solver_container[iZone][MESH_0], config[iZone], MESH_0);
+  switch (RunTime_EqSystem) {
+  	  case RUNTIME_FEA_SYS:
+  		  solver_container[iZone][MESH_0][SolContainer_Position]->Postprocessing(geometry[iZone][MESH_0], solver_container[iZone][MESH_0], config[iZone], numerics_container[iZone][MESH_0][SolContainer_Position],  MESH_0);
+  		  break;
+  	  default:
+  		  solver_container[iZone][MESH_0][SolContainer_Position]->Postprocessing(geometry[iZone][MESH_0], solver_container[iZone][MESH_0], config[iZone], MESH_0);
+  }
   
   /*--- Compute adimensional parameters and the convergence monitor ---*/
   

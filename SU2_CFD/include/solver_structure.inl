@@ -335,6 +335,13 @@ inline void CSolver::SetOneD_FluxAvgEntalpy(double EnthalpyRef){ }
 
 inline void CSolver::BC_Euler_Wall(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config, 
 									 unsigned short val_marker) { }
+
+
+inline void CSolver::BC_Clamped(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config, 
+									 unsigned short val_marker) { }
+
+inline void CSolver::BC_Clamped_Post(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config, 
+									 unsigned short val_marker) { }
 									 
 inline void CSolver::BC_Normal_Displacement(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config, 
 									 unsigned short val_marker) { }
@@ -343,6 +350,9 @@ inline void CSolver::BC_Flow_Load(CGeometry *geometry, CSolver **solver_containe
 									 unsigned short val_marker) { }
 									 
 inline void CSolver::BC_Normal_Load(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config, 
+									 unsigned short val_marker) { }
+
+inline void CSolver::BC_Dir_Load(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config, 
 									 unsigned short val_marker) { }
                    
 inline void CSolver::BC_Pressure(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, CConfig *config,
@@ -418,7 +428,10 @@ inline void CSolver::SetTime_Step(CGeometry *geometry, CSolver **solver_containe
 							        unsigned short iMesh, unsigned long Iteration) { }	
 							        
 inline void CSolver::Postprocessing(CGeometry *geometry, CSolver **solver_container, CConfig *config, 
-							        unsigned short iMesh) { }								        
+							        unsigned short iMesh) { }
+
+inline void CSolver::Postprocessing(CGeometry *geometry, CSolver **solver_container, CConfig *config,  CNumerics **numerics,
+							        unsigned short iMesh) { }	
 
 inline void CSolver::Centered_Residual(CGeometry *geometry, CSolver **solver_container, CNumerics *numerics, 
 										CConfig *config, unsigned short iMesh, unsigned short iRKStep) { }

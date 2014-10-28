@@ -146,8 +146,10 @@ private:
   nMarker_HeatFluxCatalytic, /*!< \brief Number of constant heat flux wall boundaries. */
 	nMarker_NacelleExhaust,					/*!< \brief Number of nacelle exhaust flow markers. */
 	nMarker_NacelleInflow,					/*!< \brief Number of nacelle inflow flow markers. */
+	nMarker_Clamped,						/*!< \brief Number of clamped markers in the FEM. */
 	nMarker_Displacement,					/*!< \brief Number of displacement surface markers. */
 	nMarker_Load,					/*!< \brief Number of load surface markers. */
+	nMarker_Load_Dir,					/*!< \brief Number of load surface markers defined by magnitude and direction. */
 	nMarker_FlowLoad,					/*!< \brief Number of load surface markers. */
 	nMarker_Neumann,				/*!< \brief Number of Neumann flow markers. */
 	nMarker_Neumann_Elec,				/*!< \brief Number of Neumann flow markers. */
@@ -181,8 +183,10 @@ private:
   *Marker_HeatFluxCatalytic,       /*!< \brief Constant heat flux wall markers. */
 	*Marker_NacelleInflow,					/*!< \brief Nacelle Inflow flow markers. */
 	*Marker_NacelleExhaust,					/*!< \brief Nacelle Exhaust flow markers. */
+	*Marker_Clamped,						/*!< \brief Clamped markers. */
 	*Marker_Displacement,					/*!< \brief Displacement markers. */
 	*Marker_Load,					/*!< \brief Load markers. */
+	*Marker_Load_Dir,					/*!< \brief Load markers defined in cartesian coordinates. */
 	*Marker_FlowLoad,					/*!< \brief Flow Load markers. */
 	*Marker_Neumann,					/*!< \brief Neumann flow markers. */
 	*Marker_Neumann_Elec,					/*!< \brief Neumann flow markers. */
@@ -209,6 +213,9 @@ private:
   double *Heat_FluxCatalytic;  /*!< \brief Specified wall heat fluxes. */
 	double *Displ_Value;    /*!< \brief Specified displacement for displacement boundaries. */
 	double *Load_Value;    /*!< \brief Specified force for load boundaries. */
+	double *Load_Dir_Value;    /*!< \brief Specified force for load boundaries defined in cartesian coordinates. */
+	double *Load_Dir_Multiplier;    /*!< \brief Specified multiplier for load boundaries defined in cartesian coordinates. */
+	double **Load_Dir;  /*!< \brief Specified flow direction vector (unit vector) for inlet boundaries. */
 	double *FlowLoad_Value;    /*!< \brief Specified force for flow load boundaries. */
   double **ActDisk_Origin;
   double *ActDisk_RootRadius;
@@ -584,6 +591,7 @@ private:
 	double ElasticyMod,			/*!< \brief Young's modulus of elasticity. */
 	PoissonRatio,						/*!< \brief Poisson's ratio. */
 	MaterialDensity;								/*!< \brief Material density. */
+	unsigned short Kind_2DElasForm;			/*!< \brief Kind of bidimentional elasticity solver. */
 	double Wave_Speed;			/*!< \brief Wave speed used in the wave solver. */
 	double Thermal_Diffusivity;			/*!< \brief Thermal diffusivity used in the heat solver. */
 	double Cyclic_Pitch,          /*!< \brief Cyclic pitch for rotorcraft simulations. */
@@ -1474,7 +1482,11 @@ public:
 	 * \return Value of the Young's modulus of elasticity.
 	 */
 	double GetElasticyMod(void);
-
+  /*!
+	 * \brief Formulation for 2D elasticity (plane stress - strain)
+	 * \return Flag to 2D elasticity model.
+	 */
+	unsigned short GetElas2D_Formulation(void);
 	/*!
 	 * \brief Get the Poisson's ratio.
 	 * \return Value of the Poisson's ratio.
@@ -4675,6 +4687,30 @@ public:
 	 * \return The load value.
 	 */
 	double GetLoad_Value(string val_index);
+
+
+	/*!
+	 * \brief Get the force value at a load boundary defined in cartesian coordinates.
+	 * \param[in] val_index - Index corresponding to the load boundary.
+	 * \return The load value.
+	 */
+	double GetLoad_Dir_Value(string val_index);
+
+
+	/*!
+	 * \brief Get the force multiplier at a load boundary in cartesian coordinates.
+	 * \param[in] val_index - Index corresponding to the load boundary.
+	 * \return The load multiplier.
+	 */
+	double GetLoad_Dir_Multiplier(string val_index);
+
+
+	/*!
+	 * \brief Get the force direction at a loaded boundary in cartesian coordinates.
+	 * \param[in] val_index - Index corresponding to the load boundary.
+	 * \return The load direction.
+	 */
+	double* GetLoad_Dir(string val_index);
 
 	/*!
 	 * \brief Get the force value at an load boundary.

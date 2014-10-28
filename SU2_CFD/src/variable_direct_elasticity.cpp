@@ -26,7 +26,7 @@ CFEAVariable::CFEAVariable(void) : CVariable() { }
 
 CFEAVariable::CFEAVariable(double *val_fea, unsigned short val_nDim, unsigned short val_nvar, CConfig *config)
 : CVariable(val_nDim, val_nvar, config) {
-	unsigned short iVar, iDim;
+	unsigned short iVar, iDim, jDim;
   
 	/*--- Allocate residual structures ---*/
 	Residual_Sum = new double [nVar]; Residual_Old = new double [nVar];
@@ -41,6 +41,14 @@ CFEAVariable::CFEAVariable(double *val_fea, unsigned short val_nDim, unsigned sh
 	Stress = new double* [nDim];
 	for (iDim = 0; iDim < nDim; iDim++)
 		Stress[iDim] = new double [nDim];
+
+  /*--- Initialize stress tensor---*/
+	for (iDim = 0; iDim < nDim; iDim++){
+		for (jDim = 0; jDim < nDim; jDim++){
+			Stress[iDim][jDim]=0;
+		}
+	}
+
   
 }
 
