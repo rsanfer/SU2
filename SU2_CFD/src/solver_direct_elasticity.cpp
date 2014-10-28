@@ -2,7 +2,7 @@
  * \file solution_direct_elasticity.cpp
  * \brief Main subrotuines for solving the linear elasticity equation.
  * \author Aerospace Design Laboratory (Stanford University) <http://su2.stanford.edu>.
- * \author Load Control and Aeroelastics (Imperial College London)
+ * \author Load Control and Aeroelastics (Imperial College London) <http://www3.imperial.ac.uk/aeroelastics>
  * \version 3.2.2 "eagle"
  *
  * SU2, Copyright (C) 2012-2014 Aerospace Design Laboratory (ADL).
