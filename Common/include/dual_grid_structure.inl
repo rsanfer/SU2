@@ -119,7 +119,7 @@ inline void CPoint::AddCoord_Sum(su2double *val_coord_sum) {
 		Coord_Sum[iDim] += val_coord_sum[iDim];
 }
 
-inline void CPoint::SetGridVel(unsigned short val_dim, su2double val_gridvel) { GridVel[val_dim] = val_gridvel; }
+inline void CPoint::SetGridVel(unsigned short val_dim, su2double val_gridvel) { GridVel[val_dim] = val_gridvel;}
 
 inline void CPoint::SetGridVel_Grad(unsigned short val_var, unsigned short val_dim, su2double val_value) { GridVel_Grad[val_var][val_dim] = val_value; }
 

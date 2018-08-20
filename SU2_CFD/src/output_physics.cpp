@@ -328,7 +328,7 @@ void COutput::ComputeAvgTurboPerformance_HB(CConfig *config, unsigned short nTim
 for (iGeomZone = 0; iGeomZone < nBladesRow; iGeomZone++ ){
   for (iTimeInstance = 0; iTimeInstance < nTimeInstances; iTimeInstance++ ){
     EntropyGenAverage_HB        += EntropyGen[iTimeInstance * nMarkerTurboPerf + iGeomZone][nSpanWiseSections];
-    TotalWorkDone_Surface_HB    += TotalWorkDone_D[iTimeInstance * nMarkerTurboPerf + iGeomZone][nSpanWiseSections];
+    TotalWorkDone_Surface_HB    += TotalWorkDone_S[iTimeInstance * nMarkerTurboPerf + iGeomZone][nSpanWiseSections];
     //cout<<"Total Work Done :: "<<TotalWorkDone_S[iTimeInstance * nMarkerTurboPerf + iGeomZone][nSpanWiseSections]<<endl;
     if (iGeomZone == nBladesRow-1)
       Power_HB += MassFlowIn[iTimeInstance * nMarkerTurboPerf + iGeomZone][nSpanWiseSections]
@@ -338,6 +338,7 @@ for (iGeomZone = 0; iGeomZone < nBladesRow; iGeomZone++ ){
   EntropyGenAverage_HB /= nTimeInstances;
   Power_HB /= nTimeInstances;
   TotalWorkDone_Surface_HB /= nTimeInstances;
+  //cout<<"Work Done :: "<<TotalWorkDone_Surface_HB<<endl;
 
   if (nBladesRow > 1){
     for (iTimeInstance = 0; iTimeInstance < nTimeInstances; iTimeInstance++ ){
@@ -347,8 +348,6 @@ for (iGeomZone = 0; iGeomZone < nBladesRow; iGeomZone++ ){
 
     TotalTotalEfficiencyAverage_HB  /= nTimeInstances;
     TotalStaticEfficiencyAverage_HB /= nTimeInstances;
-
-
   }
 
 }

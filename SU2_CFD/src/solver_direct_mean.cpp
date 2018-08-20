@@ -859,7 +859,7 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config, unsigned short 
 
   if((config->GetUnsteady_Simulation() != NO)){
 
-  steps_per_cycle = round(SU2_TYPE::GetValue((2*PI_NUMBER/config->GetPitching_Omega_Z(0))/config->GetDelta_UnstTimeND()));
+  steps_per_cycle = 10;//round(SU2_TYPE::GetValue((2*PI_NUMBER/config->GetPitching_Omega_Z(0))/config->GetDelta_UnstTimeND()));
   if (rank == MASTER_NODE)
 	  cout<<"Steps per cycle : "<<steps_per_cycle<<endl;
   for (unsigned int iTime=0; iTime<steps_per_cycle; iTime++)
@@ -5567,9 +5567,8 @@ void CEulerSolver::Pressure_Forces(CGeometry *geometry, CConfig *config) {
           if(unsteady){
         	  su2double *Grid_Vel;
         	  Grid_Vel = geometry->node[iPoint]->GetGridVel();
-        	  //cout<<"GridVel :: "<<Grid_Vel[1]<<endl;
         	  for (iDim = 0; iDim<nDim; iDim++)
-        	          		  LocalWork +=(-(Pressure) * Normal[iDim] * Grid_Vel[iDim]);
+        	          		  LocalWork += -Pressure*Normal[iDim]*Grid_Vel[iDim];//-Pressure*Grid_Vel[iDim]*Normal[iDim];
           }
 
           /*--- Moment with respect to the reference axis ---*/
@@ -13742,7 +13741,7 @@ void CEulerSolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CConfig 
   bool steady_restart = config->GetSteadyRestart();
   bool time_stepping = config->GetUnsteady_Simulation() == TIME_STEPPING;
   bool harmonic_balance = config->GetUnsteady_Simulation() == HARMONIC_BALANCE;
-//  bool harmonic_balance = config->GetUnsteady_Simulation() == HARMONIC_BALANCE && !config->GetDiscrete_Adjoint();
+  bool disc_adjoint = config->GetDiscrete_Adjoint();
 
   string UnstExt, text_line;
   ifstream restart_file;
@@ -13869,6 +13868,7 @@ void CEulerSolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CConfig 
 
         for (iDim = 0; iDim < nDim; iDim++) {
           geometry[MESH_0]->node[iPoint_Local]->SetCoord(iDim, Coord[iDim]);
+          if (!disc_adjoint)
           geometry[MESH_0]->node[iPoint_Local]->SetGridVel(iDim, GridVel[iDim]);
         }
       }

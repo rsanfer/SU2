@@ -3413,6 +3413,7 @@ void CSurfaceMovement::Surface_Plunging(CGeometry *geometry, CConfig *config,
   string Marker_Tag, Moving_Tag;
   int rank;
   bool harmonic_balance = (config->GetUnsteady_Simulation() == HARMONIC_BALANCE);
+  bool restart = (config->GetRestart()||config->GetDiscrete_Adjoint());
 
 #ifdef HAVE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -3437,12 +3438,25 @@ void CSurfaceMovement::Surface_Plunging(CGeometry *geometry, CConfig *config,
   }
 
   /*--- Compute delta time based on physical time step ---*/
+
+
+  /*--- Compute delta time based on physical time step ---*/
   time_new = static_cast<su2double>(iter)*deltaT;
-  if (iter == 0) {
-    time_old = time_new;
+
+  if (harmonic_balance) {
+  	/*--- For harmonic balance, begin movement from the zero position ---*/
+  	time_old = 0.0;
   } else {
-    time_old = static_cast<su2double>(iter-1)*deltaT;
+  	time_old = time_new;
+  	if (iter != 0) time_old = (static_cast<su2double>(iter)-1.0)*deltaT;
   }
+//
+//  time_new = static_cast<su2double>(iter)*deltaT;
+//  if (iter == 0) {
+//    time_old = time_new;
+//  } else {
+//    time_old = static_cast<su2double>(iter-1)*deltaT;
+//  }
 
   /*--- Store displacement of each node on the plunging surface ---*/
     /*--- Loop over markers and find the particular marker(s) (surface) to plunge ---*/
@@ -3491,7 +3505,8 @@ void CSurfaceMovement::Surface_Plunging(CGeometry *geometry, CConfig *config,
           for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
 
             /*--- Set node displacement for volume deformation ---*/
-            geometry->vertex[iMarker][iVertex]->SetVarCoord(VarCoord);
+        	  if (!restart)
+        		  geometry->vertex[iMarker][iVertex]->SetVarCoord(VarCoord);
 
           }
         }
@@ -3548,7 +3563,7 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
   string Marker_Tag, Moving_Tag;
   int rank;
   bool harmonic_balance = (config->GetUnsteady_Simulation() == HARMONIC_BALANCE);
-  bool restart = (config->GetRestart());
+  bool restart = (config->GetRestart()||config->GetDiscrete_Adjoint());
 
 #ifdef HAVE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -3570,7 +3585,6 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
 	  su2double period = config->GetHarmonicBalance_Period();
 	  period /= config->GetTime_Ref();
 	  deltaT = period/(su2double)(config->GetnTimeInstances());
-
   }
 
   /*--- Compute delta time based on physical time step ---*/
@@ -3701,7 +3715,7 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
             if (nDim == 2)
             	VarCoord[nDim] = 0.0;
             /*--- Set node displacement for volume deformation ---*/
-            if (!restart||!config->GetDiscrete_Adjoint())
+            if (!restart)
             	geometry->vertex[iMarker][iVertex]->SetVarCoord(VarCoord);
 
           }
