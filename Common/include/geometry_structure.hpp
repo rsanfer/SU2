@@ -1041,6 +1041,12 @@ public:
   void RegisterCoordinates(CConfig *config);
 
   /*!
+   * \brief Register the coordinates of the mesh nodes.
+   * \param[in] config
+   */
+  void RegisterGridVel(CConfig *config);
+
+  /*!
    * \brief Update the multi-grid structure and the wall-distance.
    * \param geometry_container - Geometrical definition.
    * \param config - Config
@@ -1190,6 +1196,8 @@ public:
    */
   virtual void Check_Periodicity(CConfig *config);
   
+  void SetGridVelocity_HB(CGeometry ***geometry, CConfig *config, unsigned short iZone);
+
 };
 
 /*!
@@ -2141,6 +2149,11 @@ void SetTranslationalVelocity(CConfig *config, unsigned short val_iZone, bool pr
 	 * \brief Get all points on a geometrical plane in the mesh
 	 */
 	vector<vector<unsigned long> > GetPlanarPoints();
+
+	/*!
+	 * \brief Sets Harmonic Balance grid Velocity -> Majorly used for AD
+	 */
+	void SetGridVelocity_HB(CGeometry ***geometry, CConfig *config, unsigned short iZone);
 
 };
 

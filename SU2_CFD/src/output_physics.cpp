@@ -338,7 +338,7 @@ for (iGeomZone = 0; iGeomZone < nBladesRow; iGeomZone++ ){
   EntropyGenAverage_HB /= nTimeInstances;
   Power_HB /= nTimeInstances;
   TotalWorkDone_Surface_HB /= nTimeInstances;
-  //cout<<"Work Done :: "<<TotalWorkDone_Surface_HB<<endl;
+  cout<<"Work Done :: "<<TotalWorkDone_Surface_HB<<endl;
 
   if (nBladesRow > 1){
     for (iTimeInstance = 0; iTimeInstance < nTimeInstances; iTimeInstance++ ){

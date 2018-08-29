@@ -44,7 +44,8 @@ void CIteration::SetGrid_Movement(CGeometry ***geometry_container,
           CConfig **config_container,
                             unsigned short val_iZone,
           unsigned long IntIter,
-          unsigned long ExtIter)   {
+          unsigned long ExtIter,
+		  bool reset)   {
 
   unsigned short iDim;
   unsigned short Kind_Grid_Movement = config_container[val_iZone]->GetKind_GridMovement(val_iZone);
@@ -136,7 +137,7 @@ void CIteration::SetGrid_Movement(CGeometry ***geometry_container,
       /*--- Compute the new node locations for moving markers ---*/
 
       surface_movement[val_iZone]->Surface_Pitching(geometry_container[val_iZone][MESH_0],
-                                         config_container[val_iZone], ExtIter, val_iZone);
+                                         config_container[val_iZone], ExtIter, val_iZone, false);
       /*--- Deform the volume grid around the new boundary locations ---*/
 
       if (rank == MASTER_NODE)
@@ -337,7 +338,7 @@ void CIteration::SetGrid_Movement(CGeometry ***geometry_container,
     case TURBO_VIBRATION:
     	if (rank == MASTER_NODE)
     		cout << endl<< "----------------------- TURBO VIBRATION --(ZONE "<< val_iZone << ") ----------------------" << endl;
-    	surface_movement[val_iZone]->Surface_Pitching(geometry_container[val_iZone][MESH_0],config_container[iGeomZone],ExtIter,iGeomZone);
+    	surface_movement[val_iZone]->Surface_Pitching(geometry_container[val_iZone][MESH_0],config_container[iGeomZone],ExtIter,iGeomZone,false);
     	//surface_movement[val_iZone]->Surface_Plunging(geometry_container[val_iZone][MESH_0],config_container[iGeomZone],ExtIter,iGeomZone);
     	grid_movement[val_iZone]->SetVolume_Deformation(geometry_container[val_iZone][MESH_0],config_container[iGeomZone], true,false);
     	grid_movement[val_iZone]->UpdateMultiGrid(geometry_container[val_iZone], config_container[iGeomZone]);
@@ -493,7 +494,7 @@ void CFluidIteration::Iterate(COutput *output,
   
   if ((config_container[val_iZone]->GetGrid_Movement()) && (config_container[val_iZone]->GetAeroelastic_Simulation()) && unsteady) {
       
-    SetGrid_Movement(geometry_container, surface_movement, grid_movement, FFDBox, solver_container, config_container, val_iZone, IntIter, ExtIter);
+    SetGrid_Movement(geometry_container, surface_movement, grid_movement, FFDBox, solver_container, config_container, val_iZone, IntIter, ExtIter, false);
     
     /*--- Apply a Wind Gust ---*/
     
@@ -1931,16 +1932,19 @@ void CDiscAdjFluidIteration::SetDependencies(CSolver ****solver_container, CGeom
 
   unsigned short Kind_Solver = config_container[iZone]->GetKind_Solver();
   bool frozen_visc = config_container[iZone]->GetFrozen_Visc_Disc();
+
   if ((kind_recording == MESH_COORDS) || (kind_recording == NONE)){
-
     /*--- Update geometry to get the influence on other geometry variables (normals, volume etc) ---*/
-
+    //geometry_container[iZone][MESH_0]->SetGridVelocity_HB(geometry_container, config_container[iZone],iZone);
     geometry_container[iZone][MESH_0]->UpdateGeometry(geometry_container[iZone], config_container[iZone]);
+//    geometry_container[iZone][MESH_0]->UpdateTurboVertex(config_container[iZone], iZone, INFLOW);
+//    geometry_container[iZone][MESH_0]->UpdateTurboVertex(config_container[iZone], iZone, OUTFLOW);
 
   }
 
   /*--- Compute coupling between flow and turbulent equations ---*/
   solver_container[iZone][MESH_0][FLOW_SOL]->Set_MPI_Solution(geometry_container[iZone][MESH_0], config_container[iZone]);
+//  solver_container[iZone][MESH_0][FLOW_SOL]->Set_MPI_Solution_Old(geometry_container[iZone][MESH_0], config_container[iZone]);
   solver_container[iZone][MESH_0][FLOW_SOL]->Preprocessing(geometry_container[iZone][MESH_0],solver_container[iZone][MESH_0], config_container[iZone], MESH_0, NO_RK_ITER, RUNTIME_FLOW_SYS, true);
 
 //TODO (check if the frozen viscosity option need to be re-added again")

@@ -3549,7 +3549,7 @@ void CSurfaceMovement::Surface_Plunging(CGeometry *geometry, CConfig *config,
 }
 
 void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
-                                        unsigned long iter, unsigned short iZone) {
+                                        unsigned long iter, unsigned short iZone, bool reset) {
 
   su2double deltaT, time_new, time_old, Lref, *Coord;
   su2double Center[3], VarCoord[3], Omega[3], Ampl[3], Phase[3];
@@ -3663,6 +3663,12 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
                              - sin(Omega[2]*time_old + Phase[2]));
 
           /*--- Store angles separately for clarity. Compute sines/cosines. ---*/
+
+          if (reset){
+        	  dtheta = -dtheta;
+        	  dphi = -dphi;
+        	  dpsi = -dpsi;
+          }
 
           cosTheta = cos(dtheta);  cosPhi = cos(dphi);  cosPsi = cos(dpsi);
           sinTheta = sin(dtheta);  sinPhi = sin(dphi);  sinPsi = sin(dpsi);

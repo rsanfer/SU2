@@ -1110,7 +1110,7 @@ public:
    * \param[in] iZone - Zone number in the mesh.
    */
   void Surface_Pitching(CGeometry *geometry, CConfig *config,
-                             unsigned long iter, unsigned short iZone);
+                             unsigned long iter, unsigned short iZone, bool reset);
 
   /*!
    * \brief Computes the displacement of a rotating surface for a dynamic mesh simulation.

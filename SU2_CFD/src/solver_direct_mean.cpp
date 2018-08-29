@@ -5568,7 +5568,7 @@ void CEulerSolver::Pressure_Forces(CGeometry *geometry, CConfig *config) {
         	  su2double *Grid_Vel;
         	  Grid_Vel = geometry->node[iPoint]->GetGridVel();
         	  for (iDim = 0; iDim<nDim; iDim++)
-        	          		  LocalWork += -Pressure*Normal[iDim]*Grid_Vel[iDim];//-Pressure*Grid_Vel[iDim]*Normal[iDim];
+        	          		  LocalWork += -Pressure*Grid_Vel[iDim]*Normal[iDim];//-Pressure*Grid_Vel[iDim]*Normal[iDim];
           }
 
           /*--- Moment with respect to the reference axis ---*/
@@ -13868,7 +13868,6 @@ void CEulerSolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CConfig 
 
         for (iDim = 0; iDim < nDim; iDim++) {
           geometry[MESH_0]->node[iPoint_Local]->SetCoord(iDim, Coord[iDim]);
-          if (!disc_adjoint)
           geometry[MESH_0]->node[iPoint_Local]->SetGridVel(iDim, GridVel[iDim]);
         }
       }

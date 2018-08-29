@@ -2015,7 +2015,7 @@ public:
    * \param[in] input - input or output variables.
    */
   void RegisterHBSource(bool input);
-  
+
   /*!
    * \brief Register the variables in the solution_time_n array as input/output variable.
    */
