@@ -3664,12 +3664,6 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
 
           /*--- Store angles separately for clarity. Compute sines/cosines. ---*/
 
-          if (reset){
-        	  dtheta = -dtheta;
-        	  dphi = -dphi;
-        	  dpsi = -dpsi;
-          }
-
           cosTheta = cos(dtheta);  cosPhi = cos(dphi);  cosPsi = cos(dpsi);
           sinTheta = sin(dtheta);  sinPhi = sin(dphi);  sinPsi = sin(dpsi);
 
@@ -3721,8 +3715,8 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
             if (nDim == 2)
             	VarCoord[nDim] = 0.0;
             /*--- Set node displacement for volume deformation ---*/
-            if (!restart)
-            	geometry->vertex[iMarker][iVertex]->SetVarCoord(VarCoord);
+//            cout<<"Surface :: Var Coord [iDim] :: "<<VarCoord[0]<<endl;
+            geometry->vertex[iMarker][iVertex]->SetVarCoord(VarCoord);
 
           }
         }

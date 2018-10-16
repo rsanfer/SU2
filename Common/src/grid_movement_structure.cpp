@@ -134,7 +134,6 @@ void CVolumetricMovement::SetVolume_Deformation(CGeometry *geometry, CConfig *co
   Screen_Output  = config->GetDeform_Output();
   Tol_Factor     = config->GetDeform_Tol_Factor();
   Nonlinear_Iter = config->GetGridDef_Nonlinear_Iter();
-  //if (config->GetDiscrete_Adjoint()) Derivative=1;
   
   /*--- Disable the screen output if we're running SU2_CFD ---*/
   
@@ -177,7 +176,7 @@ void CVolumetricMovement::SetVolume_Deformation(CGeometry *geometry, CConfig *co
     SetDomainDisplacements(geometry, config);
 
     /*--- Set the boundary derivatives (overrides the actual displacements) ---*/
-
+    cout<<"DERIVATIVE :: "<<Derivative<<endl;
     if (Derivative) { SetBoundaryDerivatives(geometry, config); }
     
     CMatrixVectorProduct* mat_vec = NULL;
@@ -1891,7 +1890,7 @@ void CVolumetricMovement::SetBoundaryDisplacements(CGeometry *geometry, CConfig 
   for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
     if (((config->GetMarker_All_Moving(iMarker) == YES) && (Kind_SU2 == SU2_CFD)) ||
         ((config->GetMarker_All_DV(iMarker) == YES) && (Kind_SU2 == SU2_DEF)) ||
-        ((config->GetDirectDiff() == D_DESIGN) && (Kind_SU2 == SU2_CFD) && (config->GetMarker_All_DV(iMarker) == YES)) ||
+        ((config->GetDiscrete_Adjoint()) && (Kind_SU2 == SU2_CFD) && (config->GetMarker_All_DV(iMarker) == YES)) ||
         ((config->GetMarker_All_DV(iMarker) == YES) && (Kind_SU2 == SU2_DOT))) {
       for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
         iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
@@ -1969,7 +1968,7 @@ void CVolumetricMovement::SetBoundaryDisplacements(CGeometry *geometry, CConfig 
         }
       }
     }
-}
+  }
 
     /*--- Apply normal boundary condition on the specified markers ---*/
 
@@ -2070,7 +2069,7 @@ void CVolumetricMovement::SetBoundaryDerivatives(CGeometry *geometry, CConfig *c
 
   su2double * VarCoord;
   unsigned short Kind_SU2 = config->GetKind_SU2();
-  if ((config->GetDirectDiff() == D_DESIGN) && (Kind_SU2 == SU2_CFD)) {
+  if ((config->GetDiscrete_Adjoint()) && (Kind_SU2 == SU2_CFD)) {
     for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
       if ((config->GetMarker_All_DV(iMarker) == YES)) {
         for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
@@ -2112,7 +2111,7 @@ void CVolumetricMovement::UpdateGridCoord_Derivatives(CGeometry *geometry, CConf
 
   /*--- Update derivatives of the grid coordinates using the solution of the linear system
      after grid deformation (LinSysSol contains the derivatives of the x, y, z displacements). ---*/
-  if ((config->GetDirectDiff() == D_DESIGN) && (Kind_SU2 == SU2_CFD)) {
+  if ((config->GetDiscrete_Adjoint()) && (Kind_SU2 == SU2_CFD)) {
     for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
       new_coord[0] = 0.0; new_coord[1] = 0.0; new_coord[2] = 0.0;
       for (iDim = 0; iDim < nDim; iDim++) {
@@ -2592,6 +2591,8 @@ void CVolumetricMovement::Rigid_Pitching(CGeometry *geometry, CConfig *config, u
     	//	geometry->node[iPoint]->SetGridVel(iDim,newGridVel[iDim]);
     }
   }
+	geometry->Set_MPI_Coord(config);
+	geometry->Set_MPI_GridVel(config);
   
   /*--- For pitching we don't update the motion origin and moment reference origin. ---*/
 
