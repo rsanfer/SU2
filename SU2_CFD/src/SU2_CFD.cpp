@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
 
     /*--- Use the MultiZone Harmonic Balance driver. ---*/
 
-    driver = new CDiscAdjHBMultiZone(config_file_name, nTotTimeInstances, nDim, MPICommunicator);
+    driver = new CDiscAdjHBMultiZone(config_file_name, nTotTimeInstances, nDim, periodic, MPICommunicator);
 
 
   } else if ((nZone == 2) && fsi) {

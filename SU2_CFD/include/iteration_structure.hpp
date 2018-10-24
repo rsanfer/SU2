@@ -92,7 +92,7 @@ public:
   virtual void SetGrid_Movement(CGeometry ***geometry_container, CSurfaceMovement **surface_movement,
                       CVolumetricMovement **grid_movement, CFreeFormDefBox ***FFDBox,
                       CSolver ****solver_container, CConfig **config_container,
-                      unsigned short val_iZone, unsigned long IntIter, unsigned long ExtIter, bool reset);
+                      unsigned short val_iZone, unsigned long IntIter, unsigned long ExtIter);
   
   /*!
    * \brief A virtual member.

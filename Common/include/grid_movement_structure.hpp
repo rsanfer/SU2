@@ -91,6 +91,23 @@ public:
 	 */
 	virtual void SetSurface_Deformation(CGeometry *geometry, CConfig *config);
   
+  
+  /*!
+   * \brief Compute the cross product.
+   * \param[in] v1 - First input vector.
+   * \param[in] v2 - Second input vector.
+   * \param[out] v3 - Output vector wuth the cross product.
+   */
+  void CrossProduct(su2double *v1, su2double *v2, su2double *v3);
+
+  /*!
+   * \brief Compute the doc product.
+   * \param[in] v1 - First input vector.
+   * \param[in] v2 - Sencond input vector.
+   * \return Dot product between <i>v1</i>, and <i>v2</i>.
+   */
+  su2double DotProduct(su2double *v1, su2double *v2);
+
 };
 
 /*!

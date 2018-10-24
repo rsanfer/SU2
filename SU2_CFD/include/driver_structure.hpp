@@ -1147,7 +1147,9 @@ public:
 	   */
   CDiscAdjHBMultiZone(char* confFile,
                    unsigned short val_nZone,
-                   unsigned short val_nDim, SU2_Comm MPICommunicator);
+                   unsigned short val_nDim, 
+                   bool val_periodic,
+                   SU2_Comm MPICommunicator);
 
   /*!
    * \brief Destructor of the class.
