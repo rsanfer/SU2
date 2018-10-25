@@ -366,6 +366,29 @@ CDriver::CDriver(char* confFile,
   bool discrete_adjoint = config_container[ZONE_0]->GetDiscrete_Adjoint();
   bool restart = config_container[ZONE_0]->GetRestart();
 
+  bool harmonic_balance = false;
+  if (config_container[ZONE_0]->GetUnsteady_Simulation() == HARMONIC_BALANCE)
+    harmonic_balance=true;
+
+  if (harmonic_balance){
+  for (iZone = 0; iZone < nZone; iZone++) {
+      if (config_container[iZone]->GetGrid_Movement()) {
+      if (rank == MASTER_NODE)
+        cout << "Setting dynamic mesh structure for harmonic balance, zone "<< iZone<<"." << endl;
+      /*--- Instantiate the container for the grid movement structure ---*/
+      grid_movement[iZone]    = new CElasticityMovement(geometry_container[iZone][MESH_0], config_container[iZone]);
+      FFDBox[iZone] = new CFreeFormDefBox*[MAX_NUMBER_FFD];
+      surface_movement[iZone] = new CSurfaceMovement();
+      surface_movement[iZone]->CopyBoundary(geometry_container[iZone][MESH_0], config_container[iZone]);
+      if (!discrete_adjoint && !restart){
+		iteration_container[iZone]->SetGrid_Movement(geometry_container, surface_movement, grid_movement, FFDBox, solver_container, config_container, iZone, 0, 0);
+        geometry_container[iZone][MESH_0]->UpdateTurboVertex(config_container[iZone], iZone, INFLOW);
+        geometry_container[iZone][MESH_0]->UpdateTurboVertex(config_container[iZone], iZone, OUTFLOW);
+	  }
+	}
+  }
+  }
+  else{
   for (iZone = 0; iZone < nZone; iZone++) {
 
     if (config_container[iZone]->GetGrid_Movement() ||
@@ -424,6 +447,7 @@ CDriver::CDriver(char* confFile,
     }
 
   }
+  }
 
   if(fsi && (config_container[ZONE_0]->GetRestart() || config_container[ZONE_0]->GetDiscrete_Adjoint())){
     if (rank == MASTER_NODE)cout << endl <<"Restarting Fluid and Structural Solvers." << endl;
@@ -434,10 +458,6 @@ CDriver::CDriver(char* confFile,
     }
 
   }
-  bool harmonic_balance;
-  harmonic_balance=true;
-//  if (config_container[iZone]->GetUnsteady_Simulation() == HARMONIC_BALANCE)
-//	  harmonic_balance=true;
 
   if( !discrete_adjoint && !restart)
     SetTimeSpectral_Velocities(false);

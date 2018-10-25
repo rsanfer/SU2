@@ -9650,7 +9650,7 @@ CElasticityMovement::~CElasticityMovement(void) {
 
 
 void CElasticityMovement::SetVolume_Deformation_Elas(CGeometry *geometry, CConfig *config, bool UpdateGeo, bool Derivative){
-
+	
   unsigned long iNonlinear_Iter, Nonlinear_Iter = 0;
 
   bool discrete_adjoint = config->GetDiscrete_Adjoint();
@@ -9772,33 +9772,53 @@ void CElasticityMovement::SetBoundaryDisplacements(CGeometry *geometry, CConfig 
 
   unsigned short Kind_SU2 = config->GetKind_SU2();
 
-  /*--- First of all, move the FSI interfaces. ---*/
+  ///*--- First of all, move the FSI interfaces. ---*/
 
+  //for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+    //if ((config->GetMarker_All_ZoneInterface(iMarker) != 0) && (Kind_SU2 == SU2_CFD)) {
+      //SetMoving_Boundary(geometry, config, iMarker);
+    //}
+    //if ((config->GetMarker_All_Moving(iMarker) == YES) && (Kind_SU2 == SU2_CFD)){
+	  //SetMoving_Boundary(geometry, config, iMarker);
+	//}
+  //}
+
+  ///*--- Now, set to zero displacements of all the other boundary conditions, except the symmetry
+   //plane, the receive boundaries and periodic boundaries. ---*/
+
+
+  ///*--- As initialization, set to zero displacements of all the surfaces except the symmetry
+   //plane, the receive boundaries and periodic boundaries. ---*/
+  //for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+    //if (((config->GetMarker_All_KindBC(iMarker) != SYMMETRY_PLANE) &&
+         //(config->GetMarker_All_KindBC(iMarker) != SEND_RECEIVE))) {
+
+      ///*--- We must note that the FSI surfaces are not clamped ---*/
+      //if (config->GetMarker_All_ZoneInterface(iMarker) == 0){
+        //SetClamped_Boundary(geometry, config, iMarker);
+      //}
+      //if ((config->GetMarker_All_Moving(iMarker) == NO)){
+	    //SetClamped_Boundary(geometry, config, iMarker);
+	  //}
+    //}
+  //}
+
+  /*--- All others are pending. ---*/
+  
   for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
     if ((config->GetMarker_All_ZoneInterface(iMarker) != 0) && (Kind_SU2 == SU2_CFD)) {
       SetMoving_Boundary(geometry, config, iMarker);
     }
-  }
-
-  /*--- Now, set to zero displacements of all the other boundary conditions, except the symmetry
-   plane, the receive boundaries and periodic boundaries. ---*/
-
-
-  /*--- As initialization, set to zero displacements of all the surfaces except the symmetry
-   plane, the receive boundaries and periodic boundaries. ---*/
-  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
-    if (((config->GetMarker_All_KindBC(iMarker) != SYMMETRY_PLANE) &&
-         (config->GetMarker_All_KindBC(iMarker) != SEND_RECEIVE) &&
-         (config->GetMarker_All_KindBC(iMarker) != PERIODIC_BOUNDARY))) {
-
-      /*--- We must note that the FSI surfaces are not clamped ---*/
-      if (config->GetMarker_All_ZoneInterface(iMarker) == 0){
-        SetClamped_Boundary(geometry, config, iMarker);
-      }
+    else if ((config->GetMarker_All_Moving(iMarker) == YES) && (Kind_SU2 == SU2_CFD)){
+      SetMoving_Boundary(geometry, config, iMarker);
+    }
+    else if (config->GetMarker_All_KindBC(iMarker) == SEND_RECEIVE){
+    
+    }
+    else{
+      SetClamped_Boundary(geometry, config, iMarker);
     }
   }
-
-  /*--- All others are pending. ---*/
 
 }
 
