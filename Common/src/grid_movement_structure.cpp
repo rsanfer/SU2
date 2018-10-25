@@ -6220,6 +6220,8 @@ void CSurfaceMovement::Surface_Plunging(CGeometry *geometry, CConfig *config,
   unsigned short iMarker, jMarker, Moving;
   unsigned long iVertex;
   string Marker_Tag, Moving_Tag;
+  bool harmonic_balance = (config->GetUnsteady_Simulation() == HARMONIC_BALANCE);
+  bool restart = (config->GetRestart()||config->GetDiscrete_Adjoint());
 	
   /*--- Initialize the delta variation in coordinates ---*/
   VarCoord[0] = 0.0; VarCoord[1] = 0.0; VarCoord[2] = 0.0;
@@ -6228,14 +6230,35 @@ void CSurfaceMovement::Surface_Plunging(CGeometry *geometry, CConfig *config,
   
   deltaT = config->GetDelta_UnstTimeND();
   Lref   = config->GetLength_Ref();
+
+  if (harmonic_balance){
+	  iZone=ZONE_0;
+	  /*--- period of oscillation & compute time interval using nTimeInstances ---*/
+	  su2double period = config->GetHarmonicBalance_Period();
+	  period /= config->GetTime_Ref();
+	  deltaT = period/(su2double)(config->GetnTimeInstances());
+  }
+
+  /*--- Compute delta time based on physical time step ---*/
+
   
   /*--- Compute delta time based on physical time step ---*/
   time_new = static_cast<su2double>(iter)*deltaT;
-  if (iter == 0) {
-    time_old = time_new;
+
+  if (harmonic_balance) {
+  	/*--- For harmonic balance, begin movement from the zero position ---*/
+  	time_old = 0.0;
   } else {
-    time_old = static_cast<su2double>(iter-1)*deltaT;
+    time_old = time_new;
+  	if (iter != 0) time_old = (static_cast<su2double>(iter)-1.0)*deltaT;
   }
+//
+//  time_new = static_cast<su2double>(iter)*deltaT;
+//  if (iter == 0) {
+//    time_old = time_new;
+//  } else {
+//    time_old = static_cast<su2double>(iter-1)*deltaT;
+//  }
   
 	/*--- Store displacement of each node on the plunging surface ---*/
     /*--- Loop over markers and find the particular marker(s) (surface) to plunge ---*/
@@ -6284,6 +6307,7 @@ void CSurfaceMovement::Surface_Plunging(CGeometry *geometry, CConfig *config,
           for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
             
             /*--- Set node displacement for volume deformation ---*/
+        	  if (!restart)
             geometry->vertex[iMarker][iVertex]->SetVarCoord(VarCoord);
             
           }
@@ -6339,7 +6363,10 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
   unsigned short iMarker, jMarker, Moving, iDim, nDim = geometry->GetnDim();
   unsigned long iPoint, iVertex;
   string Marker_Tag, Moving_Tag;
-  
+
+  bool harmonic_balance = (config->GetUnsteady_Simulation() == HARMONIC_BALANCE);
+  bool restart = (config->GetRestart()||config->GetDiscrete_Adjoint());
+
   /*--- Initialize the delta variation in coordinates ---*/
   VarCoord[0] = 0.0; VarCoord[1] = 0.0; VarCoord[2] = 0.0;
   
@@ -6347,15 +6374,33 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
   
   deltaT = config->GetDelta_UnstTimeND();
   Lref   = config->GetLength_Ref();
+
+  if (harmonic_balance){
+	  iZone=ZONE_0;
+	  /*--- period of oscillation & compute time interval using nTimeInstances ---*/
+	  su2double period = config->GetHarmonicBalance_Period();
+	  period /= config->GetTime_Ref();
+	  deltaT = period/(su2double)(config->GetnTimeInstances());
+  }
   
   /*--- Compute delta time based on physical time step ---*/
   time_new = static_cast<su2double>(iter)*deltaT;
+
+  if (harmonic_balance) {
+  	/*--- For harmonic balance, begin movement from the zero position ---*/
+  	time_old = 0.0;
+  } else {
+  	time_old = time_new;
+  	if (iter != 0) time_old = (static_cast<su2double>(iter)-1.0)*deltaT;
+  }
+
+/*
   if (iter == 0) {
     time_old = time_new;
   } else {
     time_old = static_cast<su2double>(iter-1)*deltaT;
   }
-
+*/
 	/*--- Store displacement of each node on the pitching surface ---*/
     /*--- Loop over markers and find the particular marker(s) (surface) to pitch ---*/
 
@@ -6463,9 +6508,10 @@ void CSurfaceMovement::Surface_Pitching(CGeometry *geometry, CConfig *config,
             /*--- Calculate delta change in the x, y, & z directions ---*/
             for (iDim = 0; iDim < nDim; iDim++)
               VarCoord[iDim] = (rotCoord[iDim]-Coord[iDim])/Lref;
-            if (nDim == 2) VarCoord[nDim] = 0.0;
-            
+            if (nDim == 2)
+            	VarCoord[nDim] = 0.0;
             /*--- Set node displacement for volume deformation ---*/
+//            cout<<"Surface :: Var Coord [iDim] :: "<<VarCoord[0]<<endl;
             geometry->vertex[iMarker][iVertex]->SetVarCoord(VarCoord);
             
           }

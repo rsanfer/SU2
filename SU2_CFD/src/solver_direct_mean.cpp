@@ -15094,8 +15094,8 @@ void CEulerSolver::GatherInOutAverageValues(CConfig *config, CGeometry *geometry
     su2double *TotTurbPerfIn = NULL,*TotTurbPerfOut = NULL;
     int *TotMarkerTP = NULL;
 
-    n1          = 8;
-    n2          = 8;
+    n1          = 9;
+    n2          = 9;
     n1t         = n1*size;
     n2t         = n2*size;
     TurbPerfIn  = new su2double[n1];

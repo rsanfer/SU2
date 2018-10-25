@@ -416,7 +416,7 @@ CDriver::CDriver(char* confFile,
         geometry_container[iZone][MESH_0]->ComputeWall_Distance(config_container[iZone]);
     }
 
-    if (config_container[iZone]->GetKind_GridMovement(iZone) == FLUID_STRUCTURE_STATIC){
+    if (fsi && config_container[iZone]->GetKind_GridMovement(iZone) == FLUID_STRUCTURE_STATIC){
       if (rank == MASTER_NODE)
         cout << "Setting moving mesh structure for static FSI problems." << endl;
         /*--- Instantiate the container for the grid movement structure ---*/

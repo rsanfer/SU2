@@ -55,9 +55,10 @@ void CIteration::SetGrid_Movement(CGeometry ***geometry_container,
           unsigned long ExtIter)   {
 
   unsigned short iDim;
-  unsigned short Kind_Grid_Movement = config_container[val_iZone]->GetKind_GridMovement(val_iZone);
+  unsigned short Kind_Grid_Movement = 0;
   unsigned long nIterMesh;
   unsigned long iPoint;
+  unsigned short iGeomZone = 0;
   bool stat_mesh = true;
   bool adjoint = config_container[val_iZone]->GetContinuous_Adjoint();
   bool harmonic_balance = (config_container[val_iZone]->GetUnsteady_Simulation() == HARMONIC_BALANCE);
@@ -70,10 +71,12 @@ void CIteration::SetGrid_Movement(CGeometry ***geometry_container,
     nTimeInstances = config_container[ZONE_0]->GetnTimeInstances();
     ExtIter = val_iZone%nTimeInstances;
     Kind_Grid_Movement = config_container[ZONE_0]->GetKind_GridMovement(val_iZone/nTimeInstances);
+    /*--- Define the geometrical zone. This may differ in the case of harmonic balance calculation ---*/
+    iGeomZone = val_iZone/nTimeInstances;
   }
-  /*--- Define the geometrical zone.
-   * This may differ in the case of harmonic balance calculation ---*/
-  unsigned short iGeomZone = val_iZone/nTimeInstances;
+  else{
+    Kind_Grid_Movement = config_container[val_iZone]->GetKind_GridMovement(val_iZone);
+  }
 
   /*--- Perform mesh movement depending on specified type ---*/
   switch (Kind_Grid_Movement) {
@@ -363,7 +366,7 @@ void CIteration::SetGrid_Movement(CGeometry ***geometry_container,
 
     case TURBO_VIBRATION:
     	if (rank == MASTER_NODE)
-    		cout << endl<< "----------------------- TURBO VIBRATION --(ZONE "<< val_iZone << ") ----------------------" << endl;
+    		cout << endl<< "----------------------- TURBO VIBRATION --(ZONE "<< val_iZone << " GEOMZONE " << iGeomZone << ") ----------------------" << endl;
     	surface_movement[val_iZone]->Surface_Pitching(geometry_container[val_iZone][MESH_0],config_container[iGeomZone],ExtIter,iGeomZone);
     	//surface_movement[val_iZone]->Surface_Plunging(geometry_container[val_iZone][MESH_0],config_container[iGeomZone],ExtIter,iGeomZone);
     	grid_movement[val_iZone]->SetVolume_Deformation(geometry_container[val_iZone][MESH_0],config_container[iGeomZone], true, false);
