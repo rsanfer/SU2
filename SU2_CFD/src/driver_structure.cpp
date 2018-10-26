@@ -5588,15 +5588,15 @@ void CHBMultiZoneDriver::ResetMesh_HB(void){
 			}
 		}
 	}
-	for (iZone = 0; iZone < nZone; iZone++) {
-	  grid_movement[iZone]->UpdateDualGrid(geometry_container[iZone][MESH_0], config_container[iZone]);
-	}
+//	for (iZone = 0; iZone < nZone; iZone++) {
+//	  grid_movement[iZone]->UpdateDualGrid(geometry_container[iZone][MESH_0], config_container[iZone]);
+//	}
 
-	SetTimeSpectral_Velocities(true);
+//	SetTimeSpectral_Velocities(true);
 	for (iMGlevel = 0; iMGlevel <= config_container[ZONE_0]->GetnMGLevels(); iMGlevel++) {
 		for (iZone = 0; iZone < nZone; iZone++) {
 			geometry_container[iZone][iMGlevel]->Set_MPI_Coord(config_container[ZONE_0]);
-			geometry_container[iZone][iMGlevel]->Set_MPI_GridVel(config_container[ZONE_0]);
+//			geometry_container[iZone][iMGlevel]->Set_MPI_GridVel(config_container[ZONE_0]);
 
 		}
 	}
@@ -5786,9 +5786,16 @@ void CDiscAdjHBMultiZone::SetRecording(unsigned short kind_recording){
     }
 
   }
+  if (kind_recording == MESH_COORDS){
+      /*--- Relate every mesh dependency to the ZONE_0 mesh ---*/
+      ResetMesh_HB();
 
-  /*--- Relate every mesh dependency to the ZONE_0 mesh ---*/
-  ResetMesh_HB();
+      for (iZone = 0; iZone < nZone; iZone++){
+          iteration_container[iZone]->SetGrid_Movement(geometry_container, surface_movement, grid_movement, FFDBox, solver_container, config_container, iZone, 0, 0);
+          grid_movement[iZone]->UpdateDualGrid(geometry_container[iZone][MESH_0], config_container[iZone]);
+      }
+      SetTimeSpectral_Velocities(false);
+  }
 
   /*--- Set fluid variable dependencies (and mesh coordinates in such case) ---*/
   for (iZone = 0; iZone < nZone; iZone++) {
@@ -5863,12 +5870,6 @@ void CDiscAdjHBMultiZone::DirectRun(){
 #ifdef HAVE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
-
-  for (iZone = 0; iZone < nZone; iZone++){
-    iteration_container[iZone]->SetGrid_Movement(geometry_container, surface_movement, grid_movement, FFDBox, solver_container, config_container, iZone, 0, 0);
-    grid_movement[iZone]->UpdateDualGrid(geometry_container[iZone][MESH_0], config_container[iZone]);
-  }
-  SetTimeSpectral_Velocities(false);
 
   for (iTimeInstance = 0; iTimeInstance < nTotTimeInstances; iTimeInstance++)
     direct_iteration[iTimeInstance]->Preprocess(output, integration_container, geometry_container,
