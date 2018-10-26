@@ -5580,7 +5580,6 @@ void CHBMultiZoneDriver::ResetMesh_HB(void){
 	su2double *Coord;
 	for (iMGlevel = 0; iMGlevel <= config_container[ZONE_0]->GetnMGLevels(); iMGlevel++) {
 		for (iPoint = 0; iPoint < geometry_container[ZONE_0][iMGlevel]->GetnPoint(); iPoint++) {
-
 			Coord = geometry_container[0][iMGlevel]->node[iPoint]->GetCoord();
 			for (iZone = 1; iZone < nZone; iZone++) {
 				for (iDim = 0; iDim < nDim; iDim++) {
@@ -5590,7 +5589,7 @@ void CHBMultiZoneDriver::ResetMesh_HB(void){
 		}
 	}
 	for (iZone = 0; iZone < nZone; iZone++) {
-	  grid_movement[iZone]->UpdateMultiGrid(geometry_container[iZone], config_container[iZone]);
+	  grid_movement[iZone]->UpdateDualGrid(geometry_container[iZone][MESH_0], config_container[iZone]);
 	}
 
 	SetTimeSpectral_Velocities(true);
@@ -5788,8 +5787,8 @@ void CDiscAdjHBMultiZone::SetRecording(unsigned short kind_recording){
 
   }
 
-//  /*--- Relate every mesh dependency to the ZONE_0 mesh ---*/
-//  ResetMesh_HB();
+  /*--- Relate every mesh dependency to the ZONE_0 mesh ---*/
+  ResetMesh_HB();
 
   /*--- Set fluid variable dependencies (and mesh coordinates in such case) ---*/
   for (iZone = 0; iZone < nZone; iZone++) {
@@ -5857,7 +5856,6 @@ void CDiscAdjHBMultiZone::SetAdj_ObjFunction(){
 
 void CDiscAdjHBMultiZone::DirectRun(){
 
-  cout << " DIRECT RUN ------------------------------------------------------------------------------------------------------------------" << endl;
 
   int rank = MASTER_NODE;
   unsigned long ExtIter = config_container[ZONE_0]->GetExtIter();
@@ -5866,11 +5864,11 @@ void CDiscAdjHBMultiZone::DirectRun(){
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
 
-//  for (iZone = 0; iZone < nZone; iZone++){
-//    iteration_container[iZone]->SetGrid_Movement(geometry_container, surface_movement, grid_movement, FFDBox, solver_container, config_container, iZone, 0, 0);
-//    grid_movement[iZone]->UpdateMultiGrid(geometry_container[iZone], config_container[iZone]);
-//  }
-//  SetTimeSpectral_Velocities(false);
+  for (iZone = 0; iZone < nZone; iZone++){
+    iteration_container[iZone]->SetGrid_Movement(geometry_container, surface_movement, grid_movement, FFDBox, solver_container, config_container, iZone, 0, 0);
+    grid_movement[iZone]->UpdateDualGrid(geometry_container[iZone][MESH_0], config_container[iZone]);
+  }
+  SetTimeSpectral_Velocities(false);
 
   for (iTimeInstance = 0; iTimeInstance < nTotTimeInstances; iTimeInstance++)
     direct_iteration[iTimeInstance]->Preprocess(output, integration_container, geometry_container,
