@@ -52,6 +52,10 @@
 
 using namespace std;
 
+//preCICE
+//This forward declaration of the Precice class is necessary to avoid a cyclic inclusion issue
+class Precice;
+
 /*! 
  * \class CDriver
  * \brief Parent class for driving an iteration of a single or multi-zone problem.
@@ -105,6 +109,10 @@ protected:
             PyWrapNodalForce[3],                /*!< \brief This is used to store the force at each vertex. */
             PyWrapNodalForceDensity[3],         /*!< \brief This is used to store the force density at each vertex. */
             PyWrapNodalHeatFlux[3];             /*!< \brief This is used to store the heat flux at each vertex. */
+  //preCICE
+  bool precice_usage;
+  Precice *precice;
+  double *max_precice_dt, *dt;
 
 public:
 	
@@ -305,7 +313,8 @@ public:
   /*!
    * \brief Output the solution in solution file.
    */
-  void Output(unsigned long ExtIter);
+  //preCICE: Adaption such that output is only written if preCICE converged.
+  void Output(unsigned long ExtIter, bool suppress_output_by_preCICE);
 
   /*!
    * \brief Perform a dynamic mesh deformation, including grid velocity computation and update of the multigrid structure.

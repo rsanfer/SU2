@@ -1946,6 +1946,20 @@ inline su2double CConfig::GetConst_DES(void) {return Const_DES; }
 
 inline bool CConfig::GetQCR(void) {return QCR;}
 
+inline bool CConfig::GetpreCICE_Usage(void) { return precice_usage; }
+
+inline bool CConfig::GetpreCICE_VerbosityLevel_High(void) { return precice_verbosityLevel_high; }
+
+inline bool CConfig::GetpreCICE_LoadRamping(void) { return precice_loadRamping; }
+
+inline string CConfig::GetpreCICE_ConfigFileName(void) { return preciceConfigFileName; }
+
+inline string CConfig::GetpreCICE_WetSurfaceMarkerName(void) { return preciceWetSurfaceMarkerName; }
+
+inline unsigned long CConfig::GetpreCICE_LoadRampingDuration(void) { return precice_loadRampingDuration; }
+
+inline unsigned long CConfig::GetpreCICE_NumberWetSurfaces(void) { return precice_numberWetSurfaces; }
+
 inline bool CConfig::GetCompute_Average(void) {return Compute_Average;}
 
 inline ofstream* CConfig::GetHistFile(void) { return ConvHistFile; }

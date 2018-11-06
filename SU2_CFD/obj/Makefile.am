@@ -87,6 +87,7 @@ libSU2Core_sources = \
   ../include/transfer_structure.hpp \
   ../include/transfer_structure.inl \
   ../src/data_manufactured_solutions.cpp \
+  ../include/precice.hpp \
   ../src/definition_structure.cpp \
   ../src/fluid_model.cpp \
   ../src/fluid_model_pig.cpp \
@@ -144,17 +145,18 @@ libSU2Core_sources = \
   ../src/variable_direct_turbulent.cpp \
   ../src/variable_direct_elasticity.cpp \
   ../src/variable_structure.cpp \
-  ../src/variable_template.cpp
+  ../src/variable_template.cpp \
+  ../src/precice.cpp
 
 su2_cfd_sources = \
   ../include/SU2_CFD.hpp \
   ../src/SU2_CFD.cpp
 
-libSU2Core_cxx_flags = -fPIC
+libSU2Core_cxx_flags = -I$(PRECICE_ROOT)/src/precice -fPIC
 libSU2Core_libadd = 
 
 su2_cfd_cxx_flags =
-su2_cfd_ldadd =
+su2_cfd_ldadd = -L$(PRECICE_ROOT)/build/last -lprecice
 
 # always link to built dependencies from ./externals
 su2_cfd_cxx_flags += @su2_externals_INCLUDES@

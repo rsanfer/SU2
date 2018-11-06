@@ -1026,6 +1026,15 @@ private:
   su2double Restart_Bandwidth_Agg; /*!< \brief The aggregate of the bandwidth for writing binary restarts (to be averaged later). */
   su2double Max_Vel2; /*!< \brief The maximum velocity^2 in the domain for the incompressible preconditioner. */
 
+  /*--- preCICE variables ---*/
+  bool precice_usage; /*!< \brief Usage of preCICE for FSI simulations */
+  bool precice_verbosityLevel_high; /*!< \brief Verbosity level of the preCICE adapter for FSI simulations */
+  bool precice_loadRamping; /*!< \brief Usage of preCICE load ramping procedure for FSI simulations */
+  unsigned long precice_loadRampingDuration; /*!< \brief Number of physical time steps for which the load ramping procedure is applied */
+  unsigned long precice_numberWetSurfaces; /*!< \brief Number of different wet surfaces */
+  string preciceConfigFileName; /*!< \brief Name of the preCICE configuration file */
+  string preciceWetSurfaceMarkerName; /*!< \brief Name of the wet surface marker (from the mesh file) that the preCICE adapter will use for identification of the wet surface */
+
   unsigned short Riemann_Solver_FEM;         /*!< \brief Riemann solver chosen for the DG method. */
   su2double Quadrature_Factor_Straight;      /*!< \brief Factor applied during quadrature of elements with a constant Jacobian. */
   su2double Quadrature_Factor_Curved;        /*!< \brief Factor applied during quadrature of elements with a non-constant Jacobian. */
@@ -8712,6 +8721,50 @@ public:
    * \return YES if start computing averages
    */
   bool GetCompute_Average(void);
+
+  /*--- preCICE variables ---*/
+
+  /*!
+   * \brief Check if the simulation we are running uses preCICE for FSI
+   * \return True if we use preCICE, false otherwise.
+   */
+  bool GetpreCICE_Usage(void);
+
+  /*!
+   * \brief Check if the verbosity level of the preCICE adapter is high or not
+   * \return True if verbosity level is high, false otherwise.
+   */
+  bool GetpreCICE_VerbosityLevel_High(void);
+
+  /*!
+   * \brief Check if the load ramping procedure of the preCICE adapter is activated or not
+   * \return True if the procedure is applied, false otherwise.
+   */
+  bool GetpreCICE_LoadRamping(void);
+
+  /*!
+   * \brief Get the name of the preCICE configuration file
+   * \return preCICE configuration file name as string
+   */
+  string GetpreCICE_ConfigFileName(void);
+
+  /*!
+   * \brief Get the name of the wet surface marker used in the mesh file
+   * \return Wet surface marker name as string
+   */
+  string GetpreCICE_WetSurfaceMarkerName(void);
+
+  /*!
+   * \brief Get the number of physical time steps for which the load ramping is applied
+   * \return Number of corresponding time steps for which the force vector is continuously increased up to the original value
+   */
+  unsigned long GetpreCICE_LoadRampingDuration(void);
+
+  /*!
+   * \brief Get the number of wet surfaces in the FSI simulation
+   * \return Number of wet surfaces
+   */
+  unsigned long GetpreCICE_NumberWetSurfaces(void);
 
 };
 

@@ -2142,6 +2142,30 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /* DESCRIPTION: Preaccumulation in the AD mode. */
   addBoolOption("PREACC", AD_Preaccumulation, YES);
 
+  /*--- Options that are used for preCICE multiple-solver computations ---*/
+  /*!\par CONFIG_CATEGORY: preCICE Options\ingroup Config*/
+
+  /* DESCRIPTION: Activate preCICE for FSI coupling */
+  addBoolOption("PRECICE_USAGE", precice_usage, false);
+
+  /* DESCRIPTION: Activate high verbosity level of preCICE adapter for FSI coupling */
+  addBoolOption("PRECICE_VERBOSITYLEVEL_HIGH", precice_verbosityLevel_high, false);
+
+  /* DESCRIPTION: Activate preCICE load ramping procedure to stabilize simulations during the first time steps */
+  addBoolOption("PRECICE_LOADRAMPING", precice_loadRamping, false);
+
+  /* DESCRIPTION:  preCICE configuration file name */
+  addStringOption("PRECICE_CONFIG_FILENAME", preciceConfigFileName, string("precice.xml"));
+
+  /* DESCRIPTION:  preCICE wet surface marker name (specified in the mesh file) */
+  addStringOption("PRECICE_WETSURFACE_MARKER_NAME", preciceWetSurfaceMarkerName, string("wetSurface"));
+
+  /* DESCRIPTION: Number of time steps to apply the load ramping precedure of the preCICE adapter. */
+  addUnsignedLongOption("PRECICE_LOADRAMPING_DURATION", precice_loadRampingDuration, 1);
+
+  /* DESCRIPTION: Number of wet surfaces in the preCICE FSI simulation. */
+  addUnsignedLongOption("PRECICE_NUMBER_OF_WETSURFACES", precice_numberWetSurfaces, 1);
+
   /*--- options that are used in the python optimization scripts. These have no effect on the c++ toolsuite ---*/
   /*!\par CONFIG_CATEGORY:Python Options\ingroup Config*/
 

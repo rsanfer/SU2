@@ -37,6 +37,7 @@
 
 #include "../include/driver_structure.hpp"
 #include "../include/definition_structure.hpp"
+#include "../include/precice.hpp"
 
 #ifdef VTUNEPROF
 #include <ittnotify.h>
@@ -857,6 +858,21 @@ void CDriver::Postprocessing() {
     cout << "-------------------------------------------------------------------------" << endl;
     cout << endl;
   }
+
+  //preCICE - Finalize
+  if(precice_usage){
+    precice->finalize();
+    if (dt != NULL) {
+        delete dt;
+    }
+    if (max_precice_dt != NULL) {
+        delete max_precice_dt;
+    }
+    if (precice != NULL) {
+        delete precice;
+    }
+  }
+
 
   /*--- Exit the solver cleanly ---*/
 
@@ -3689,12 +3705,32 @@ void CDriver::StartSolver(){
   __itt_resume();
 #endif
 
+  //preCICE
+  precice_usage = config_container[ZONE_0]->GetpreCICE_Usage();
+  if (precice_usage) {
+    precice = new Precice(rank, size, geometry_container, solver_container, config_container, grid_movement);
+    dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());
+    precice->configure(config_container[ZONE_0]->GetpreCICE_ConfigFileName());
+    max_precice_dt = new double(precice->initialize());
+  }
+
   /*--- Main external loop of the solver. Within this loop, each iteration ---*/
 
   if (rank == MASTER_NODE)
     cout << endl <<"------------------------------ Begin Solver -----------------------------" << endl;
 
-  while ( ExtIter < config_container[ZONE_0]->GetnExtIter() ) {
+  while ( (ExtIter < config_container[ZONE_0]->GetnExtIter() && precice_usage && precice->isCouplingOngoing()) || (ExtIter < config_container[ZONE_0]->GetnExtIter() && !precice_usage) ) {
+
+      //preCICE implicit coupling: saveOldState()
+      if(precice_usage && precice->isActionRequired(precice->getCowic())){
+        precice->saveOldState(&StopCalc, dt);
+      }
+
+      //preCICE - set minimal time step size as new time step size in SU2
+      if(precice_usage){
+        dt = min(max_precice_dt,dt);
+        config_container[ZONE_0]->SetDelta_UnstTimeND(*dt);
+      }
 
     /*--- Perform some external iteration preprocessing. ---*/
 
@@ -3734,9 +3770,23 @@ void CDriver::StartSolver(){
 
     Monitor(ExtIter);
 
+    //preCICE - Advancing
+    if(precice_usage){
+      *max_precice_dt = precice->advance(*dt);
+    }
+
     /*--- Output the solution in files. ---*/
 
-    Output(ExtIter);
+    //preCICE implicit coupling: reloadOldState()
+    bool suppress_output_by_preCICE = false;
+    if(precice_usage && precice->isActionRequired(precice->getCoric())){
+      //Stay at the same iteration number if preCICE is not converged and reload to the state before the current iteration
+      ExtIter--;
+      precice->reloadOldState(&StopCalc, dt);
+      suppress_output_by_preCICE = true;
+    }
+
+    Output(ExtIter, suppress_output_by_preCICE);
 
     /*--- If the convergence criteria has been met, terminate the simulation. ---*/
 
@@ -3848,7 +3898,7 @@ bool CDriver::Monitor(unsigned long ExtIter) {
   
 }
 
-void CDriver::Output(unsigned long ExtIter) {
+void CDriver::Output(unsigned long ExtIter, bool suppress_output_by_preCICE) {
   
   unsigned long nExtIter = config_container[ZONE_0]->GetnExtIter();
   bool output_files = false;
@@ -3856,7 +3906,8 @@ void CDriver::Output(unsigned long ExtIter) {
   /*--- Determine whether a solution needs to be written
    after the current iteration ---*/
   
-  if (
+  //preCICE: Output solution only, if preCICE converged; otherwise suppress output
+  if ( !suppress_output_by_preCICE && (
       
       /*--- General if statements to print output statements ---*/
       
@@ -3894,7 +3945,7 @@ void CDriver::Output(unsigned long ExtIter) {
       
       (config_container[ZONE_0]->GetWrt_InletFile())
       
-      ) {
+      ) ) {
     
     output_files = true;
     

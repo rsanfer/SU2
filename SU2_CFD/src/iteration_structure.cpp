@@ -357,6 +357,23 @@ void CIteration::SetGrid_Movement(CGeometry ****geometry_container,
 
       break;
 
+    //preCICE
+    case PRECICE_MOVEMENT:
+
+      if (rank == MASTER_NODE)
+        cout << " Deforming the volume grid due to preCICE simulation." << endl;
+      grid_movement[val_iZone][val_iInst]->SetVolume_Deformation(geometry_container[val_iZone][val_iInst][MESH_0], config_container[val_iZone], true);
+
+      if (rank == MASTER_NODE)
+        cout << " Computing grid velocities by finite differencing due to preCICE simulation." << endl;
+      geometry_container[val_iZone][val_iInst][MESH_0]->SetGridVelocity(config_container[val_iZone], ExtIter);
+
+      /*--- Update the multigrid structure after moving the finest grid,
+       including computing the grid velocities on the coarser levels. ---*/
+      grid_movement[val_iZone][val_iInst]->UpdateMultiGrid(geometry_container[val_iZone][val_iInst], config_container[val_iZone]);
+
+      break;
+
     case NO_MOVEMENT: case GUST: default:
 
       /*--- There is no mesh motion specified for this zone. ---*/
