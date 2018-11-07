@@ -859,20 +859,8 @@ void CDriver::Postprocessing() {
     cout << endl;
   }
 
-  //preCICE - Finalize
-  if(precice_usage){
-    precice->finalize();
-    if (dt != NULL) {
-        delete dt;
-    }
-    if (max_precice_dt != NULL) {
-        delete max_precice_dt;
-    }
-    if (precice != NULL) {
-        delete precice;
-    }
-  }
-
+  /*--- Run some final processes to complete the simulation ---*/
+  Finalize();
 
   /*--- Exit the solver cleanly ---*/
 
@@ -3705,32 +3693,12 @@ void CDriver::StartSolver(){
   __itt_resume();
 #endif
 
-  //preCICE
-  precice_usage = config_container[ZONE_0]->GetpreCICE_Usage();
-  if (precice_usage) {
-    precice = new Precice(rank, size, geometry_container, solver_container, config_container, grid_movement);
-    dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());
-    precice->configure(config_container[ZONE_0]->GetpreCICE_ConfigFileName());
-    max_precice_dt = new double(precice->initialize());
-  }
-
   /*--- Main external loop of the solver. Within this loop, each iteration ---*/
 
   if (rank == MASTER_NODE)
     cout << endl <<"------------------------------ Begin Solver -----------------------------" << endl;
 
-  while ( (ExtIter < config_container[ZONE_0]->GetnExtIter() && precice_usage && precice->isCouplingOngoing()) || (ExtIter < config_container[ZONE_0]->GetnExtIter() && !precice_usage) ) {
-
-      //preCICE implicit coupling: saveOldState()
-      if(precice_usage && precice->isActionRequired(precice->getCowic())){
-        precice->saveOldState(&StopCalc, dt);
-      }
-
-      //preCICE - set minimal time step size as new time step size in SU2
-      if(precice_usage){
-        dt = min(max_precice_dt,dt);
-        config_container[ZONE_0]->SetDelta_UnstTimeND(*dt);
-      }
+  while ( ExtIter < config_container[ZONE_0]->GetnExtIter() ) {
 
     /*--- Perform some external iteration preprocessing. ---*/
 
@@ -3770,23 +3738,9 @@ void CDriver::StartSolver(){
 
     Monitor(ExtIter);
 
-    //preCICE - Advancing
-    if(precice_usage){
-      *max_precice_dt = precice->advance(*dt);
-    }
-
     /*--- Output the solution in files. ---*/
 
-    //preCICE implicit coupling: reloadOldState()
-    bool suppress_output_by_preCICE = false;
-    if(precice_usage && precice->isActionRequired(precice->getCoric())){
-      //Stay at the same iteration number if preCICE is not converged and reload to the state before the current iteration
-      ExtIter--;
-      precice->reloadOldState(&StopCalc, dt);
-      suppress_output_by_preCICE = true;
-    }
-
-    Output(ExtIter, suppress_output_by_preCICE);
+    Output(ExtIter);
 
     /*--- If the convergence criteria has been met, terminate the simulation. ---*/
 
@@ -3906,7 +3860,6 @@ void CDriver::Output(unsigned long ExtIter) {
   /*--- Determine whether a solution needs to be written
    after the current iteration ---*/
   
-  //preCICE: Output solution only, if preCICE converged; otherwise suppress output
   if (
       
       /*--- General if statements to print output statements ---*/
@@ -8027,6 +7980,15 @@ void CMultiphysicsZonalDriver::Transfer_Data(unsigned short donorZone, unsigned 
   }
 }
 
+CPreciceDriver::CPreciceDriver(char* confFile, unsigned short val_nZone,
+                               unsigned short val_nDim, bool val_periodic,
+                               SU2_Comm MPICommunicator) : CDriver(confFile,
+                                                                   val_nZone,
+                                                                   val_nDim,
+                                                                   val_periodic,
+                                                                   MPICommunicator) { }
+
+CPreciceDriver::~CPreciceDriver(void) { }
 
 void CPreciceDriver::StartSolver(){
 
@@ -8098,7 +8060,7 @@ void CPreciceDriver::StartSolver(){
       output_solution = false;
     }
 
-    if (output_solution) Output(ExtIter, suppress_output_by_preCICE);
+    if (output_solution) Output(ExtIter);
 
     /*--- If the convergence criteria has been met, terminate the simulation. ---*/
 
@@ -8110,4 +8072,21 @@ void CPreciceDriver::StartSolver(){
 #ifdef VTUNEPROF
   __itt_pause();
 #endif
+}
+
+void CPreciceDriver::Finalize(){
+
+  if(precice_usage){
+    precice->finalize();
+    if (dt != NULL) {
+        delete dt;
+    }
+    if (max_precice_dt != NULL) {
+        delete max_precice_dt;
+    }
+    if (precice != NULL) {
+        delete precice;
+    }
+  }
+
 }

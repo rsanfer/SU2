@@ -289,7 +289,7 @@ public:
   /*!
    * \brief Launch the computation for all zones and all physics.
    */
-  void StartSolver();
+  virtual void StartSolver();
 
   /*!
    * \brief A virtual member.
@@ -663,6 +663,12 @@ public:
    * \return List of boundary markers tags with their types.
    */
   map<string, string> GetAllBoundaryMarkersType();
+
+
+  /*!
+   * \brief A virtual member.
+   */
+  virtual void Finalize() { };
 
 };
 
@@ -1532,5 +1538,10 @@ public:
    * \brief Launch the computation for all zones and all physics.
    */
   void StartSolver();
+
+  /*!
+   * \brief Finalize preCICE
+   */
+  void Finalize();
 
 };
