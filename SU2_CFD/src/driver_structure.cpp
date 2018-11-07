@@ -3898,7 +3898,7 @@ bool CDriver::Monitor(unsigned long ExtIter) {
   
 }
 
-void CDriver::Output(unsigned long ExtIter, bool suppress_output_by_preCICE) {
+void CDriver::Output(unsigned long ExtIter) {
   
   unsigned long nExtIter = config_container[ZONE_0]->GetnExtIter();
   bool output_files = false;
@@ -3907,7 +3907,7 @@ void CDriver::Output(unsigned long ExtIter, bool suppress_output_by_preCICE) {
    after the current iteration ---*/
   
   //preCICE: Output solution only, if preCICE converged; otherwise suppress output
-  if ( !suppress_output_by_preCICE && (
+  if (
       
       /*--- General if statements to print output statements ---*/
       
@@ -3945,7 +3945,7 @@ void CDriver::Output(unsigned long ExtIter, bool suppress_output_by_preCICE) {
       
       (config_container[ZONE_0]->GetWrt_InletFile())
       
-      ) ) {
+      ) {
     
     output_files = true;
     
@@ -8025,4 +8025,89 @@ void CMultiphysicsZonalDriver::Transfer_Data(unsigned short donorZone, unsigned 
     }
     break;
   }
+}
+
+
+void CPreciceDriver::StartSolver(){
+
+#ifdef VTUNEPROF
+  __itt_resume();
+#endif
+
+  //preCICE
+  precice_usage = config_container[ZONE_0]->GetpreCICE_Usage();
+
+  precice = new Precice(rank, size, geometry_container, solver_container, config_container, grid_movement);
+  dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());
+  precice->configure(config_container[ZONE_0]->GetpreCICE_ConfigFileName());
+  max_precice_dt = new double(precice->initialize());
+
+  /*--- Main external loop of the solver. Within this loop, each iteration ---*/
+
+  if (rank == MASTER_NODE)
+    cout << endl <<"-------------------------- Begin preCICE Solver -------------------------" << endl;
+
+  while ( (ExtIter < config_container[ZONE_0]->GetnExtIter()) && precice->isCouplingOngoing()) {
+
+    // Implicit coupling: saveOldState()
+    if(precice->isActionRequired(precice->getCowic()))
+      precice->saveOldState(&StopCalc, dt);
+
+    // Set minimal time step size as new time step size in SU2
+    dt = min(max_precice_dt,dt);
+    config_container[ZONE_0]->SetDelta_UnstTimeND(*dt);
+
+    /*--- Perform some external iteration preprocessing. ---*/
+
+    PreprocessExtIter(ExtIter);
+
+    /*--- Perform a single iteration of the chosen PDE solver. ---*/
+
+    /*--- Perform a dynamic mesh update if required. ---*/
+    if (!fem_solver) {
+      DynamicMeshUpdate(ExtIter);
+    }
+
+    /*--- Run a single iteration of the problem (fluid, elasticity, heat, ...). ---*/
+
+    Run();
+
+    /*--- Update the solution for dual time stepping strategy ---*/
+
+    Update();
+
+
+    /*--- Terminate the simulation if only the Jacobian must be computed. ---*/
+    if (config_container[ZONE_0]->GetJacobian_Spatial_Discretization_Only()) break;
+
+    /*--- Monitor the computations after each iteration. ---*/
+
+    Monitor(ExtIter);
+
+    //preCICE - Advancing
+    *max_precice_dt = precice->advance(*dt);
+
+    /*--- Output the solution in files. ---*/
+
+    //preCICE implicit coupling: reloadOldState()
+    bool output_solution = true;
+    if(precice->isActionRequired(precice->getCoric())){
+      //Stay at the same iteration number if preCICE is not converged and reload to the state before the current iteration
+      ExtIter--;
+      precice->reloadOldState(&StopCalc, dt);
+      output_solution = false;
+    }
+
+    if (output_solution) Output(ExtIter, suppress_output_by_preCICE);
+
+    /*--- If the convergence criteria has been met, terminate the simulation. ---*/
+
+    if (StopCalc) break;
+
+    ExtIter++;
+
+  }
+#ifdef VTUNEPROF
+  __itt_pause();
+#endif
 }

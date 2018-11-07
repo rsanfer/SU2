@@ -100,8 +100,13 @@ int main(int argc, char *argv[]) {
   /*--- First, given the basic information about the number of zones and the
    solver types from the config, instantiate the appropriate driver for the problem
    and perform all the preprocessing. ---*/
+  bool precice_usage = config->GetpreCICE_Usage();
 
-  if ( (config->GetKind_Solver() == FEM_ELASTICITY ||
+  if (precice_usage){
+
+    driver = new CPreciceDriver(config_file_name, nZone, nDim, periodic, MPICommunicator);
+
+  } else if ((config->GetKind_Solver() == FEM_ELASTICITY ||
         config->GetKind_Solver() == DISC_ADJ_FEM ) ) {
 
     /*--- Single zone problem: instantiate the single zone driver class. ---*/

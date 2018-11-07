@@ -109,10 +109,6 @@ protected:
             PyWrapNodalForce[3],                /*!< \brief This is used to store the force at each vertex. */
             PyWrapNodalForceDensity[3],         /*!< \brief This is used to store the force density at each vertex. */
             PyWrapNodalHeatFlux[3];             /*!< \brief This is used to store the heat flux at each vertex. */
-  //preCICE
-  bool precice_usage;
-  Precice *precice;
-  double *max_precice_dt, *dt;
 
 public:
 	
@@ -313,8 +309,7 @@ public:
   /*!
    * \brief Output the solution in solution file.
    */
-  //preCICE: Adaption such that output is only written if preCICE converged.
-  void Output(unsigned long ExtIter, bool suppress_output_by_preCICE);
+  void Output(unsigned long ExtIter);
 
   /*!
    * \brief Perform a dynamic mesh deformation, including grid velocity computation and update of the multigrid structure.
@@ -1494,5 +1489,48 @@ public:
    * \brief Routine to provide all the desired physical transfers between the different zones during one iteration.
    */
   void Transfer_Data(unsigned short donorZone, unsigned short targetZone);
+
+};
+
+
+/*!
+ * \class CPreciceDriver
+ * \brief Class for using SU2 with precice.
+ * \author R. Sanchez
+ */
+class CPreciceDriver : public CDriver {
+
+protected:
+
+  bool precice_usage;
+  Precice *precice;
+  double *max_precice_dt, *dt;
+
+public:
+
+  /*!
+   * \brief Constructor of the class.
+   * \param[in] confFile - Configuration file name.
+   * \param[in] val_nZone - Total number of zones.
+   * \param[in] val_nDim - Number of dimensions.
+   * \param[in] val_periodic - Bool for periodic BCs.
+   * \param[in] MPICommunicator - MPI communicator for SU2.
+   */
+  CPreciceDriver(char* confFile,
+                 unsigned short val_nZone,
+                 unsigned short val_nDim,
+                 bool val_periodic,
+                 SU2_Comm MPICommunicator);
+
+  /*!
+   * \brief Destructor of the class.
+   */
+  ~CPreciceDriver(void);
+
+
+  /*!
+   * \brief Launch the computation for all zones and all physics.
+   */
+  void StartSolver();
 
 };
