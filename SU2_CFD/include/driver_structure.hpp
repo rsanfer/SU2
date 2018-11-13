@@ -675,8 +675,21 @@ public:
    */
   map<string, string> GetAllBoundaryMarkersType();
 
-==== BASE ====
-==== BASE ====
+  /*!
+   * \brief A virtual member to run a Block Gauss-Seidel iteration in multizone problems.
+   */
+  virtual void Run_GaussSeidel(){};
+
+  /*!
+   * \brief A virtual member to run a Block-Jacobi iteration in multizone problems.
+   */
+  virtual void Run_Jacobi(){};
+
+  /*!
+   * \brief A virtual member.
+   */
+  virtual void Finalize() { };
+
 };
 
 /*!
