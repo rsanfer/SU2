@@ -3415,7 +3415,7 @@ public:
   virtual void ComputeAitken_Coefficient(CGeometry **fea_geometry,
                                          CConfig *fea_config,
                                          CSolver ***fea_solution,
-                                         unsigned long iFSIIter);
+                                         unsigned long iOuterIter);
   
   
   /*!
@@ -11535,6 +11535,12 @@ public:
    */
   void SetResidual_DualTime(CGeometry *geometry, CSolver **solver_container, CConfig *config,
                             unsigned short iRKStep, unsigned short iMesh, unsigned short RunTime_EqSystem);
+
+  /*!
+   * \brief Set the value of the max residual and BGS residual.
+   * \param[in] val_iterlinsolver - Number of linear iterations.
+   */
+  void ComputeResidual_BGS(CGeometry *geometry, CConfig *config);
 };
 
 /*! \class CFEASolver
@@ -12085,7 +12091,7 @@ public:
   void ComputeAitken_Coefficient(CGeometry **fea_geometry,
                                  CConfig *fea_config,
                                  CSolver ***fea_solution,
-                                 unsigned long iFSIIter);
+                                 unsigned long iOuterIter);
   
   /*!
    * \brief Aitken's relaxation of the solution.
