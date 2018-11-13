@@ -1577,7 +1577,7 @@ public:
   /*!
    * \brief [Overload] Launch the computation for single-zone problems.
    */
-  void StartSolver();
+  virtual void StartSolver();
 
   /*!
    * \brief Preprocess the single-zone iteration
@@ -1721,7 +1721,7 @@ public:
  * \brief Class for using SU2 with precice.
  * \author R. Sanchez
  */
-class CPreciceDriver : public CDriver {
+class CPreciceDriver : public CSinglezoneDriver {
 
 protected:
 

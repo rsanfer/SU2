@@ -8106,7 +8106,7 @@ void CMultiphysicsZonalDriver::Transfer_Data(unsigned short donorZone, unsigned 
 
 CPreciceDriver::CPreciceDriver(char* confFile, unsigned short val_nZone,
                                unsigned short val_nDim, bool val_periodic,
-                               SU2_Comm MPICommunicator) : CDriver(confFile,
+                               SU2_Comm MPICommunicator) : CSinglezoneDriver(confFile,
                                                                    val_nZone,
                                                                    val_nDim,
                                                                    val_periodic,
