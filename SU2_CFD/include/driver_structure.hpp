@@ -54,7 +54,7 @@ using namespace std;
 
 //preCICE
 //This forward declaration of the Precice class is necessary to avoid a cyclic inclusion issue
-class Precice;
+class CPrecice;
 
 /*! 
  * \class CDriver
@@ -1726,7 +1726,7 @@ class CPreciceDriver : public CSinglezoneDriver {
 protected:
 
   bool precice_usage;
-  Precice *precice;
+  CPrecice *precice;
   double *max_precice_dt, *dt;
 
 public:

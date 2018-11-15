@@ -86,8 +86,9 @@ libSU2Core_sources = \
   ../include/variable_structure.inl \
   ../include/transfer_structure.hpp \
   ../include/transfer_structure.inl \
+  ../include/precice_structure.hpp \
+  ../include/precice_structure.inl \
   ../src/data_manufactured_solutions.cpp \
-  ../include/precice.hpp \
   ../src/definition_structure.cpp \
   ../src/fluid_model.cpp \
   ../src/fluid_model_pig.cpp \
@@ -148,7 +149,7 @@ libSU2Core_sources = \
   ../src/variable_direct_elasticity.cpp \
   ../src/variable_structure.cpp \
   ../src/variable_template.cpp \
-  ../src/precice.cpp
+  ../src/precice_wrapper_structure.cpp
 
 su2_cfd_sources = \
   ../include/SU2_CFD.hpp \

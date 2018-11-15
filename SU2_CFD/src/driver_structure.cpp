@@ -37,7 +37,7 @@
 
 #include "../include/driver_structure.hpp"
 #include "../include/definition_structure.hpp"
-#include "../include/precice.hpp"
+#include "../include/precice_structure.hpp"
 
 #ifdef VTUNEPROF
 #include <ittnotify.h>
@@ -8110,7 +8110,19 @@ CPreciceDriver::CPreciceDriver(char* confFile, unsigned short val_nZone,
                                                                    val_nZone,
                                                                    val_nDim,
                                                                    val_periodic,
-                                                                   MPICommunicator) { }
+                                                                   MPICommunicator) {
+
+  /*--- Initialize the precice object depending on the kind of problem at hand ---*/
+  /*--- Here, a switch statement will be necessary depending on the problem ---*/
+  precice = new CPreciceFlow(rank, size, geometry_container, solver_container, config_container, grid_movement);
+
+  /*--- Load time step ---*/
+  dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());
+
+  /*--- Initialize preCICE ---*/
+  max_precice_dt = new double(precice->Initialize());
+
+}
 
 CPreciceDriver::~CPreciceDriver(void) { }
 
@@ -8120,48 +8132,36 @@ void CPreciceDriver::StartSolver(){
   __itt_resume();
 #endif
 
-  //preCICE
-  precice_usage = config_container[ZONE_0]->GetpreCICE_Usage();
-
-  precice = new Precice(rank, size, geometry_container, solver_container, config_container, grid_movement);
-  dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());
-  precice->configure(config_container[ZONE_0]->GetpreCICE_ConfigFileName());
-  max_precice_dt = new double(precice->initialize());
-
   /*--- Main external loop of the solver. Within this loop, each iteration ---*/
 
   if (rank == MASTER_NODE)
     cout << endl <<"-------------------------- Begin preCICE Solver -------------------------" << endl;
 
-  while ( (ExtIter < config_container[ZONE_0]->GetnExtIter()) && precice->isCouplingOngoing()) {
+  while ( (ExtIter < config_container[ZONE_0]->GetnExtIter()) && precice->ActiveCoupling()) {
 
-    // Implicit coupling: saveOldState()
-    if(precice->isActionRequired(precice->getCowic()))
-      precice->saveOldState(&StopCalc, dt);
+    /*--- Store the old state for implicit coupling ---*/
+    if(precice->ActionRequired(precice->getCowic()))
+      precice->Set_OldState(&StopCalc, dt);
 
-    // Set minimal time step size as new time step size in SU2
+    /*--- Set the time step ---*/
     dt = min(max_precice_dt,dt);
     config_container[ZONE_0]->SetDelta_UnstTimeND(*dt);
 
     /*--- Perform some external iteration preprocessing. ---*/
-
     PreprocessExtIter(ExtIter);
-
-    /*--- Perform a single iteration of the chosen PDE solver. ---*/
 
     /*--- Perform a dynamic mesh update if required. ---*/
     if (!fem_solver) {
       DynamicMeshUpdate(ExtIter);
     }
 
-    /*--- Run a single iteration of the problem (fluid, elasticity, heat, ...). ---*/
+    /*--- Run a single iteration of the problem. ---*/
 
     Run();
 
     /*--- Update the solution for dual time stepping strategy ---*/
 
     Update();
-
 
     /*--- Terminate the simulation if only the Jacobian must be computed. ---*/
     if (config_container[ZONE_0]->GetJacobian_Spatial_Discretization_Only()) break;
@@ -8170,24 +8170,23 @@ void CPreciceDriver::StartSolver(){
 
     Monitor(ExtIter);
 
-    //preCICE - Advancing
-    *max_precice_dt = precice->advance(*dt);
+    /*--- Advance preCICE ---*/
+    *max_precice_dt = precice->Advance(*dt);
 
-    /*--- Output the solution in files. ---*/
-
-    //preCICE implicit coupling: reloadOldState()
     bool output_solution = true;
-    if(precice->isActionRequired(precice->getCoric())){
-      //Stay at the same iteration number if preCICE is not converged and reload to the state before the current iteration
+
+    /*--- Test if the preCICE is converged ---*/
+    if(precice->ActionRequired(precice->getCoric())){
+      /*--- If unconverged, reset the flow to the old state and retain the ExtIter ---*/
       ExtIter--;
-      precice->reloadOldState(&StopCalc, dt);
+      precice->Reset_OldState(&StopCalc, dt);
       output_solution = false;
     }
 
+    /*--- Output the solution files. ---*/
     if (output_solution) Output(ExtIter);
 
     /*--- If the convergence criteria has been met, terminate the simulation. ---*/
-
     if (StopCalc) break;
 
     ExtIter++;
@@ -8201,16 +8200,16 @@ void CPreciceDriver::StartSolver(){
 void CPreciceDriver::Finalize(){
 
   if(precice_usage){
-    precice->finalize();
+    precice->Finalize();
     if (dt != NULL) {
         delete dt;
     }
     if (max_precice_dt != NULL) {
         delete max_precice_dt;
     }
-    if (precice != NULL) {
-        delete precice;
-    }
+//    if (precice != NULL) {
+//        delete precice;
+//    }
   }
 
 }
