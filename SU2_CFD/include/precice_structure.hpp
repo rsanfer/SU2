@@ -144,9 +144,6 @@ protected:
   int *forceID;
   int *displDeltaID;
   int *meshID;
-  su2double *forces;
-  su2double *displacements;
-  su2double *displacementDeltas;
 
   su2double **Coord_Saved,
             **Coord_n_Saved,
@@ -169,6 +166,7 @@ protected:
             Density_ND,
             Velocity2_Real,
             Velocity2_ND;
+  su2double factorForces;
 
 public:
 
