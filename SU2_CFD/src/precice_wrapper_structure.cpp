@@ -237,16 +237,12 @@ su2double CPreciceFlow::Initialize() {
 
     }
     for (iSurface = 0; iSurface < nWetSurfaces; iSurface++) {
-      bool flag = false;
       for (jSurface = 0; jSurface < nWetSurfacesDomain; jSurface++) {
-        if (markerLocalToGlobal[jSurface] == iSurface) {
-          flag = true;
+        if (markerLocalToGlobal[jSurface] != iSurface) {
+          solverInterface.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
+          forceID[iSurface] = solverInterface.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
+          displDeltaID[iSurface] = solverInterface.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
         }
-      }
-      if (!flag) {
-        solverInterface.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
-        forceID[iSurface] = solverInterface.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
-        displDeltaID[iSurface] = solverInterface.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
       }
     }
   } else {
