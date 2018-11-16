@@ -94,7 +94,12 @@ public:
   * \brief Configures preCICE from the given xml file.
   * \param[in] configurationFilename - Name (with path) of the xml configuration file.
   */
-  virtual void Configure( const string& configurationFilename );
+  void Configure( const string& configurationFilename );
+
+  /*!
+  * \brief Finalizes preCICE.
+  */
+  void Finalize();
 
   /*!
   * \brief Initialize preCICE.
@@ -124,10 +129,6 @@ public:
 
   virtual void Reset_OldState( bool *StopCalc, double *dt );
 
-  /*!
-  * \brief Finalizes preCICE.
-  */
-  virtual void Finalize();
 };
 
 /*!
@@ -183,12 +184,6 @@ public:
   ~CPreciceFlow();
 
   /*!
-  * \brief Configures preCICE from the given xml file.
-  * \param[in] configurationFilename - Name (with path) of the xml configuration file.
-  */
-  void Configure( const string& configurationFilename );
-
-  /*!
   * \brief Initialize preCICE.
   * \return Maximum length of first timestep to be computed by the solver.
   */
@@ -216,10 +211,7 @@ public:
 
   void Reset_OldState( bool *StopCalc, double *dt );
 
-  /*!
-  * \brief Finalizes preCICE.
-  */
-  void Finalize();
+
 };
 
 #include "precice_structure.inl"

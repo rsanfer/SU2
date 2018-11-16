@@ -37,14 +37,16 @@ cowic(precice::constants::actionWriteIterationCheckpoint())
   nWetSurfaces = config->GetpreCICE_NumberWetSurfaces();
   nWetSurfacesDomain = 0;
 
+  /*--- There must be at least one wet surface ---*/
+  if(nWetSurfaces < 1)
+    SU2_MPI::Error("There must be at least one wet surface! Now exiting...", CURRENT_FUNCTION);
+
 };
 
 /*!
 * \brief Destructor of the class CPrecice.
 */
 CPrecice::~CPrecice() {
-
-
 
 };
 
@@ -142,28 +144,6 @@ CPreciceFlow::~CPreciceFlow()
   if (forceID                != NULL) delete [] forceID;
   if (displDeltaID           != NULL) delete [] displDeltaID;
   if (meshID                 != NULL) delete [] meshID;
-
-};
-
-void CPreciceFlow::Configure( const string& configurationFilename ) {
-
-  if (verbose) cout << "Process #" << processRank << "/" << processSize-1 << ": Configuring preCICE..." << endl;
-
-  solverInterface.configure( configurationFilename );
-
-  if (verbose) cout << "Process #" << processRank << "/" << processSize-1 << ": ...done configuring preCICE!" << endl;
-
-  //Checking for dimensional consistency of SU2 and preCICE - Exit if not consistent
-  if(solverInterface.getDimensions() != nDim){
-    cout << "Dimensions of SU2 and preCICE are not equal! Now exiting..." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  //Checking for number of wet surfaces - Exit if not cat least one wet surface defined
-  if(nWetSurfaces < 1){
-    cout << "There must be at least one wet surface! Now exiting..." << endl;
-    exit(EXIT_FAILURE);
-  }
 
 };
 
@@ -581,12 +561,5 @@ void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt )
   //Reading task has been fulfilled successfully
   solverInterface.fulfilledAction(coric);
 
-};
-
-void CPreciceFlow::Finalize()
-{
-  cout << "Process #" << processRank << "/" << processSize-1 << ": Finalizing preCICE..." << endl;
-  solverInterface.finalize();
-  cout << "Process #" << processRank << "/" << processSize-1 << ": Done finalizing preCICE!" << endl;
 };
 

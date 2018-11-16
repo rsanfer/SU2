@@ -17,7 +17,11 @@ inline const string& CPrecice::getCowic() { return cowic; }
 
 inline const string& CPrecice::getCoric() { return coric; }
 
-inline void CPrecice::Configure( const string& configurationFilename ) { }
+inline void CPrecice::Configure( const string& configurationFilename ) {
+  solverInterface.configure( configurationFilename );
+  if(solverInterface.getDimensions() != nDim)
+    SU2_MPI::Error("Dimensions of SU2 and preCICE are not equal! Now exiting...", CURRENT_FUNCTION);
+}
 
 inline su2double CPrecice::Initialize() { return 0.0; }
 
@@ -27,4 +31,4 @@ inline void CPrecice::Set_OldState( bool *StopCalc, double *dt ) { }
 
 inline void CPrecice::Reset_OldState( bool *StopCalc, double *dt ) { }
 
-inline void CPrecice::Finalize() { }
+inline void CPrecice::Finalize() {solverInterface.finalize();}
