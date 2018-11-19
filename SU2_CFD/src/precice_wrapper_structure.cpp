@@ -234,6 +234,13 @@ su2double CPreciceFlow::Initialize() {
       forceID[markerLocalToGlobal[iSurface]] = solverInterface.getDataID("Forces" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
       displDeltaID[markerLocalToGlobal[iSurface]] = solverInterface.getDataID("DisplacementDeltas" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
 
+      /*--- Deallocate the containers of the coordinates ---*/
+      if (coord != NULL) delete [] coord;
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++){
+        if (nodeCoord[iVertex]!= NULL) delete [] nodeCoord[iVertex];
+      }
+      if (nodeCoord!= NULL) delete [] nodeCoord;
+
     }
     for (iSurface = 0; iSurface < nWetSurfaces; iSurface++) {
       for (jSurface = 0; jSurface < nWetSurfacesDomain; jSurface++) {
@@ -374,8 +381,13 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
       /*--- Send the data to preCICE ---*/
       solverInterface.writeBlockVectorData(forceID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], forces);
 
-      /*--- Deallocate the container of the forces ---*/
+      /*--- Deallocate the containers of the forces ---*/
       if (forces != NULL) delete [] forces;
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++){
+        if (forces_su2[iVertex]!= NULL) delete [] forces_su2[iVertex];
+      }
+      if (forces_su2!= NULL) delete [] forces_su2;
+
     }
 
     /*--- Advance the interface in preCICE ---*/
@@ -408,8 +420,12 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
       for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
         geometry->vertex[valueMarkerWet[iSurface]][iVertex]->SetVarCoord(displacementDeltas_su2[iVertex]);
       }
-      /*--- Deallocate the container of the delta-displacement ---*/
+      /*--- Deallocate the containers of the delta-displacement ---*/
       if (displacementDeltas != NULL)  delete [] displacementDeltas;
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++){
+        if (displacementDeltas_su2[iVertex]!= NULL) delete [] displacementDeltas_su2[iVertex];
+      }
+      if (displacementDeltas_su2!= NULL) delete [] displacementDeltas_su2;
 
     }
 
@@ -505,9 +521,9 @@ CPreciceFEA::CPreciceFEA( int processRank, int processSize, CGeometry**** geomet
 
 CPreciceFEA::~CPreciceFEA() {}
 
-su2double CPreciceFEA::Initialize() { }
+su2double CPreciceFEA::Initialize() { return 0.0; }
 
-su2double CPreciceFEA::Advance( su2double computedTimestep ) { }
+su2double CPreciceFEA::Advance( su2double computedTimestep ) { return 0.0; }
 
 void CPreciceFEA::Set_OldState( bool *StopCalc, double *dt ) { }
 
