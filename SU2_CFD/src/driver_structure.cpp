@@ -8113,8 +8113,17 @@ CPreciceDriver::CPreciceDriver(char* confFile, unsigned short val_nZone,
                                                                    MPICommunicator) {
 
   /*--- Initialize the precice object depending on the kind of problem at hand ---*/
-  /*--- Here, a switch statement will be necessary depending on the problem ---*/
-  precice = new CPreciceFlow(rank, size, geometry_container, solver_container, config_container, grid_movement);
+  switch (config_container[ZONE_0]->GetpreCICE_Subproblem()){
+  case PRECICE_FLOW:
+    precice = new CPreciceFlow(rank, size, geometry_container, solver_container, config_container, grid_movement);
+    break;
+  case PRECICE_FEA:
+    precice = new CPreciceFEA(rank, size, geometry_container, solver_container, config_container, grid_movement);
+    break;
+  default:
+    precice = new CPreciceFlow(rank, size, geometry_container, solver_container, config_container, grid_movement);
+    break;
+  }
 
   /*--- Load time step ---*/
   dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());

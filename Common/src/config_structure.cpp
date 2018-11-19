@@ -2187,6 +2187,9 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /* DESCRIPTION: Activate preCICE for FSI coupling */
   addBoolOption("PRECICE_USAGE", precice_usage, false);
 
+  /* DESCRIPTION: Define the subproblem that will be solved by this instance of preCICE */
+  addEnumOption("PRECICE_SUBPROBLEM", precice_subproblem, Precice_Map, PRECICE_FLOW);
+
   /* DESCRIPTION: Activate high verbosity level of preCICE adapter for FSI coupling */
   addBoolOption("PRECICE_VERBOSITYLEVEL_HIGH", precice_verbosityLevel_high, false);
 

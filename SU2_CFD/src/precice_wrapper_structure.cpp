@@ -50,7 +50,6 @@ CPrecice::~CPrecice() {
 
 };
 
-
 CPreciceFlow::CPreciceFlow( int processRank, int processSize, CGeometry**** geometry_container, CSolver***** solver_container,
                             CConfig** config_container, CVolumetricMovement*** grid_movement )
                            : CPrecice(processRank, processSize, geometry_container, solver_container, config_container, grid_movement)
@@ -379,9 +378,10 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
       if (forces != NULL) delete [] forces;
     }
 
-    //3. Advance solverInterface
+    /*--- Advance the interface in preCICE ---*/
     max_precice_dt = solverInterface.advance( SU2_TYPE::GetValue(computedTimestep) );
 
+    /*--- Retrieve the displacements from preCICE for the wet surfaces that belong to the active process---*/
     for (iSurface = 0; iSurface < nWetSurfacesDomain; iSurface++) {
 
       /*--- Allocate memory to store all the displacements in the wet surface ---*/
@@ -498,3 +498,17 @@ void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt )
 
 };
 
+CPreciceFEA::CPreciceFEA( int processRank, int processSize, CGeometry**** geometry_container, CSolver***** solver_container,
+                            CConfig** config_container, CVolumetricMovement*** grid_movement )
+                           : CPrecice(processRank, processSize, geometry_container, solver_container, config_container, grid_movement)
+{ }
+
+CPreciceFEA::~CPreciceFEA() {}
+
+su2double CPreciceFEA::Initialize() { }
+
+su2double CPreciceFEA::Advance( su2double computedTimestep ) { }
+
+void CPreciceFEA::Set_OldState( bool *StopCalc, double *dt ) { }
+
+void CPreciceFEA::Reset_OldState( bool *StopCalc, double *dt ) { }

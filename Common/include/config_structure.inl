@@ -1974,6 +1974,8 @@ inline unsigned long CConfig::GetpreCICE_LoadRampingDuration(void) { return prec
 
 inline unsigned long CConfig::GetpreCICE_NumberWetSurfaces(void) { return precice_numberWetSurfaces; }
 
+inline unsigned short CConfig::GetpreCICE_Subproblem(void) { return precice_subproblem; }
+
 inline bool CConfig::GetCompute_Average(void) {return Compute_Average;}
 
 inline ofstream* CConfig::GetHistFile(void) { return ConvHistFile; }

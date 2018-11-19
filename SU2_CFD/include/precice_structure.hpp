@@ -172,16 +172,71 @@ protected:
 public:
 
   /*!
-  * \brief Constructor of the class CPrecice.
+  * \brief Constructor of the class CPreciceFlow.
   * \param[in] processRank - Index of this solver Process.
   * \param[in] processSize - Overall number of solver Processes.
   */
   CPreciceFlow( int processRank, int processSize, CGeometry**** geometry_container, CSolver***** solver_container, CConfig** config_container, CVolumetricMovement*** grid_movement );
 
   /*!
-  * \brief Destructor of the class CPrecice.
+  * \brief Destructor of the class CPreciceFlow.
   */
   ~CPreciceFlow();
+
+  /*!
+  * \brief Initialize preCICE.
+  * \return Maximum length of first timestep to be computed by the solver.
+  */
+  su2double Initialize();
+
+  /*!
+  * \brief Advances preCICE after the solver has computed one timestep.
+  * \param[in] computedTimestep - Timestep computed by solver.
+  * \return Maximum length of next timestep to be computed by solver.
+  */
+  su2double Advance( su2double computedTimestep );
+
+  /*!
+  * \brief Store the current state.
+  * \param[in] StopCalc - Determines if the SU2 simulation is completed (convergence or max number of iterations).
+  * \param[in] dt - Current time step size.
+  */
+  void Set_OldState( bool *StopCalc, double *dt );
+
+  /*!
+  * \brief Reload the old state.
+  * \param[in] StopCalc - Determines if the SU2 simulation is completed (convergence or max number of iterations).
+  * \param[in] dt - Current time step size.
+  */
+
+  void Reset_OldState( bool *StopCalc, double *dt );
+
+
+};
+
+/*!
+ * \class CPreciceFEA
+ * \brief Class for preCICE coupling of solid FEA sub-problems.
+ * \author R. Sanchez
+ */
+
+class CPreciceFEA : public CPrecice {
+
+protected:
+
+public:
+
+  /*!
+  * \brief Constructor of the class CPreciceFEA.
+  * \param[in] processRank - Index of this solver Process.
+  * \param[in] processSize - Overall number of solver Processes.
+  */
+  CPreciceFEA( int processRank, int processSize, CGeometry**** geometry_container, CSolver***** solver_container, CConfig** config_container, CVolumetricMovement*** grid_movement );
+
+  /*!
+  * \brief Destructor of the class CPreciceFEA.
+  */
+  ~CPreciceFEA();
 
   /*!
   * \brief Initialize preCICE.

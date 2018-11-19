@@ -1040,6 +1040,7 @@ private:
   unsigned long precice_numberWetSurfaces; /*!< \brief Number of different wet surfaces */
   string preciceConfigFileName; /*!< \brief Name of the preCICE configuration file */
   string preciceWetSurfaceMarkerName; /*!< \brief Name of the wet surface marker (from the mesh file) that the preCICE adapter will use for identification of the wet surface */
+  unsigned short precice_subproblem; /*!< Define the subproblem that will be solved via preCICE in this instance of SU2 */
 
   unsigned short Riemann_Solver_FEM;         /*!< \brief Riemann solver chosen for the DG method. */
   su2double Quadrature_Factor_Straight;      /*!< \brief Factor applied during quadrature of elements with a constant Jacobian. */
@@ -8927,6 +8928,12 @@ public:
    * \return Number of wet surfaces
    */
   unsigned long GetpreCICE_NumberWetSurfaces(void);
+
+  /*!
+   * \brief Get the subproblem that will be solved via preCICE in this instance of SU2
+   * \return Identifier of the subproblem
+   */
+  unsigned short GetpreCICE_Subproblem(void);
 
 };
 

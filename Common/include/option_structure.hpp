@@ -1902,6 +1902,17 @@ static const map<string, ENUM_DYNAMIC> Dynamic_Map = CCreateMap<string, ENUM_DYN
 ("YES", DYNAMIC);
 
 /*!
+ * \brief types of FFD Blending function
+ */
+enum ENUM_PRECICE{
+  PRECICE_FLOW,
+  PRECICE_FEA
+};
+static const map<string, ENUM_PRECICE> Precice_Map = CCreateMap<string, ENUM_PRECICE>
+("FLOW", PRECICE_FLOW)
+("SOLID_FEA", PRECICE_FEA);
+
+/*!
  * \brief types of input file formats
  */
 enum ENUM_INPUT_REF {
