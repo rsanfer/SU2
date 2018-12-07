@@ -990,3 +990,94 @@ void CFluidDriver::BoundaryConditionsUpdate(){
     geometry_container[iZone][INST_0][MESH_0]->UpdateCustomBoundaryConditions(geometry_container[iZone][INST_0], config_container[iZone]);
   }
 }
+
+void CDriver::SetLoads(unsigned short iMarker, unsigned short iVertex, unsigned short iGlobalIndex, su2double LoadX,
+                       su2double LoadY, su2double LoadZ) {
+
+  unsigned long iPoint, GlobalIndex;
+  PyWrapNodalForce[0] = LoadX;
+  PyWrapNodalForce[1] = LoadY;
+  PyWrapNodalForce[2] = LoadZ;
+
+  iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
+  GlobalIndex = geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetGlobalIndex();
+
+//  cout << "Set Load " << iPoint << ": " << GlobalIndex << " " << iGlobalIndex << " " << LoadX << " " << LoadY << " " << LoadZ << endl;
+
+  solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->Set_FlowTraction(PyWrapNodalForce);
+
+}
+
+vector<su2double> CDriver::GetDisplacements(unsigned short iMarker, unsigned short iVertex) {
+
+  unsigned long iPoint, GlobalIndex;
+  vector<su2double> Displacements(3, 0.0);
+
+  iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
+  GlobalIndex = geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetGlobalIndex();
+
+  Displacements[0] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution(0);
+  Displacements[1] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution(1);
+  if (solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->GetnVar() == 3)
+    Displacements[2] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution(2);
+  else
+    Displacements[2] = 0.0;
+
+//  cout << "Set Displacement " << iPoint << ":" << GlobalIndex << " " << Displacements[0] << " " << Displacements[1] << " " << Displacements[2] << endl;
+
+  return Displacements;
+}
+
+
+vector<su2double> CDriver::GetVelocity(unsigned short iMarker, unsigned short iVertex) {
+
+  unsigned long iPoint, GlobalIndex;
+  vector<su2double> Velocity(3, 0.0);
+
+  iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
+  GlobalIndex = geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetGlobalIndex();
+
+  if (config_container[ZONE_0]->GetDynamic_Analysis() == DYNAMIC){
+    Velocity[0] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution_Vel(0);
+    Velocity[1] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution_Vel(1);
+    if (solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->GetnVar() == 3)
+      Velocity[2] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution_Vel(2);
+    else
+      Velocity[2] = 0.0;
+  }
+  else{
+    Velocity[0] = 0.0;
+    Velocity[1] = 0.0;
+    Velocity[2] = 0.0;
+  }
+
+  return Velocity;
+}
+
+vector<su2double> CDriver::GetVelocity_n(unsigned short iMarker, unsigned short iVertex) {
+
+  unsigned long iPoint, GlobalIndex;
+  vector<su2double> Velocity_n(3, 0.0);
+
+  iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
+  GlobalIndex = geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetGlobalIndex();
+
+  if (config_container[ZONE_0]->GetDynamic_Analysis() == DYNAMIC){
+    Velocity_n[0] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(0);
+    Velocity_n[1] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(1);
+    if (solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->GetnVar() == 3)
+      Velocity_n[2] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(2);
+    else
+      Velocity_n[2] = 0.0;
+  }
+  else{
+    Velocity_n[0] = 0.0;
+    Velocity_n[1] = 0.0;
+    Velocity_n[2] = 0.0;
+  }
+
+  return Velocity_n;
+}
+
+
+
