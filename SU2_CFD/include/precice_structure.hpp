@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "SolverInterface.hpp"
+#include "../../../../pc/precice-1.2.0/src/precice/SolverInterface.hpp"
 #include "SU2_CFD.hpp"
 #include <string>
 #include <stdlib.h>
@@ -28,7 +28,7 @@ class CPrecice {
 protected:
 
   int processRank, processSize;         /*--- Store the current rank and the total size of the parallelization ---*/
-  SolverInterface solverInterface;      /*--- Coupling object ---*/
+  SolverInterface solverInterfaceFlow,solverInterfaceFEA;      /*--- Coupling object ---*/
 
   CGeometry* geometry;                  /*--- Stores the geometry of the problem ---*/
   CSolver** solver;                     /*--- Stores the current solution of the problem ---*/
@@ -141,6 +141,7 @@ class CPreciceFlow : public CPrecice {
 
 protected:
 
+
   int **vertexIDs;
   int *forceID;
   int *displDeltaID;
@@ -223,6 +224,30 @@ public:
 class CPreciceFEA : public CPrecice {
 
 protected:
+
+
+  int **vertexIDs;
+  int *forceID;
+  int *displDeltaID;
+  int *meshID;
+
+  su2double **Coord_Saved,
+            **Coord_n_Saved,
+            **Coord_n1_Saved,
+            **Coord_p1_Saved,
+            **GridVel_Saved,
+            ***GridVel_Grad_Saved;
+
+  su2double **solution_Saved,
+            **solution_time_n_Saved,
+            **solution_time_n1_Saved;
+
+  su2double dt_savedState;
+  bool StopCalc_savedState;
+
+  su2double* DisplacementDonor;
+  su2double* DisplacementDonor_Prev;
+  
 
 public:
 
