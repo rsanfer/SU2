@@ -1968,6 +1968,8 @@ inline bool CConfig::GetpreCICE_LoadRamping(void) { return precice_loadRamping; 
 
 inline string CConfig::GetpreCICE_ConfigFileName(void) { return preciceConfigFileName; }
 
+inline string CConfig::GetpreCICE_Participant(void) { return preciceParticipant; }
+
 inline string CConfig::GetpreCICE_WetSurfaceMarkerName(void) { return preciceWetSurfaceMarkerName; }
 
 inline unsigned long CConfig::GetpreCICE_LoadRampingDuration(void) { return precice_loadRampingDuration; }

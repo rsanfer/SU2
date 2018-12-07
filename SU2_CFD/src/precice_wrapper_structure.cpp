@@ -17,8 +17,7 @@ CPrecice::CPrecice( int processRank, int processSize, CGeometry**** geometry_con
 :
 processRank(processRank),
 processSize(processSize),
-solverInterfaceFEA("SU2_CFD_FEA", processRank, processSize),
-solverInterfaceFlow("SU2_CFD_FLOW", processRank, processSize),
+solverInterface(config_container[ZONE_0]->GetpreCICE_Participant(), processRank, processSize),
 coric(precice::constants::actionReadIterationCheckpoint()),
 cowic(precice::constants::actionWriteIterationCheckpoint())
 {
@@ -162,7 +161,7 @@ su2double CPreciceFlow::Initialize() {
 
   /*--- Recover preCICE mesh IDs ---*/
   for (iSurface = 0; iSurface < nWetSurfaces; iSurface++) {
-    meshID[iSurface] = solverInterfaceFlow.getMeshID("SU2_Mesh_Fluid" + to_string(iSurface));
+    meshID[iSurface] = solverInterface.getMeshID("SU2_Mesh_Fluid" + to_string(iSurface));
   }
 
   /*--- Store the number of surfaces belonging to this rank ---*/
@@ -231,9 +230,9 @@ su2double CPreciceFlow::Initialize() {
       vertexIDs[iSurface] = new int[nVertex[iSurface]];
 
       /*--- Interface to preCICE ---*/
-      solverInterfaceFlow.setMeshVertices(meshID[markerLocalToGlobal[iSurface]], nVertex[iSurface], coord, vertexIDs[iSurface]);
-      forceID[markerLocalToGlobal[iSurface]] = solverInterfaceFlow.getDataID("Forces" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
-      displDeltaID[markerLocalToGlobal[iSurface]] = solverInterfaceFlow.getDataID("DisplacementDeltas" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
+      solverInterface.setMeshVertices(meshID[markerLocalToGlobal[iSurface]], nVertex[iSurface], coord, vertexIDs[iSurface]);
+      forceID[markerLocalToGlobal[iSurface]] = solverInterface.getDataID("Forces" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
+      displDeltaID[markerLocalToGlobal[iSurface]] = solverInterface.getDataID("DisplacementDeltas" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
 
       /*--- Deallocate the containers of the coordinates ---*/
       if (coord != NULL) delete [] coord;
@@ -246,23 +245,23 @@ su2double CPreciceFlow::Initialize() {
     for (iSurface = 0; iSurface < nWetSurfaces; iSurface++) {
       for (jSurface = 0; jSurface < nWetSurfacesDomain; jSurface++) {
         if (markerLocalToGlobal[jSurface] != iSurface) {
-          solverInterfaceFlow.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
-          forceID[iSurface] = solverInterfaceFlow.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
-          displDeltaID[iSurface] = solverInterfaceFlow.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
+          solverInterface.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
+          forceID[iSurface] = solverInterface.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
+          displDeltaID[iSurface] = solverInterface.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
         }
       }
     }
   } else {
     /*--- If the surface is not active ---*/
     for (iSurface = 0; iSurface < nWetSurfaces; iSurface++) {
-      solverInterfaceFlow.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
-      forceID[iSurface] = solverInterfaceFlow.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
-      displDeltaID[iSurface] = solverInterfaceFlow.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
+      solverInterface.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
+      forceID[iSurface] = solverInterface.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
+      displDeltaID[iSurface] = solverInterface.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
     }
   }
 
   /*--- Finally, initiallize preCICE with the information that we have sent to it ---*/
-  precice_dt = solverInterfaceFlow.initialize();
+  precice_dt = solverInterface.initialize();
 
   return precice_dt;
 
@@ -380,7 +379,7 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
       }
 
       /*--- Send the data to preCICE ---*/
-      solverInterfaceFlow.writeBlockVectorData(forceID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], forces);
+      solverInterface.writeBlockVectorData(forceID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], forces);
 
       /*--- Deallocate the containers of the forces ---*/
       if (forces != NULL) delete [] forces;
@@ -392,7 +391,7 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
     }
 
     /*--- Advance the interface in preCICE ---*/
-    max_precice_dt = solverInterfaceFlow.advance( SU2_TYPE::GetValue(computedTimestep) );
+    max_precice_dt = solverInterface.advance( SU2_TYPE::GetValue(computedTimestep) );
 
     /*--- Retrieve the displacements from preCICE for the wet surfaces that belong to the active process---*/
     for (iSurface = 0; iSurface < nWetSurfacesDomain; iSurface++) {
@@ -408,7 +407,7 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
       displacementDeltas = new passivedouble[nVertex[iSurface]*nDim];
 
       /*--- Read the displacement data from preCICE ---*/
-      solverInterfaceFlow.readBlockVectorData(displDeltaID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], displacementDeltas);
+      solverInterface.readBlockVectorData(displDeltaID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], displacementDeltas);
 
       /*--- Store the displacement coming from preCICE in the container for SU2 ---*/
       for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
@@ -434,7 +433,7 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
   }
   else {
     /*--- Advance the interface (as nothing is transferred from this process) ---*/
-    max_precice_dt = solverInterfaceFlow.advance( SU2_TYPE::GetValue(computedTimestep) );
+    max_precice_dt = solverInterface.advance( SU2_TYPE::GetValue(computedTimestep) );
     return max_precice_dt;
   }
 
@@ -472,7 +471,7 @@ void CPreciceFlow::Set_OldState( bool *StopCalc, double *dt ) {
   dt_savedState = *dt;
 
   /*--- Inform preCICE that the writing task has been fulfilled ---*/
-  solverInterfaceFlow.fulfilledAction(cowic);
+  solverInterface.fulfilledAction(cowic);
 
 };
 
@@ -511,7 +510,7 @@ void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt )
   *dt = dt_savedState;
 
   /*--- Inform preCICE that the reading task has been fulfilled ---*/
-  solverInterfaceFlow.fulfilledAction(coric);
+  solverInterface.fulfilledAction(coric);
 
 };
 
@@ -622,7 +621,7 @@ su2double CPreciceFEA::Initialize() {
 
   /*--- Recover preCICE mesh IDs ---*/
   for (iSurface = 0; iSurface < nWetSurfaces; iSurface++) {
-    meshID[iSurface] = solverInterfaceFEA.getMeshID("SU2_Mesh_Solid" + to_string(iSurface));
+    meshID[iSurface] = solverInterface.getMeshID("SU2_Mesh_Solid" + to_string(iSurface));
   }
 
   /*--- Store the number of surfaces belonging to this rank ---*/
@@ -691,9 +690,9 @@ su2double CPreciceFEA::Initialize() {
       vertexIDs[iSurface] = new int[nVertex[iSurface]];
 
       /*--- Interface to preCICE ---*/
-      solverInterfaceFEA.setMeshVertices(meshID[markerLocalToGlobal[iSurface]], nVertex[iSurface], coord, vertexIDs[iSurface]);
-      forceID[markerLocalToGlobal[iSurface]] = solverInterfaceFEA.getDataID("Forces" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
-      displDeltaID[markerLocalToGlobal[iSurface]] = solverInterfaceFEA.getDataID("DisplacementDeltas" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
+      solverInterface.setMeshVertices(meshID[markerLocalToGlobal[iSurface]], nVertex[iSurface], coord, vertexIDs[iSurface]);
+      forceID[markerLocalToGlobal[iSurface]] = solverInterface.getDataID("Forces" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
+      displDeltaID[markerLocalToGlobal[iSurface]] = solverInterface.getDataID("DisplacementDeltas" + to_string(markerLocalToGlobal[iSurface]), meshID[markerLocalToGlobal[iSurface]]);
 
       /*--- Deallocate the containers of the coordinates ---*/
       if (coord != NULL) delete [] coord;
@@ -706,23 +705,23 @@ su2double CPreciceFEA::Initialize() {
     for (iSurface = 0; iSurface < nWetSurfaces; iSurface++) {
       for (jSurface = 0; jSurface < nWetSurfacesDomain; jSurface++) {
         if (markerLocalToGlobal[jSurface] != iSurface) {
-          solverInterfaceFEA.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
-          forceID[iSurface] = solverInterfaceFEA.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
-          displDeltaID[iSurface] = solverInterfaceFEA.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
+          solverInterface.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
+          forceID[iSurface] = solverInterface.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
+          displDeltaID[iSurface] = solverInterface.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
         }
       }
     }
   } else {
     /*--- If the surface is not active ---*/
     for (iSurface = 0; iSurface < nWetSurfaces; iSurface++) {
-      solverInterfaceFEA.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
-      forceID[iSurface] = solverInterfaceFEA.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
-      displDeltaID[iSurface] = solverInterfaceFEA.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
+      solverInterface.setMeshVertices(meshID[iSurface], 0, NULL, NULL);
+      forceID[iSurface] = solverInterface.getDataID("Forces" + to_string(iSurface), meshID[iSurface]);
+      displDeltaID[iSurface] = solverInterface.getDataID("DisplacementDeltas" + to_string(iSurface), meshID[iSurface]);
     }
   }
 
   /*--- Finally, initiallize preCICE with the information that we have sent to it ---*/
-  precice_dt = solverInterfaceFEA.initialize();
+  precice_dt = solverInterface.initialize();
 
   return precice_dt;
 
@@ -783,7 +782,7 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
       }
 
       /*--- Send the data to preCICE ---*/
-      solverInterfaceFEA.writeBlockVectorData(displDeltaID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], displacements);
+      solverInterface.writeBlockVectorData(displDeltaID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], displacements);
 
       /*--- Deallocate the containers of the displacements ---*/
       if (displacements != NULL) delete [] displacements;
@@ -795,7 +794,7 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
     }
 
     /*--- Advance the interface in preCICE ---*/
-    max_precice_dt = solverInterfaceFEA.advance( SU2_TYPE::GetValue(computedTimestep) );
+    max_precice_dt = solverInterface.advance( SU2_TYPE::GetValue(computedTimestep) );
 
     /*--- Retrieve the forces from preCICE for the wet surfaces that belong to the active process---*/
     for (iSurface = 0; iSurface < nWetSurfacesDomain; iSurface++) {
@@ -811,7 +810,7 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
       forces = new passivedouble[nVertex[iSurface]*nDim];
 
       /*--- Read the force data from preCICE ---*/
-      solverInterfaceFEA.readBlockVectorData(forceID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], forces);
+      solverInterface.readBlockVectorData(forceID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], forces);
 
       /*--- Store the forces coming from preCICE in the container for SU2 ---*/
       for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
@@ -842,7 +841,7 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
   }
   else {
     /*--- Advance the interface (as nothing is transferred from this process) ---*/
-    max_precice_dt = solverInterfaceFEA.advance( SU2_TYPE::GetValue(computedTimestep) );
+    max_precice_dt = solverInterface.advance( SU2_TYPE::GetValue(computedTimestep) );
     return max_precice_dt;
   }
 
@@ -881,7 +880,7 @@ void CPreciceFEA::Set_OldState( bool *StopCalc, double *dt ) {
   dt_savedState = *dt;
 
   /*--- Inform preCICE that the writing task has been fulfilled ---*/
-  solverInterfaceFEA.fulfilledAction(cowic);
+  solverInterface.fulfilledAction(cowic);
 
 };
 
@@ -919,6 +918,6 @@ void CPreciceFEA::Reset_OldState( bool *StopCalc, double *dt ) {
   *dt = dt_savedState;
 
   /*--- Inform preCICE that the reading task has been fulfilled ---*/
-  solverInterfaceFEA.fulfilledAction(coric);
+  solverInterface.fulfilledAction(coric);
 
 };

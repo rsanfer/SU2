@@ -1039,6 +1039,7 @@ private:
   unsigned long precice_loadRampingDuration; /*!< \brief Number of physical time steps for which the load ramping procedure is applied */
   unsigned long precice_numberWetSurfaces; /*!< \brief Number of different wet surfaces */
   string preciceConfigFileName; /*!< \brief Name of the preCICE configuration file */
+  string preciceParticipant; /*!< \brief Name of the preCICE participant */
   string preciceWetSurfaceMarkerName; /*!< \brief Name of the wet surface marker (from the mesh file) that the preCICE adapter will use for identification of the wet surface */
   unsigned short precice_subproblem; /*!< Define the subproblem that will be solved via preCICE in this instance of SU2 */
 
@@ -8910,6 +8911,12 @@ public:
    * \return preCICE configuration file name as string
    */
   string GetpreCICE_ConfigFileName(void);
+
+  /*!
+   * \brief Get the name of the preCICE participant
+   * \return preCICE participant name as string
+   */
+  string GetpreCICE_Participant(void);
 
   /*!
    * \brief Get the name of the wet surface marker used in the mesh file

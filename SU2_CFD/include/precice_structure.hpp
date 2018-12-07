@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "../../../../pc/precice-1.2.0/src/precice/SolverInterface.hpp"
+#include "SolverInterface.hpp"
 #include "SU2_CFD.hpp"
 #include <string>
 #include <stdlib.h>
@@ -28,7 +28,7 @@ class CPrecice {
 protected:
 
   int processRank, processSize;         /*--- Store the current rank and the total size of the parallelization ---*/
-  SolverInterface solverInterfaceFlow,solverInterfaceFEA;      /*--- Coupling object ---*/
+  SolverInterface solverInterface;      /*--- Coupling object ---*/
 
   CGeometry* geometry;                  /*--- Stores the geometry of the problem ---*/
   CSolver** solver;                     /*--- Stores the current solution of the problem ---*/

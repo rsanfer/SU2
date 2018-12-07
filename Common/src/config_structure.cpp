@@ -2199,6 +2199,9 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /* DESCRIPTION:  preCICE configuration file name */
   addStringOption("PRECICE_CONFIG_FILENAME", preciceConfigFileName, string("precice.xml"));
 
+  /* DESCRIPTION:  preCICE configuration file name */
+  addStringOption("PRECICE_PARTICIPANT", preciceParticipant, string("SU2_CFD"));
+
   /* DESCRIPTION:  preCICE wet surface marker name (specified in the mesh file) */
   addStringOption("PRECICE_WETSURFACE_MARKER_NAME", preciceWetSurfaceMarkerName, string("wetSurface"));
 
