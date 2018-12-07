@@ -822,12 +822,12 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
       /*--- declare Point_Struct ---*/
       unsigned long Point_Struct;
       /*--- Loop over vertices of coupled boundary ---*/
-      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) 
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
         Point_Struct = geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode();
+        /*--- Add the forces to the Structural Solver ---*/
+        solver[FEA_SOL]->node[Point_Struct]->Set_FlowTraction(forces_su2[iVertex]);
+      }
 
-      /*--- Add the forces to the Structural Solver ---*/
-        solver[FEA_SOL]->node[Point_Struct]->Add_FlowTraction(forces);
-      
       /*--- Deallocate the containers of the force ---*/
       if (forces != NULL)  delete [] forces;
       for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++){
