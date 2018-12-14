@@ -96,7 +96,7 @@ def main():
   FSI_config = FSI.io.FSIConfig(confFile) 		# FSI configuration file
   CFD_ConFile = FSI_config['CFD_CONFIG_FILE_NAME']	# CFD configuration file
   CSD_ConFile = FSI_config['CSD_CONFIG_FILE_NAME']	# CSD configuration file
-
+  val_periodic = False  ### Hard coded
   CSD_Solver = FSI_config['CSD_SOLVER']			# CSD solver
 
   if have_MPI == True:
@@ -106,7 +106,7 @@ def main():
   if myid == rootProcess:
     print('\n***************************** Initializing fluid solver *****************************')
   try:
-    FluidSolver = pysu2.CFluidDriver(CFD_ConFile, 1, FSI_config['NDIM'], comm)
+    FluidSolver = pysu2.CFluidDriver(CFD_ConFile, 1, FSI_config['NDIM'],val_periodic, comm)
   except TypeError as exception:
     print('A TypeError occured in pysu2.CSingleZoneDriver : ',exception)
     if have_MPI == True:
