@@ -1858,6 +1858,8 @@ inline bool CConfig::GetPredictor(void) { return Predictor; }
 
 inline unsigned short CConfig::GetPredictorOrder(void) { return Pred_Order; }
 
+inline bool CConfig::GetpyFSI(void) { return pyFSI; }
+
 inline bool CConfig::GetRelaxation(void) { return Relaxation; }
 
 inline bool CConfig::GetIncrementalLoad(void) { return IncrementalLoad; }

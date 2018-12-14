@@ -2003,6 +2003,9 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /* DESCRIPTION: Transfer method used for multiphysics problems */
   addEnumOption("MULTIPHYSICS_TRANSFER_METHOD", Kind_TransferMethod, Transfer_Method_Map, BROADCAST_DATA);
 
+  /* DESCRIPTION: Initialize FSI structures, as loads will come from a python wrapper */
+  addBoolOption("PY_FSI", pyFSI, false);
+
   /* DESCRIPTION: Topology optimization options */
   addBoolOption("TOPOLOGY_OPTIMIZATION", topology_optimization, false);
   addStringOption("TOPOL_OPTIM_OUTFILE", top_optim_output_file, string("element_derivatives.dat"));
