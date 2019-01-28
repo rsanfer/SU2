@@ -263,6 +263,48 @@ su2double CPreciceFlow::Initialize() {
   /*--- Finally, initiallize preCICE with the information that we have sent to it ---*/
   precice_dt = solverInterface.initialize();
 
+  /*--- readData ---*/
+  if (solverInterface.isReadDataAvailable()) {
+  /*--- Retrieve the displacements from preCICE for the wet surfaces that belong to the active process---*/
+    for (iSurface = 0; iSurface < nWetSurfacesDomain; iSurface++) {
+
+      /*--- Allocate memory to store all the displacements in the wet surface ---*/
+      su2double **displacementDeltas_su2;
+      displacementDeltas_su2 = new su2double*[nVertex[iSurface]];
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++)
+        displacementDeltas_su2[iVertex] = new su2double[nDim];
+
+      /*--- Allocate memory to retrieve all the displacements in the wet surface coming from preCICE ---*/
+      passivedouble *displacementDeltas;
+      displacementDeltas = new passivedouble[nVertex[iSurface]*nDim];
+
+      /*--- Read the displacement data from preCICE ---*/
+      solverInterface.readBlockVectorData(displDeltaID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], displacementDeltas);
+
+      /*--- Store the displacement coming from preCICE in the container for SU2 ---*/
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
+        for (iDim = 0; iDim < nDim; iDim++) {
+          displacementDeltas_su2[iVertex][iDim] = displacementDeltas[iVertex*nDim + iDim];
+//cout << "DispInFlow   " <<  geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()  << "   " << displacementDeltas[iVertex*nDim + iDim] << endl;
+	}
+      }
+
+
+      /*--- Set the incremental displacement to the mesh solver ---*/
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
+        geometry->vertex[valueMarkerWet[iSurface]][iVertex]->SetVarCoord(displacementDeltas_su2[iVertex]);
+      }
+
+      /*--- Deallocate the containers of the delta-displacement ---*/
+      if (displacementDeltas != NULL)  delete [] displacementDeltas;
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++){
+        if (displacementDeltas_su2[iVertex]!= NULL) delete [] displacementDeltas_su2[iVertex];
+      }
+      if (displacementDeltas_su2!= NULL) delete [] displacementDeltas_su2;
+
+    }
+  }
+
   return precice_dt;
 
 };
@@ -370,6 +412,7 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
             forces[iVertex*nDim + iDim] = SU2_TYPE::GetValue(forces_su2[iVertex][iDim]);
           else
             forces[iVertex*nDim + iDim] = 0.0;
+//cout << "ForcesOutFlow   " <<  geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()  << "   " << forces[iVertex*nDim + iDim] << endl;
         }
       }
 
@@ -413,7 +456,8 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
       for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
         for (iDim = 0; iDim < nDim; iDim++) {
           displacementDeltas_su2[iVertex][iDim] = displacementDeltas[iVertex*nDim + iDim];
-        }
+//cout << "DispInFlow   " <<  geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()  << "   " << displacementDeltas[iVertex*nDim + iDim] << endl;
+	}
       }
 
       /*--- Set the incremental displacement to the mesh solver ---*/
@@ -448,20 +492,24 @@ void CPreciceFlow::Set_OldState( bool *StopCalc, double *dt ) {
     for (iVar = 0; iVar < nVar; iVar++) {
       /*--- Save solutions at last and current time step ---*/
       solution_Saved[iPoint][iVar] = (solver[FLOW_SOL]->node[iPoint]->GetSolution())[iVar];
-      solution_time_n_Saved[iPoint][iVar] = (solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n())[iVar];
-      solution_time_n1_Saved[iPoint][iVar] = (solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[iVar];
+      if (config->GetUnsteady_Simulation() != NO){
+        solution_time_n_Saved[iPoint][iVar] = (solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n())[iVar];
+        solution_time_n1_Saved[iPoint][iVar] = (solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[iVar];
+      } 
     }
     for (iDim = 0; iDim < nDim; iDim++) {
       /*-- Save coordinates at last, current and next time step ---*/
       Coord_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord())[iDim];
-      Coord_n_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_n())[iDim];
-      Coord_n1_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_n1())[iDim];
-      Coord_p1_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_p1())[iDim];
+      if (config->GetUnsteady_Simulation() != NO){
+        Coord_n_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_n())[iDim];
+        Coord_n1_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_n1())[iDim];
+        Coord_p1_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_p1())[iDim];
 
-      /*--- Save grid velocity and gradient ---*/
-      GridVel_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetGridVel())[iDim];
-      for (jDim = 0; jDim < nDim; jDim++) {
-        GridVel_Grad_Saved[iPoint][iDim][jDim] = (geometry->node[iPoint]->GetGridVel_Grad())[iDim][jDim];
+        /*--- Save grid velocity and gradient ---*/
+        GridVel_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetGridVel())[iDim];
+        for (jDim = 0; jDim < nDim; jDim++) {
+          GridVel_Grad_Saved[iPoint][iDim][jDim] = (geometry->node[iPoint]->GetGridVel_Grad())[iDim][jDim];
+        }
       }
     }
   }
@@ -475,8 +523,7 @@ void CPreciceFlow::Set_OldState( bool *StopCalc, double *dt ) {
 
 };
 
-void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt )
-{
+void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt ){
   unsigned long iPoint;
   unsigned short iDim, jDim;
 
@@ -484,23 +531,29 @@ void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt )
 
     /*--- Reset solutions from the last and current time step ---*/
     solver[FLOW_SOL]->node[iPoint]->SetSolution(solution_Saved[iPoint]);
-    solver[FLOW_SOL]->node[iPoint]->Set_Solution_time_n(solution_time_n_Saved[iPoint]);
-    solver[FLOW_SOL]->node[iPoint]->Set_Solution_time_n1(solution_time_n1_Saved[iPoint]);
+    if (config->GetUnsteady_Simulation() != NO){
+      solver[FLOW_SOL]->node[iPoint]->Set_Solution_time_n(solution_time_n_Saved[iPoint]);
+      solver[FLOW_SOL]->node[iPoint]->Set_Solution_time_n1(solution_time_n1_Saved[iPoint]);
+    }
 
-    /*--- Reset solutions from the last, current and next time step ---*/
-    geometry->node[iPoint]->SetCoord(Coord_n1_Saved[iPoint]);
-    geometry->node[iPoint]->SetCoord_n();
-    geometry->node[iPoint]->SetCoord_n1();
-    geometry->node[iPoint]->SetCoord(Coord_n_Saved[iPoint]);
-    geometry->node[iPoint]->SetCoord_n();
-    geometry->node[iPoint]->SetCoord_p1(Coord_p1_Saved[iPoint]);
+    /*--- Reset solutions from the last, current and next time step ---*/    
+    if (config->GetUnsteady_Simulation() != NO){
+      geometry->node[iPoint]->SetCoord(Coord_n1_Saved[iPoint]);
+      geometry->node[iPoint]->SetCoord_n();
+      geometry->node[iPoint]->SetCoord_n1();
+      geometry->node[iPoint]->SetCoord(Coord_n_Saved[iPoint]);
+      geometry->node[iPoint]->SetCoord_n();
+      geometry->node[iPoint]->SetCoord_p1(Coord_p1_Saved[iPoint]);
+    }
     geometry->node[iPoint]->SetCoord(Coord_Saved[iPoint]);
 
     /*--- Reload grid velocity and gradient ---*/
-    geometry->node[iPoint]->SetGridVel(GridVel_Saved[iPoint]);
-    for (iDim = 0; iDim < nDim; iDim++) {
-      for (jDim = 0; jDim < nDim; jDim++) {
-        geometry->node[iPoint]->SetGridVel_Grad(iDim, jDim, GridVel_Grad_Saved[iPoint][iDim][jDim]);
+    if (config->GetUnsteady_Simulation() != NO){
+      geometry->node[iPoint]->SetGridVel(GridVel_Saved[iPoint]);
+      for (iDim = 0; iDim < nDim; iDim++) {
+        for (jDim = 0; jDim < nDim; jDim++) {
+          geometry->node[iPoint]->SetGridVel_Grad(iDim, jDim, GridVel_Grad_Saved[iPoint][iDim][jDim]);
+        }
       }
     }
   }
@@ -535,27 +588,21 @@ CPreciceFEA::CPreciceFEA( int processRank, int processSize, CGeometry**** geomet
   displDeltaID = NULL;
   meshID = NULL;
 
-  Coord_Saved = new su2double*[nPoint];
-  Coord_n_Saved = new su2double*[nPoint];
-  Coord_n1_Saved = new su2double*[nPoint];
-  Coord_p1_Saved = new su2double*[nPoint];
-  GridVel_Saved = new su2double*[nPoint];
-  GridVel_Grad_Saved = new su2double**[nPoint];
+  
   solution_Saved = new su2double*[nPoint];
   solution_time_n_Saved = new su2double*[nPoint];
-  solution_time_n1_Saved = new su2double*[nPoint];
+  solution_vel_Saved = new su2double*[nPoint];
+  solution_vel_time_n_Saved = new su2double*[nPoint];
+  solution_accel_Saved = new su2double*[nPoint];
+  solution_accel_time_n_Saved = new su2double*[nPoint];
+
   for (iPoint = 0; iPoint < nPoint; iPoint++) {
-    Coord_Saved[iPoint] = new su2double[nDim];
-    Coord_n_Saved[iPoint] = new su2double[nDim];
-    Coord_n1_Saved[iPoint] = new su2double[nDim];
-    Coord_p1_Saved[iPoint] = new su2double[nDim];
-    GridVel_Saved[iPoint] = new su2double[nDim];
-    GridVel_Grad_Saved[iPoint] = new su2double*[nDim];
-    for (iDim = 0; iDim < nDim; iDim++)
-      GridVel_Grad_Saved[iPoint][iDim] = new su2double[nDim];
     solution_Saved[iPoint] = new su2double[nVar];
     solution_time_n_Saved[iPoint] = new su2double[nVar];
-    solution_time_n1_Saved[iPoint] = new su2double[nVar];
+    solution_vel_Saved[iPoint] = new su2double[nVar];
+    solution_vel_time_n_Saved[iPoint] = new su2double[nVar];
+    solution_accel_Saved[iPoint] = new su2double[nVar];
+    solution_accel_time_n_Saved[iPoint] = new su2double[nVar];
   }
 
   /*--- Initialize magnitudes ---*/
@@ -573,31 +620,22 @@ CPreciceFEA::~CPreciceFEA() {
   unsigned short iDim;
 
   for (iPoint = 0; iPoint < nPoint; iPoint++) {
-    if (Coord_Saved[iPoint]  != NULL) delete [] Coord_Saved[iPoint];
-    if (Coord_n_Saved[iPoint]  != NULL) delete [] Coord_n_Saved[iPoint];
-    if (Coord_n1_Saved[iPoint] != NULL) delete [] Coord_n1_Saved[iPoint];
-    if (Coord_p1_Saved[iPoint] != NULL) delete [] Coord_p1_Saved[iPoint];
-    if (GridVel_Saved[iPoint]  != NULL) delete [] GridVel_Saved[iPoint];
 
-    for (int iDim = 0; iDim < nDim; iDim++) {
-      if (GridVel_Grad_Saved[iPoint][iDim] != NULL) delete [] GridVel_Grad_Saved[iPoint][iDim];
-    }
-
-    if (GridVel_Grad_Saved[iPoint]     != NULL) delete [] GridVel_Grad_Saved[iPoint];
     if (solution_Saved[iPoint]         != NULL) delete [] solution_Saved[iPoint];
     if (solution_time_n_Saved[iPoint]  != NULL) delete [] solution_time_n_Saved[iPoint];
-    if (solution_time_n1_Saved[iPoint] != NULL) delete [] solution_time_n1_Saved[iPoint];
+    if (solution_vel_Saved[iPoint]  != NULL) delete [] solution_vel_Saved[iPoint];
+    if (solution_vel_time_n_Saved[iPoint]  != NULL) delete [] solution_vel_time_n_Saved[iPoint];
+    if (solution_accel_Saved[iPoint]  != NULL) delete [] solution_accel_Saved[iPoint];
+    if (solution_accel_time_n_Saved[iPoint]  != NULL) delete [] solution_accel_time_n_Saved[iPoint];
+    
   }
 
-  if (Coord_Saved            != NULL) delete [] Coord_Saved;
-  if (Coord_n_Saved          != NULL) delete [] Coord_n_Saved;
-  if (Coord_n1_Saved         != NULL) delete [] Coord_n1_Saved;
-  if (Coord_p1_Saved         != NULL) delete [] Coord_p1_Saved;
-  if (GridVel_Saved          != NULL) delete [] GridVel_Saved;
-  if (GridVel_Grad_Saved     != NULL) delete [] GridVel_Grad_Saved;
   if (solution_Saved         != NULL) delete [] solution_Saved;
   if (solution_time_n_Saved  != NULL) delete [] solution_time_n_Saved;
-  if (solution_time_n1_Saved != NULL) delete [] solution_time_n1_Saved;
+  if (solution_vel_Saved  != NULL) delete [] solution_vel_Saved;
+  if (solution_vel_time_n_Saved  != NULL) delete [] solution_vel_time_n_Saved;
+  if (solution_accel_Saved  != NULL) delete [] solution_accel_Saved;
+  if (solution_accel_time_n_Saved  != NULL) delete [] solution_accel_time_n_Saved;
 
   if (vertexIDs              != NULL) delete [] vertexIDs;
   if (forceID                != NULL) delete [] forceID;
@@ -723,6 +761,52 @@ su2double CPreciceFEA::Initialize() {
   /*--- Finally, initiallize preCICE with the information that we have sent to it ---*/
   precice_dt = solverInterface.initialize();
 
+  /*--- readData ---*/
+  if (solverInterface.isReadDataAvailable()) {
+
+    /*--- Retrieve the forces from preCICE for the wet surfaces that belong to the active process---*/
+    for (iSurface = 0; iSurface < nWetSurfacesDomain; iSurface++) {
+
+      /*--- Allocate memory to store all the forces in the wet surface ---*/
+      su2double **forces_su2;
+      forces_su2 = new su2double*[nVertex[iSurface]];
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++)
+        forces_su2[iVertex] = new su2double[nDim];
+
+      /*--- Allocate memory to retrieve all the forces in the wet surface coming from preCICE ---*/
+      passivedouble *forces;
+      forces = new passivedouble[nVertex[iSurface]*nDim];
+
+      /*--- Read the force data from preCICE ---*/
+      solverInterface.readBlockVectorData(forceID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], forces);
+
+      /*--- Store the forces coming from preCICE in the container for SU2 ---*/
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
+        for (iDim = 0; iDim < nDim; iDim++) {
+          forces_su2[iVertex][iDim] = forces[iVertex*nDim + iDim];
+//cout << "ForcesInFea   "<<  geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()   << "   " << forces[iVertex*nDim + iDim] << endl;
+	}
+      }
+	
+      /*--- declare Point_Struct ---*/
+      unsigned long Point_Struct;
+      /*--- Loop over vertices of coupled boundary ---*/
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
+        Point_Struct = geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode();
+        /*--- Add the forces to the Structural Solver ---*/
+        solver[FEA_SOL]->node[Point_Struct]->Set_FlowTraction(forces_su2[iVertex]);
+      }
+
+      /*--- Deallocate the containers of the force ---*/
+      if (forces != NULL)  delete [] forces;
+      for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++){
+        if (forces_su2[iVertex]!= NULL) delete [] forces_su2[iVertex];
+      }
+      if (forces_su2!= NULL) delete [] forces_su2;
+
+    }
+  }
+
   return precice_dt;
 
 };
@@ -748,8 +832,8 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
         displacements_su2[iVertex] = new su2double[nDim];
 
       /*--- Allocate a passive double structure to store the displacements as they are transferred to preCICE ---*/
-      passivedouble *displacements;
-      displacements = new passivedouble[nVertex[iSurface]*nDim];
+      passivedouble *displacementDeltas;
+      displacementDeltas = new passivedouble[nVertex[iSurface]*nDim];
 
       
       unsigned long Point_Struct;
@@ -775,17 +859,18 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
         for (iDim = 0; iDim < nDim; iDim++) {
 	  /*TODO under investigation... -> consistent mapping?!*/
           /*if (geometry->node[Point_Struct]->GetColor() == processRank)*/
-            displacements[iVertex*nDim + iDim] = SU2_TYPE::GetValue(displacements_su2[iVertex][iDim]);
+            displacementDeltas[iVertex*nDim + iDim] = SU2_TYPE::GetValue(displacements_su2[iVertex][iDim]);
           /*else
-            displacements[iVertex*nDim + iDim] = 0.0;*/
+            displacementDeltas[iVertex*nDim + iDim] = 0.0;*/
+//cout << "DispOutFea   "<< geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()  << "   " << displacementDeltas[iVertex*nDim + iDim] << endl;
         }
       }
 
       /*--- Send the data to preCICE ---*/
-      solverInterface.writeBlockVectorData(displDeltaID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], displacements);
+      solverInterface.writeBlockVectorData(displDeltaID[markerLocalToGlobal[iSurface]], nVertex[iSurface], vertexIDs[iSurface], displacementDeltas);
 
       /*--- Deallocate the containers of the displacements ---*/
-      if (displacements != NULL) delete [] displacements;
+      if (displacementDeltas != NULL) delete [] displacementDeltas;
       for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++){
         if (displacements_su2[iVertex]!= NULL) delete [] displacements_su2[iVertex];
       }
@@ -816,7 +901,8 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
       for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
         for (iDim = 0; iDim < nDim; iDim++) {
           forces_su2[iVertex][iDim] = forces[iVertex*nDim + iDim];
-        }
+//cout << "ForcesInFea   "<< geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()  << "   " << forces[iVertex*nDim + iDim] << endl;
+	}
       }
 	
       /*--- declare Point_Struct ---*/
@@ -857,22 +943,15 @@ void CPreciceFEA::Set_OldState( bool *StopCalc, double *dt ) {
     for (iVar = 0; iVar < nVar; iVar++) {
       /*--- Save solutions at last and current time step ---*/
       solution_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution())[iVar];
-      solution_time_n_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_time_n())[iVar];
-      solution_time_n1_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_time_n1())[iVar];
+      if (config->GetUnsteady_Simulation() != NO){
+        solution_time_n_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_time_n())[iVar];
+        solution_vel_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Vel())[iVar];
+        solution_vel_time_n_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n())[iVar];
+        solution_accel_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Accel())[iVar];
+        solution_accel_time_n_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n())[iVar];
+      }    
     }
-    for (iDim = 0; iDim < nDim; iDim++) {
-      /*-- Save coordinates at last, current and next time step ---*/
-      Coord_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord())[iDim];
-      Coord_n_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_n())[iDim];
-      Coord_n1_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_n1())[iDim];
-      Coord_p1_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetCoord_p1())[iDim];
-
-      /*--- Save grid velocity and gradient ---*/
-      GridVel_Saved[iPoint][iDim] = (geometry->node[iPoint]->GetGridVel())[iDim];
-      for (jDim = 0; jDim < nDim; jDim++) {
-        GridVel_Grad_Saved[iPoint][iDim][jDim] = (geometry->node[iPoint]->GetGridVel_Grad())[iDim][jDim];
-      }
-    }
+	
   }
 
   /*--- Store the convergence state and the time step of the current simulation ---*/
@@ -892,24 +971,12 @@ void CPreciceFEA::Reset_OldState( bool *StopCalc, double *dt ) {
 
     /*--- Reset solutions from the last and current time step ---*/
     solver[FEA_SOL]->node[iPoint]->SetSolution(solution_Saved[iPoint]);
-    solver[FEA_SOL]->node[iPoint]->Set_Solution_time_n(solution_time_n_Saved[iPoint]);
-    solver[FEA_SOL]->node[iPoint]->Set_Solution_time_n1(solution_time_n1_Saved[iPoint]);
-
-    /*--- Reset solutions from the last, current and next time step ---*/
-    geometry->node[iPoint]->SetCoord(Coord_n1_Saved[iPoint]);
-    geometry->node[iPoint]->SetCoord_n();
-    geometry->node[iPoint]->SetCoord_n1();
-    geometry->node[iPoint]->SetCoord(Coord_n_Saved[iPoint]);
-    geometry->node[iPoint]->SetCoord_n();
-    geometry->node[iPoint]->SetCoord_p1(Coord_p1_Saved[iPoint]);
-    geometry->node[iPoint]->SetCoord(Coord_Saved[iPoint]);
-
-    /*--- Reload grid velocity and gradient ---*/
-    geometry->node[iPoint]->SetGridVel(GridVel_Saved[iPoint]);
-    for (iDim = 0; iDim < nDim; iDim++) {
-      for (jDim = 0; jDim < nDim; jDim++) {
-        geometry->node[iPoint]->SetGridVel_Grad(iDim, jDim, GridVel_Grad_Saved[iPoint][iDim][jDim]);
-      }
+    if (config->GetUnsteady_Simulation() != NO){    
+      solver[FEA_SOL]->node[iPoint]->SetSolution_time_n(solution_time_n_Saved[iPoint]);
+      solver[FEA_SOL]->node[iPoint]->SetSolution_Vel(solution_vel_Saved[iPoint]);
+      solver[FEA_SOL]->node[iPoint]->SetSolution_Vel_time_n(solution_vel_time_n_Saved[iPoint]);
+      solver[FEA_SOL]->node[iPoint]->SetSolution_Accel(solution_accel_Saved[iPoint]);
+      solver[FEA_SOL]->node[iPoint]->SetSolution_Accel_time_n(solution_accel_time_n_Saved[iPoint]);
     }
   }
 

@@ -231,16 +231,13 @@ protected:
   int *displDeltaID;
   int *meshID;
 
-  su2double **Coord_Saved,
-            **Coord_n_Saved,
-            **Coord_n1_Saved,
-            **Coord_p1_Saved,
-            **GridVel_Saved,
-            ***GridVel_Grad_Saved;
 
   su2double **solution_Saved,
             **solution_time_n_Saved,
-            **solution_time_n1_Saved;
+	    **solution_vel_Saved,
+	    **solution_vel_time_n_Saved,
+	    **solution_accel_Saved,
+	    **solution_accel_time_n_Saved;
 
   su2double dt_savedState;
   bool StopCalc_savedState;

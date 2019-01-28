@@ -26,17 +26,23 @@ CPreciceDriver::CPreciceDriver(char* confFile, unsigned short val_nZone,
   switch (config_container[ZONE_0]->GetpreCICE_Subproblem()){
   case PRECICE_FLOW:
     precice = new CPreciceFlow(rank, size, geometry_container, solver_container, config_container, grid_movement);
+    /*--- Load time step ---*/
+    dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());
     break;
   case PRECICE_FEA:
     precice = new CPreciceFEA(rank, size, geometry_container, solver_container, config_container, grid_movement);
+    /*--- Load time step ---*/
+    dt = new double(config_container[ZONE_0]->GetDelta_DynTime());
     break;
   default:
     precice = new CPreciceFlow(rank, size, geometry_container, solver_container, config_container, grid_movement);
+    /*--- Load time step ---*/
+    dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());
     break;
   }
 
   /*--- Load time step ---*/
-  dt = new double(config_container[ZONE_0]->GetDelta_UnstTimeND());
+  
 
   /*--- Initialize preCICE ---*/
   max_precice_dt = new double(precice->Initialize());
@@ -56,7 +62,7 @@ void CPreciceDriver::StartSolver(){
   if (rank == MASTER_NODE)
     cout << endl <<"-------------------------- Begin preCICE Solver -------------------------" << endl;
 
-  while ( (ExtIter < config_container[ZONE_0]->GetnExtIter()) && precice->ActiveCoupling()) {
+  while ((ExtIter < config_container[ZONE_0]->GetnExtIter()) && precice->ActiveCoupling()) {
 
     /*--- Store the old state for implicit coupling ---*/
     if(precice->ActionRequired(precice->getCowic()))
@@ -97,19 +103,17 @@ void CPreciceDriver::StartSolver(){
     /*--- Test if the preCICE is converged ---*/
     if(precice->ActionRequired(precice->getCoric())){
       /*--- If unconverged, reset the flow to the old state and retain the ExtIter ---*/
-      ExtIter--;
       precice->Reset_OldState(&StopCalc, dt);
       output_solution = false;
     }
-
+    else{
+      ExtIter++;
+    }
     /*--- Output the solution files. ---*/
     if (output_solution) Output(ExtIter);
 
     /*--- If the convergence criteria has been met, terminate the simulation. ---*/
-    if (StopCalc) break;
-
-    ExtIter++;
-
+    //if (StopCalc) break;
   }
 #ifdef VTUNEPROF
   __itt_pause();
