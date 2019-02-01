@@ -233,6 +233,7 @@ protected:
 
 
   su2double **solution_Saved,
+	    **solution_Old_Saved,
             **solution_time_n_Saved,
 	    **solution_vel_Saved,
 	    **solution_vel_time_n_Saved,
