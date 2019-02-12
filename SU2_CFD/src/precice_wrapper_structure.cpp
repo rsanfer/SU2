@@ -408,11 +408,14 @@ su2double CPreciceFlow::Advance( su2double computedTimestep ) {
       /*--- Store the forces in a passive double structure, for transfer into preCICE ---*/
       for (iVertex = 0; iVertex < nVertex[iSurface]; iVertex++) {
         for (iDim = 0; iDim < nDim; iDim++) {
-          if (geometry->node[Point_Flow]->GetColor() == processRank)
+          if (geometry->node[Point_Flow]->GetColor() == processRank)          /* TODO PointFlow defined??*/
             forces[iVertex*nDim + iDim] = SU2_TYPE::GetValue(forces_su2[iVertex][iDim]);
           else
             forces[iVertex*nDim + iDim] = 0.0;
 //cout << "ForcesOutFlow   " <<  geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()  << "   " << forces[iVertex*nDim + iDim] << endl;
+//if (geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex() == 300){
+//cout << "forces (300): " <<  forces[iVertex*nDim + iDim]  << endl;
+//         }
         }
       }
 
@@ -489,6 +492,16 @@ void CPreciceFlow::Set_OldState( bool *StopCalc, double *dt ) {
   unsigned short iVar, iDim, jDim;
 
   for (iPoint = 0; iPoint < nPoint; iPoint++) {
+if (geometry->node[iPoint]->GetGlobalIndex()==300){
+/*cout << "sol node 300 x before set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution(1) <<endl;
+cout << "soltn node 300 x before set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
+cout << "soltn1 node 300 x before set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(1) <<endl;*/
+cout << "coord node 300 x before set  " << geometry->node[iPoint]->GetCoord(0)<< "   " << geometry->node[iPoint]->GetCoord(1) <<endl;
+/*cout << "coordn node 300 x before set  " << geometry->node[iPoint]->GetCoord_n(0)<< "   " << geometry->node[iPoint]->GetCoord_n(1) <<endl;
+cout << "coordn1 node 300 x before set  " << geometry->node[iPoint]->GetCoord_n1(0)<< "   " << geometry->node[iPoint]->GetCoord_n1(1) <<endl;
+cout << "coordp1 node 300 x before set  " << geometry->node[iPoint]->GetCoord_p1()<< "   " << geometry->node[iPoint]->GetCoord_p1() <<endl;
+cout << "grid_vel node 300 x before set  " << geometry->node[iPoint]->GetGridVel()<< "   " << geometry->node[iPoint]->GetGridVel() <<endl;*/
+}
     for (iVar = 0; iVar < nVar; iVar++) {
       /*--- Save solutions at last and current time step ---*/
       solution_Saved[iPoint][iVar] = (solver[FLOW_SOL]->node[iPoint]->GetSolution())[iVar];
@@ -512,6 +525,16 @@ void CPreciceFlow::Set_OldState( bool *StopCalc, double *dt ) {
         }
       }
     }
+if (geometry->node[iPoint]->GetGlobalIndex()==300){
+/*cout << "sol node 300 x after set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution(1) <<endl;
+cout << "soltn node 300 x after set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
+cout << "soltn1 node 300 x after set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(1) <<endl;*/
+cout << "coord node 300 x after set  " << geometry->node[iPoint]->GetCoord(0)<< "   " << geometry->node[iPoint]->GetCoord(1) <<endl;
+/*cout << "coordn node 300 x after set  " << geometry->node[iPoint]->GetCoord_n(0)<< "   " << geometry->node[iPoint]->GetCoord_n(1) <<endl;
+cout << "coordn1 node 300 x after set  " << geometry->node[iPoint]->GetCoord_n1(0)<< "   " << geometry->node[iPoint]->GetCoord_n1(1) <<endl;
+cout << "coordp1 node 300 x after set  " << geometry->node[iPoint]->GetCoord_p1()<< "   " << geometry->node[iPoint]->GetCoord_p1() <<endl;
+cout << "grid_vel node 300 x after set  " << geometry->node[iPoint]->GetGridVel()<< "   " << geometry->node[iPoint]->GetGridVel() <<endl;*/
+}
   }
 
   /*--- Store the convergence state and the time step of the current simulation ---*/
@@ -528,7 +551,16 @@ void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt ){
   unsigned short iDim, jDim;
 
   for (iPoint = 0; iPoint < nPoint; iPoint++) {
-
+if (geometry->node[iPoint]->GetGlobalIndex()==300){
+/*cout << "sol node 300 x before reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution(1) <<endl;
+cout << "soltn node 300 x before reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
+cout << "soltn1 node 300 x before reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(1) <<endl;*/
+cout << "coord node 300 x before reset  " << geometry->node[iPoint]->GetCoord(0)<< "   " << geometry->node[iPoint]->GetCoord(1) <<endl;
+/*cout << "coordn node 300 x before reset  " << geometry->node[iPoint]->GetCoord_n(0)<< "   " << geometry->node[iPoint]->GetCoord_n(1) <<endl;
+cout << "coordn1 node 300 x before reset  " << geometry->node[iPoint]->GetCoord_n1(0)<< "   " << geometry->node[iPoint]->GetCoord_n1(1) <<endl;
+cout << "coordp1 node 300 x before reset  " << geometry->node[iPoint]->GetCoord_p1()<< "   " << geometry->node[iPoint]->GetCoord_p1() <<endl;
+cout << "grid_vel node 300 x before reset  " << geometry->node[iPoint]->GetGridVel()<< "   " << geometry->node[iPoint]->GetGridVel() <<endl;*/
+}
     /*--- Reset solutions from the last and current time step ---*/
     solver[FLOW_SOL]->node[iPoint]->SetSolution(solution_Saved[iPoint]);
     if (config->GetUnsteady_Simulation() != NO){
@@ -556,6 +588,16 @@ void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt ){
         }
       }
     }
+if (geometry->node[iPoint]->GetGlobalIndex()==300){
+/*cout << "sol node 300 x after reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution(1) <<endl;
+cout << "soltn node 300 x after reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
+cout << "soltn1 node 300 x after reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(1) <<endl;*/
+cout << "coord node 300 x after reset  " << geometry->node[iPoint]->GetCoord(0)<< "   " << geometry->node[iPoint]->GetCoord(1) <<endl;
+/*cout << "coordn node 300 x after reset  " << geometry->node[iPoint]->GetCoord_n(0)<< "   " << geometry->node[iPoint]->GetCoord_n(1) <<endl;
+cout << "coordn1 node 300 x after reset  " << geometry->node[iPoint]->GetCoord_n1(0)<< "   " << geometry->node[iPoint]->GetCoord_n1(1) <<endl;
+cout << "coordp1 node 300 x after reset  " << geometry->node[iPoint]->GetCoord_p1()<< "   " << geometry->node[iPoint]->GetCoord_p1() <<endl;
+cout << "grid_vel node 300 x after reset  " << geometry->node[iPoint]->GetGridVel()<< "   " << geometry->node[iPoint]->GetGridVel() <<endl;*/
+}
   }
 
   /*--- Reset the convergence state and the time step of the last simulation ---*/
@@ -818,7 +860,6 @@ su2double CPreciceFEA::Advance( su2double computedTimestep ) {
   unsigned long iSurface;
   unsigned short iDim, jDim;
   int iVertex;
-cout << "flowtractions node 2 x vor advance" << "   "<< solver[FEA_SOL]->node[2]->Get_FlowTraction(0) <<endl;
   su2double max_precice_dt;
 
   if (activeProcess) {
@@ -848,12 +889,17 @@ cout << "flowtractions node 2 x vor advance" << "   "<< solver[FEA_SOL]->node[2]
 
         /*--- Retrieve the values of the displacements ---*/
 	DisplacementDonor = solver[FEA_SOL]->node[Point_Struct]->GetSolution_Pred();
-	DisplacementDonor_Prev = solver[FEA_SOL]->node[Point_Struct]->GetSolution_Pred_Old();     
+	DisplacementDonor_Prev = solver[FEA_SOL]->node[Point_Struct]->Get_femSolution_time_n();
+	if (geometry->node[Point_Struct]->GetGlobalIndex()==36){
+cout << "solution node 36   " << solver[FEA_SOL]->node[Point_Struct]->GetSolution(0) <<endl;
+cout << "solution time n node 36   " << (solver[FEA_SOL]->node[Point_Struct]->Get_femSolution_time_n())[0] <<endl;
+}  
 
         /*--- Compute the displacements ---*/
-        for (iDim = 0; iDim < nDim; iDim++)
+        for (iDim = 0; iDim < nDim; iDim++){
+	  //displacements_su2[iVertex][iDim] = DisplacementDonor[iDim];
           displacements_su2[iVertex][iDim] = DisplacementDonor[iDim] - DisplacementDonor_Prev[iDim] ;
-	
+	}
       }
 
       /*--- Store the displacements in a passive double structure, for transfer into preCICE ---*/
@@ -864,7 +910,7 @@ cout << "flowtractions node 2 x vor advance" << "   "<< solver[FEA_SOL]->node[2]
             displacementDeltas[iVertex*nDim + iDim] = SU2_TYPE::GetValue(displacements_su2[iVertex][iDim]);
           /*else
             displacementDeltas[iVertex*nDim + iDim] = 0.0;*/
-cout << "DispOutFea   "<< geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()  << "   " << displacementDeltas[iVertex*nDim + iDim] << endl;
+//cout << "DispOutFea   "<< geometry->node[geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode()]->GetGlobalIndex()  << "   " << displacementDeltas[iVertex*nDim + iDim] << endl;
         }
       }
 
@@ -914,6 +960,9 @@ cout << "DispOutFea   "<< geometry->node[geometry->vertex[valueMarkerWet[iSurfac
         Point_Struct = geometry->vertex[valueMarkerWet[iSurface]][iVertex]->GetNode();
         /*--- Add the forces to the Structural Solver ---*/
         solver[FEA_SOL]->node[Point_Struct]->Set_FlowTraction(forces_su2[iVertex]);
+      if (geometry->node[Point_Struct]->GetGlobalIndex()==36){
+cout << "flow tractions node 36 x   " << solver[FEA_SOL]->node[Point_Struct]->Get_FlowTraction(0) <<endl;
+}  
       }
 
       /*--- Deallocate the containers of the force ---*/
@@ -924,8 +973,8 @@ cout << "DispOutFea   "<< geometry->node[geometry->vertex[valueMarkerWet[iSurfac
       if (forces_su2!= NULL) delete [] forces_su2;
 
     }
-cout << "flowtractions node 2 x nach advance" << "   "<< solver[FEA_SOL]->node[2]->Get_FlowTraction(0) <<endl;
-    return max_precice_dt;
+
+ return max_precice_dt;
   }
   else {
     /*--- Advance the interface (as nothing is transferred from this process) ---*/
@@ -940,22 +989,34 @@ void CPreciceFEA::Set_OldState( bool *StopCalc, double *dt ) {
 
   unsigned long iPoint;
   unsigned short iVar, iDim, jDim;
-cout << "sol node 2 x vor set  " << solver[FEA_SOL]->node[2]->GetSolution(0) <<endl;
   for (iPoint = 0; iPoint < nPoint; iPoint++) {
+if (geometry->node[iPoint]->GetGlobalIndex()==36){
+cout << "sol node 36 x before set  " << solver[FEA_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution(1) <<endl;
+cout << "soltn node 36 x before set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
+/*cout << "solvel node 36 x before set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel(1) <<endl;
+cout << "solveltn node 36 x before set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(1) <<endl;
+cout << "solaccel node 36 x before set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel(1) <<endl;
+cout << "solacceltn node 36 x before set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n(1) <<endl;*/
+}
     for (iVar = 0; iVar < nVar; iVar++) {
       /*--- Save solutions at last and current time step ---*/
       solution_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution())[iVar];
-//cout << "gottensolsav: " << iPoint << "  " << solution_Saved[iPoint][iVar] <<endl;
       if (config->GetDynamic_Analysis() == DYNAMIC){
-	solution_Old_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Old())[iVar];
-//cout << "gottensololdsav: " << iPoint << "  " << solution_Old_Saved[iPoint][iVar] <<endl;
+	solution_time_n_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(iVar));
         solution_vel_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Vel())[iVar];
         solution_vel_time_n_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n())[iVar];
         solution_accel_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Accel())[iVar];
         solution_accel_time_n_Saved[iPoint][iVar] = (solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n())[iVar];
       }    
     }
-	
+	if (geometry->node[iPoint]->GetGlobalIndex()==36){
+cout << "sol node 36 x after set  " << solver[FEA_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution(1) <<endl;
+cout << "soltn node 36 x after set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
+/*cout << "solvel node 36 x after set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel(1) <<endl;
+cout << "solveltn node 36 x after set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(1) <<endl;
+cout << "solaccel node 36 x after set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel(1) <<endl;
+cout << "solacceltn node 36 x after set  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n(1) <<endl;*/  
+        }
   }
 
   /*--- Store the convergence state and the time step of the current simulation ---*/
@@ -965,25 +1026,37 @@ cout << "sol node 2 x vor set  " << solver[FEA_SOL]->node[2]->GetSolution(0) <<e
   /*--- Inform preCICE that the writing task has been fulfilled ---*/
   solverInterface.fulfilledAction(cowic);
 
-cout << "sol node 2 x nach set  " << solver[FEA_SOL]->node[2]->GetSolution(0) <<endl;
 };
 
 void CPreciceFEA::Reset_OldState( bool *StopCalc, double *dt ) {
   unsigned long iPoint;
   unsigned short iDim, jDim;
-cout << "sol node 2 x vor reset  " << solver[FEA_SOL]->node[2]->GetSolution(0) <<endl;
   for (iPoint = 0; iPoint < nPoint; iPoint++) {
-
-    /*--- Reset solutions from the last and current time step ---*/
+if (geometry->node[iPoint]->GetGlobalIndex()==36){
+cout << "sol node 36 x before reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution(1) <<endl;
+cout << "soltn node 36 x before reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
+/*cout << "solvel node 36 x before reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel(1) <<endl;
+cout << "solveltn node 36 x before reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(1) <<endl;
+cout << "solaccel node 36 x before reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel(1) <<endl;
+cout << "solacceltn node 36 x before reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n(1) <<endl;*/
+}
+      /*--- Reset solutions from the last and current time step ---*/
     solver[FEA_SOL]->node[iPoint]->SetSolution(solution_Saved[iPoint]); 
     if (config->GetDynamic_Analysis() == DYNAMIC){    
-      solver[FEA_SOL]->node[iPoint]->SetSolution_Old(solution_Old_Saved[iPoint]);
-//cout << "solold" <<endl;  
+      solver[FEA_SOL]->node[iPoint]->SetSolution_time_n(solution_time_n_Saved[iPoint]);
       solver[FEA_SOL]->node[iPoint]->SetSolution_Vel(solution_vel_Saved[iPoint]);
       solver[FEA_SOL]->node[iPoint]->SetSolution_Vel_time_n(solution_vel_time_n_Saved[iPoint]);
       solver[FEA_SOL]->node[iPoint]->SetSolution_Accel(solution_accel_Saved[iPoint]);
       solver[FEA_SOL]->node[iPoint]->SetSolution_Accel_time_n(solution_accel_time_n_Saved[iPoint]);
     }
+if (geometry->node[iPoint]->GetGlobalIndex()==36){
+cout << "sol node 36 x after reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution(1) <<endl;
+cout << "soltn node 36 x after reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
+/*cout << "solvel node 36 x after reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel(1) <<endl;
+cout << "solveltn node 36 x after reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(1) <<endl;
+cout << "solaccel node 36 x after reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel(1) <<endl;
+cout << "solacceltn node 36 x after reset  " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n(0)<< "   " << solver[FEA_SOL]->node[iPoint]->GetSolution_Accel_time_n(1) <<endl; */
+ }
   }
 
   /*--- Reset the convergence state and the time step of the last simulation ---*/
@@ -992,5 +1065,4 @@ cout << "sol node 2 x vor reset  " << solver[FEA_SOL]->node[2]->GetSolution(0) <
 
   /*--- Inform preCICE that the reading task has been fulfilled ---*/
   solverInterface.fulfilledAction(coric);
-cout << "sol node 2 x nach reset  " << solver[FEA_SOL]->node[2]->GetSolution(0) <<endl;
 };

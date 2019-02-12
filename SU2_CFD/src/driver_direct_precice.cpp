@@ -85,8 +85,9 @@ void CPreciceDriver::StartSolver(){
     Run();
 
     /*--- Update the solution for dual time stepping strategy ---*/
-
-    Update();
+    if (config_container[ZONE_0]->GetpreCICE_Subproblem()==PRECICE_FLOW) {
+      Update();
+    }
 
     /*--- Terminate the simulation if only the Jacobian must be computed. ---*/
     if (config_container[ZONE_0]->GetJacobian_Spatial_Discretization_Only()) break;
@@ -107,6 +108,9 @@ void CPreciceDriver::StartSolver(){
       output_solution = false;
     }
     else{
+      if (config_container[ZONE_0]->GetpreCICE_Subproblem()==PRECICE_FEA) {
+        Update();
+      }
       ExtIter++;
     }
     /*--- Output the solution files. ---*/
