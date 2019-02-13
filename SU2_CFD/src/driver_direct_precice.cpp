@@ -117,7 +117,7 @@ void CPreciceDriver::StartSolver(){
     if (output_solution) Output(ExtIter);
 
     /*--- If the convergence criteria has been met, terminate the simulation. ---*/
-    //if (StopCalc) break;
+    if (StopCalc) break;
   }
 #ifdef VTUNEPROF
   __itt_pause();

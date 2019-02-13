@@ -1183,6 +1183,8 @@ inline void CFEAVariable::SetSolution_Pred_Old(void) {
 }
 
 
+inline su2double *CFEAVariable::GetSolution_time_n(void) { return Solution_time_n; }
+
 inline su2double CFEAVariable::GetSolution_time_n(unsigned short val_var) { return Solution_time_n[val_var]; }
 
 inline su2double *CFEAVariable::Get_femSolution_time_n(void) { return Solution_time_n; }
