@@ -84,17 +84,8 @@ void CPreciceDriver::StartSolver(){
 
     Run();
 
-    /*--- Update the solution for dual time stepping strategy ---*/
-    if (config_container[ZONE_0]->GetpreCICE_Subproblem()==PRECICE_FLOW) {
-      Update();
-    }
-
     /*--- Terminate the simulation if only the Jacobian must be computed. ---*/
     if (config_container[ZONE_0]->GetJacobian_Spatial_Discretization_Only()) break;
-
-    /*--- Monitor the computations after each iteration. ---*/
-
-    Monitor(ExtIter);
 
     /*--- Advance preCICE ---*/
     *max_precice_dt = precice->Advance(*dt);
@@ -104,20 +95,25 @@ void CPreciceDriver::StartSolver(){
     /*--- Test if the preCICE is converged ---*/
     if(precice->ActionRequired(precice->getCoric())){
       /*--- If unconverged, reset the flow to the old state and retain the ExtIter ---*/
+      ExtIter--;
       precice->Reset_OldState(&StopCalc, dt);
       output_solution = false;
     }
-    else{
-      if (config_container[ZONE_0]->GetpreCICE_Subproblem()==PRECICE_FEA) {
-        Update();
-      }
-      ExtIter++;
-    }
+
+    /*--- Update the solution for dual time stepping strategy ---*/	
+    Update();
+
+    /*--- Monitor the computations after each iteration. ---*/
+
+    Monitor(ExtIter);
+
     /*--- Output the solution files. ---*/
     if (output_solution) Output(ExtIter);
 
     /*--- If the convergence criteria has been met, terminate the simulation. ---*/
     if (StopCalc) break;
+
+    ExtIter++;
   }
 #ifdef VTUNEPROF
   __itt_pause();

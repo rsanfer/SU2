@@ -495,7 +495,7 @@ void CPreciceFlow::Set_OldState( bool *StopCalc, double *dt ) {
 if (geometry->node[iPoint]->GetGlobalIndex()==300){
 /*cout << "sol node 300 x before set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution(1) <<endl;
 cout << "soltn node 300 x before set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
-cout << "soltn1 node 300 x before set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(1) <<endl;*/
+cout << "soltn1 node 300 x before set  " << (solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[0] << "   " <<(solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[1] <<endl;
 //cout << "coord node 300 x before set  " << geometry->node[iPoint]->GetCoord(0)<< "   " << geometry->node[iPoint]->GetCoord(1) <<endl;
 /*cout << "coordn node 300 x before set  " << geometry->node[iPoint]->GetCoord_n(0)<< "   " << geometry->node[iPoint]->GetCoord_n(1) <<endl;
 cout << "coordn1 node 300 x before set  " << geometry->node[iPoint]->GetCoord_n1(0)<< "   " << geometry->node[iPoint]->GetCoord_n1(1) <<endl;
@@ -528,7 +528,7 @@ cout << "grid_vel node 300 x before set  " << geometry->node[iPoint]->GetGridVel
 if (geometry->node[iPoint]->GetGlobalIndex()==300){
 /*cout << "sol node 300 x after set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution(1) <<endl;
 cout << "soltn node 300 x after set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
-cout << "soltn1 node 300 x after set  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(1) <<endl;*/
+cout << "soltn1 node 300 x after set  " << (solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[0] << "   " <<(solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[1] <<endl;
 //cout << "coord node 300 x after set  " << geometry->node[iPoint]->GetCoord(0)<< "   " << geometry->node[iPoint]->GetCoord(1) <<endl;
 /*cout << "coordn node 300 x after set  " << geometry->node[iPoint]->GetCoord_n(0)<< "   " << geometry->node[iPoint]->GetCoord_n(1) <<endl;
 cout << "coordn1 node 300 x after set  " << geometry->node[iPoint]->GetCoord_n1(0)<< "   " << geometry->node[iPoint]->GetCoord_n1(1) <<endl;
@@ -554,7 +554,7 @@ void CPreciceFlow::Reset_OldState( bool *StopCalc, double *dt ){
 if (geometry->node[iPoint]->GetGlobalIndex()==300){
 /*cout << "sol node 300 x before reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution(1) <<endl;
 cout << "soltn node 300 x before reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
-cout << "soltn1 node 300 x before reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(1) <<endl;*/
+cout << "soltn1 node 300 x before reset  " << (solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[0] << "   " <<(solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[1] <<endl;
 //cout << "coord node 300 x before reset  " << geometry->node[iPoint]->GetCoord(0)<< "   " << geometry->node[iPoint]->GetCoord(1) <<endl;
 /*cout << "coordn node 300 x before reset  " << geometry->node[iPoint]->GetCoord_n(0)<< "   " << geometry->node[iPoint]->GetCoord_n(1) <<endl;
 cout << "coordn1 node 300 x before reset  " << geometry->node[iPoint]->GetCoord_n1(0)<< "   " << geometry->node[iPoint]->GetCoord_n1(1) <<endl;
@@ -591,7 +591,7 @@ cout << "grid_vel node 300 x before reset  " << geometry->node[iPoint]->GetGridV
 if (geometry->node[iPoint]->GetGlobalIndex()==300){
 /*cout << "sol node 300 x after reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution(1) <<endl;
 cout << "soltn node 300 x after reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n(1) <<endl;
-cout << "soltn1 node 300 x after reset  " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(0)<< "   " << solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1(1) <<endl;*/
+cout << "soltn1 node 300 x after reset  " << (solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[0] << "   " <<(solver[FLOW_SOL]->node[iPoint]->GetSolution_time_n1())[1] <<endl;
 //cout << "coord node 300 x after reset  " << geometry->node[iPoint]->GetCoord(0)<< "   " << geometry->node[iPoint]->GetCoord(1) <<endl;
 /*cout << "coordn node 300 x after reset  " << geometry->node[iPoint]->GetCoord_n(0)<< "   " << geometry->node[iPoint]->GetCoord_n(1) <<endl;
 cout << "coordn1 node 300 x after reset  " << geometry->node[iPoint]->GetCoord_n1(0)<< "   " << geometry->node[iPoint]->GetCoord_n1(1) <<endl;
