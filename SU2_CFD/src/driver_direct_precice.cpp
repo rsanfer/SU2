@@ -47,6 +47,8 @@ CPreciceDriver::CPreciceDriver(char* confFile, unsigned short val_nZone,
   /*--- Initialize preCICE ---*/
   max_precice_dt = new double(precice->Initialize());
 
+  //DynamicMeshUpdate(0);
+
 }
 
 CPreciceDriver::~CPreciceDriver(void) { }
@@ -92,28 +94,27 @@ void CPreciceDriver::StartSolver(){
 
     bool output_solution = true;
 
-    /*--- Test if the preCICE is converged ---*/
-    if(precice->ActionRequired(precice->getCoric())){
-      /*--- If unconverged, reset the flow to the old state and retain the ExtIter ---*/
-      ExtIter--;
-      precice->Reset_OldState(&StopCalc, dt);
-      output_solution = false;
-    }
-
     /*--- Update the solution for dual time stepping strategy ---*/	
     Update();
 
     /*--- Monitor the computations after each iteration. ---*/
-
     Monitor(ExtIter);
+
+    /*--- Test if the preCICE is converged ---*/
+    if(precice->ActionRequired(precice->getCoric())){
+      /*--- If unconverged, reset to the old state ---*/
+      precice->Reset_OldState(&StopCalc, dt);
+      output_solution = false;
+    }
+    else{
+    ExtIter++;
+    }
 
     /*--- Output the solution files. ---*/
     if (output_solution) Output(ExtIter);
 
     /*--- If the convergence criteria has been met, terminate the simulation. ---*/
     if (StopCalc) break;
-
-    ExtIter++;
   }
 #ifdef VTUNEPROF
   __itt_pause();
