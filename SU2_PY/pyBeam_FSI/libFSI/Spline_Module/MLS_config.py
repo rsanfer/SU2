@@ -2,8 +2,8 @@
 
 ## \file FSI_config.py
 #  \brief Python class for handling configuration file for FSI computation.
-#  \author David Thomas
-#  \version 5.0.0 "Raven"
+#  \author Rocco Bombardieri, Ruben Sanchez
+#  \version 7.0.0
 #
 # SU2 Original Developers: Dr. Francisco D. Palacios.
 #                          Dr. Thomas D. Economon.
@@ -55,71 +55,61 @@ class MLSConfig:
         self.readConfig()
 
     def __str__(self):
-	tempString = str()
-	for key, value in self._ConfigContent.items():
-	   tempString += "{} = {}\n".format(key,value)
-	return tempString
+       tempString = str()
+       for key, value in self._ConfigContent.items():
+          tempString += "{} = {}\n".format(key,value)
+       return tempString
 
     def __getitem__(self,key):
-	return self._ConfigContent[key]
+       return self._ConfigContent[key]
 
     def __setitem__(self, key, value):
-	self._ConfigContent[key] = value
+       self._ConfigContent[key] = value
 
     def readConfig(self):
         input_file = open(self.ConfigFileName)
         while 1:
-	    line = input_file.readline()
-	    if not line:
-	        break
+         line = input_file.readline()
+         if not line:
+             break
             # remove line returns
-            line = line.strip('\r\n')
-            # make sure it has useful data
-            if (not "=" in line) or (line[0] == '%'):
+         line = line.strip('\r\n')
+         # make sure it has useful data
+         if (not "=" in line) or (line[0] == '%'):
                 continue
-            # split across equal sign
-            line = line.split("=",1)
-            this_param = line[0].strip()
-            this_value = line[1].strip()
+         # split across equal sign
+         line = line.split("=",1)
+         this_param = line[0].strip()
+         this_value = line[1].strip()
 
-            for case in switch(this_param):
-	        #integer values
-		if case("MODES")			      : pass
+         for case in switch(this_param):
+            #integer values
+                if case("MODES")			      : pass
                 if case("POLY")		                      : pass
                 if case("WEIGHT")		              : pass
                 if case("POINTS")		              : 
-		    self._ConfigContent[this_param] = int(this_value)
-		    break
+                   self._ConfigContent[this_param] = int(this_value)
+                   break
 
-	        #float values
-		if case("MAGNIF_FACTOR")	      : pass                
+            #float values
+                if case("MAGNIF_FACTOR")	      : pass
                 if case("RMAX")		              : pass                
                 if case("DELTA")                      : pass
                 if case("TOLL_SVD")                   : pass
-                #if case("DECOMP_COEFF")		      : pass
-		if case("FREQ")		              : 
-		    self._ConfigContent[this_param] = float(this_value)
-		    break
-
-                #float array
-                if case("DECOMP_COEFF")                      :
-                    this_value1 = ast.literal_eval(this_value)
-                    self._ConfigContent[this_param] = this_value1
-		    break
+                if case("FREQ")		              :
+                   self._ConfigContent[this_param] = float(this_value)
+                   break
                     
-	        #string values
-		if case("STRUCTURAL_NODES_FILE_NAME")	      : pass
+            #string values
+                if case("STRUCTURAL_MODES_FILE_NAME")	      : pass
                 if case("FORMAT_MODES")	                      : pass
-                if case("FORMAT_SRUCT_NODES")	              : pass
                 if case("DEBUG")	                      : pass
-		if case("STRUCTURAL_MODES_FILE_NAME")         : 
-	        #if case("MESH_DEF_METHOD")	      : pass
-		    self._ConfigContent[this_param] = this_value
-		    break
+                   self._ConfigContent[this_param] = this_value
+                   break
 
- 	        if case():
-		    print(this_param + " is an invalid option !")
-		    break
-	    #end for
-	
+                if case():
+                   print(this_param + " is an invalid option !")
+                   break
+
+
 
