@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ## \file fsi_computation.py
-#  \brief Python wrapper code for FSI computation by coupling a pyBeam and SU2.
+#  \brief Python wrapper code for FSI computation by coupling pyBeam and SU2.
 #  \author David Thomas, Rocco Bombardieri, Ruben Sanchez
 #  \version 7.0.0
 #
@@ -37,10 +37,11 @@
 
 import os, sys, shutil, copy
 import time as timer
-from math import *  # use mathematical expressions
+
 from optparse import OptionParser  # use a parser for configuration
 
-import FSI  # imports FSI python tools
+from libFSI import FSI_config as io  # imports FSI python tools
+from libFSI import Interface as FSI # imports FSI python tools
 
 # imports the CFD (SU2) module for FSI computation
 import pysu2
@@ -61,7 +62,7 @@ def main():
 
     (options, args) = parser.parse_args()
 
-    if options.with_MPI == True:
+    if options.with_MPI:
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
         myid = comm.Get_rank()
@@ -88,9 +89,10 @@ def main():
 
     confFile = str(options.filename)
 
-    FSI_config = FSI.io.FSIConfig(confFile)  # FSI configuration file
-    CFD_ConFile = FSI_config['CFD_CONFIG_FILE_NAME']  # CFD configuration file
-    CSD_ConFile = FSI_config['CSD_CONFIG_FILE_NAME']  # CSD configuration file
+    FSI_config = io.FSIConfig(confFile)  # FSI configuration file
+    print(FSI_config)
+    CFD_ConFile = FSI_config['SU2_CONFIG']  # CFD configuration file
+    CSD_ConFile = FSI_config['PYBEAM_CONFIG']  # CSD configuration file
     MLS_confFile = FSI_config['MLS_CONFIG_FILE_NAME']  # MLS configuration file
 
     if have_MPI:
@@ -103,7 +105,7 @@ def main():
         FluidSolver = pysu2.CSinglezoneDriver(CFD_ConFile, 1, FSI_config['NDIM'], comm)
     except TypeError as exception:
         print('A TypeError occured in pysu2.CSingleZoneDriver : ', exception)
-        if have_MPI == True:
+        if have_MPI:
             print('ERROR : You are trying to initialize MPI with a serial build of the wrapper. Please, remove the --parallel option that is incompatible with a serial build.')
         else:
             print('ERROR : You are trying to launch a computation without initializing MPI but the wrapper has been built in parallel. Please add the --parallel option in order to initialize MPI for the wrapper.')
@@ -115,10 +117,34 @@ def main():
     # --- Initialize the solid solver: pyBeam --- #
     if myid == rootProcess:
         print('\n***************************** Initializing pyBeam ************************************')
+        try:
+            SolidSolver = pyBeam.CBeamSolver()
+        except TypeError as exception:
+            print('ERROR building the Solid Solver: ', exception)
+    else:
+        SolidSolver = None
+
+    if have_MPI == True:
+        comm.barrier()
+
+    # --- Initialize and set the coupling environment --- #
+    if myid == rootProcess:
+        print('\n***************************** Initializing FSI interface *****************************')
     try:
-        SolidSolver = pyBeam.whatever()
+        FSIInterface = FSI.Interface(FSI_config, FluidSolver, SolidSolver, None, have_MPI)
     except TypeError as exception:
-        print('ERROR building the Solid Solver: ', exception)
+        print('ERROR building the FSI Interface: ', exception)
+
+    if have_MPI == True:
+        comm.barrier()
+
+
+    if myid == rootProcess:
+        print('\n***************************** Connect fluid and solid solvers *****************************')
+    try:
+        FSIInterface.connect(FSI_config, FluidSolver, SolidSolver)
+    except TypeError as exception:
+        print('ERROR building the Interpolation Interface: ', exception)
 
     if have_MPI == True:
         comm.barrier()
@@ -145,15 +171,6 @@ def main():
     if have_MPI == True:
         comm.barrier()
 
-    if myid == rootProcess:
-        print('\n***************************** Connect fluid and solid solvers *****************************')
-    try:
-        FSIInterface.connect(FSI_config, FluidSolver, SolidSolver)
-    except TypeError as exception:
-        print('ERROR building the Interpolation Interface: ', exception)
-
-    if have_MPI == True:
-        comm.barrier()
 
     if myid == rootProcess:
         print('\n***************************** Mapping fluid-solid interfaces *****************************')
