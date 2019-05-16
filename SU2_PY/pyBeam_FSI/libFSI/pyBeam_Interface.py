@@ -2,7 +2,7 @@
 
 ## \file NITRO_Tester.py
 #  \brief NITRO Tester solver (for the NITRO approach involving forced moving boundary condition) used for testing the Py wrapper for external FSI coupling.
-#  \author Rocco Bombardieri
+#  \author Rocco Bombardieri, Ruben Sanchez
 #  \version 5.0.0 "Raven"
 #
 # SU2 Original Developers: Dr. Francisco D. Palacios.
@@ -41,57 +41,17 @@ import scipy as sp
 import scipy.linalg as linalg
 from math import *
 from cmath import *
-from util import switch
-from Read_decomp_coeff import *
+# Imports from pyBeam (need to be reviewed)
+from pyBeamIO import pyBeamConfig as pyConfig
+from pyBeamIO import pyBeamInput as pyInput
+import pyBeam
+
+
 
 # ----------------------------------------------------------------------
-#  Config class
+#  Beam object
 # ----------------------------------------------------------------------
 
-class Point:
-  """ Description. """
-
-  def __init__(self):
-    self.Coord0 = np.zeros((3,1)) # marks the initial position of the nodes: to this we superimpose the mode shape
-    self.Coord = np.zeros((3,1))
-    self.Vel = np.zeros((3,1))
-    self.Force = np.zeros((3,1))
-
-  def GetCoord0(self):
-    return self.Coord0
-
-  def GetCoord(self):
-    return self.Coord
-
-  def GetVel(self):
-    return self.Vel
-
-  def GetForce(self):
-    return self.Force
-
-  def SetCoord0(self, val_Coord):
-    x, y, z = val_Coord
-    self.Coord0[0] = x
-    self.Coord0[1] = y
-    self.Coord0[2] = z
-
-  def SetCoord(self, val_Coord):
-    x, y, z = val_Coord
-    self.Coord[0] = x
-    self.Coord[1] = y
-    self.Coord[2] = z
-
-  def SetVel(self, val_Vel):
-    vx, vy, vz = val_Vel
-    self.Vel[0] = vx
-    self.Vel[1] = vy
-    self.Vel[2] = vz
-
-  def SetForce(self, val_Force):
-    fx, fy, fz = val_Force
-    self.Force[0] = fx
-    self.Force[1] = fy
-    self.Force[2] = fz
 
 class Solver:
   """Description"""
@@ -102,205 +62,86 @@ class Solver:
     self.Config_file = config_fileName
     self.Config = {}
 
-    print("\n------------------------------ Configuring the structural tester solver for FSI simulation ------------------------------")
-    self.__readConfig()
+    print("\n------------------------------ Configuring the structural tester solver for FSI simulation: pyBeam ------------------------------")
+    # Parsing config file
+    self.Config = pyConfig.pyBeamConfig(confFile)  # Beam configuration file
 
     self.Mesh_file = self.Config['MESH_FILE']
-    self.FSI_marker = self.Config['MOVING_MARKER']
-    self.Unsteady = (self.Config['UNSTEADY_SIMULATION']=="YES")
+    self.Property = self.Config['B_PROPERTY']
     if self.Unsteady:
       print('Dynamic computation.')
-    if self.Config['STRUCT_TYPE'] == "AIRFOIL":
-      self.nDof = 2
-      print("Structural model : pitching-plunging airfoil.")
-    elif self.Config['STRUCT_TYPE'] == "WING":
-      self.nDof = 3
-      print("Structural model : wing for NITRO or UC3M FSI.")
-    else:
-      self.nDof = 0
 
-    self.nDim= int()
-    self.nElem = int()
-    self.nPoint = int()
-    self.nMarker = int()
+    # Parsing mesh file
+    self.nDim= pyInput.readDimension(self.Config['B_MESH'])
+    self.node_py, self.nPoint = pyInput.readMesh(self.Config['B_MESH'], self.nDim)
+    self.elem_py, self.nElem = pyInput.readConnectivity(self.Config['B_MESH'])
+    self.Constr, self.nConstr = pyInput.readConstr(self.Config['B_MESH'])
+    self.RBE2_py, self.nRBE2 = pyInput.readRBE2(self.Config['B_MESH'])
+    # Parsing Property file
+    self.Prop, self.nProp = pyInput.readProp(self.Config['B_PROPERTY'])
+
+    # Initializing objects
+    self.beam = pyBeam.CBeamSolver()
+    self.inputs = pyBeam.CInput(self.nPoint, self.nElem, self.nRBE2)
+
+    # Sending to CInput object
+    pyConfig.parseInput(self.Config, self.inputs, self.Constr, self.nConstr)
+    # Assigning input values to the input object in C++
+    self.inputs.SetParameters()
+    # Initialize the input in the beam solver
+    self.beam.InitializeInput(inputs)
+
+    # Assigning values to the CNode objects in C++
     self.node = []
-    self.markers = {}
-    self.tracking_pos = []
-    self.tracking_vel = []
-    self.tracking_force_x =[]
-    self.tracking_force_y =[]
-    self.tracking_force_z =[]
-    self.time = []
-    self.Flutter_mode_fluid_x = []
-    self.Flutter_mode_fluid_y = []
-    self.Flutter_mode_fluid_z = []
-    self.Aq = float()  # Scaled Amplitude of the blended step
-    self.nModes = 0  # in case of CSD= NITRO/NITRO_FRAMEWORK halps understanding how many modes we are using for the computation
-    #self.NodalForces = {}    # This is initialized separatedly in it's own function when Nbr of timesteps is known
-    #self.GenForces          # This is initialized separatedly in it's own function when Nbr of timesteps is known
-    print("\n------------------------------ Reading the SU2 mesh ------------------------------")
-    self.__readSU2Mesh()
+    for i in range(self.nPoint):
+        self.node.append(pyBeam.CNode(self.node_py[i].GetID()))
+        for j in range(nDim):
+            self.node[i].SetCoordinate(j, float(self.node_py[i].GetCoord()[j][0]))
+            self.node[i].SetCoordinate0(j, float(self.node_py[i].GetCoord0()[j][0]))
+        self.beam.InitializeNode(node[i], i)
+
+    # Assigning property values to the property objects in C++
+    self.beam_prop = []
+    for i in range(self.nProp):
+        self.beam_prop.append(pyBeam.CProperty(i))
+        self.beam_prop[i].SetSectionProperties(self.Prop[i].GetA(), self.Prop[i].GetIyy(), self.Prop[i].GetIzz(), self.Prop[i].GetJt())
+
+    # Assigning element values to the element objects in C++
+    self.element = []
+    for i in range(self.nElem):
+        self.element.append(pyBeam.CElement(i))
+        # element[i].Initializer(CNode* Node1, CNode* Node2, CProperty* Property, CInput* Input, addouble AuxVector_x, addouble AuxVector_y, addouble AuxVector_z)
+        # NB node starts from index 0 and the same happen in beam_prop. But in element_py (connectivity) indexes start from 1 as it is the physical connectivity read from input file
+        self.element[i].Initializer(self.node[self.elem_py[i].GetNodes()[0, 0] - 1], self.node[self.elem_py[i].GetNodes()[1, 0] - 1],
+                               self.beam_prop[self.elem_py[i].GetProperty() - 1], self.inputs, self.elem_py[i].GetAuxVector()[0, 0],
+                               self.elem_py[i].GetAuxVector()[1, 0], self.elem_py[i].GetAuxVector()[2, 0])
+        self.beam.InitializeElement(element[i], i)
+
+    print("\n------------------------------ Reading the SU2 mesh (is it needed though?)------------------------------")
+    # Here we need to pass the AeroPoint matrix of the wing grid
+
+    # IF ANY, assigning RBE2_element values to the RBE2 objects in C++
+    if self.nRBE2 != 0:
+        self.RBE2 = []
+        for i in range(self.nRBE2):
+            self.RBE2.append(pyBeam.CRBE2(i))
+            self.RBE2[i].Initializer(self.node[self.RBE2_py[i].GetNodes()[0, 0] - 1], self.node[self.RBE2_py[i].GetNodes()[1, 0] - 1])
+            self.beam.InitializeRBE2(self.RBE2[i], i)
+
+    # finally intializing the structure for the solver
+    beam.InitializeStructure()
+
+    print("\n------------------------------ pyBeam initialization Done ----------------------------------------------")
 
 
+    # What do we need yet?
+    # run
+    #  getDsiplacement
+    #  Update Coordinates
+    #  SetForces
+    #  writeOutput (paraview tecplot etc)
 
 
-  def __readConfig(self):
-    """ Description. """
-
-    with open(self.Config_file) as configfile:
-      while 1:
-    line = configfile.readline()
-    if not line:
-      break
-
-        # remove line returns
-        line = line.strip('\r\n')
-        # make sure it has useful data
-        if (not "=" in line) or (line[0] == '%'):
-          continue
-        # split across equal sign
-        line = line.split("=",1)
-        this_param = line[0].strip()
-        this_value = line[1].strip()
-
-        for case in switch(this_param):
-      #integer values
-      #if case("NB_FSI_ITER")		:
-        #self.Config[this_param] = int(this_value)
-        #break
-
-      #float values
-          if case("PITCHING_AMPL")               : pass
-          if case("PLUNGING_AMPL")               : pass
-          if case("PITCHING_FREQ")              : pass
-          if case("PLUNGING_FREQ")              : pass
-          if case("PITCHING_0")                 : pass
-          if case("PLUNGING_0")                 : pass
-      if case("SPRING_MASS")		: pass
-      if case("INERTIA_FLEXURAL")		: pass
-      if case("SPRING_STIFFNESS")		: pass
-      if case("SPRING_DAMPING")		: pass
-      if case("TORSIONAL_STIFFNESS")	: pass
-      if case("TORSIONAL_DAMPING")		: pass
-      if case("CORD")		      	: pass
-      if case("FLEXURAL_AXIS")	      	: pass
-      if case("GRAVITY_CENTER")	      	: pass
-      if case("INITIAL_DISP")	      	: pass
-      if case("INITIAL_ANGLE")	      	: pass
-      if case("RHO")	      		:
-        self.Config[this_param] = float(this_value)
-        break
-
-      #string values
-      if case("UNSTEADY_SIMULATION")	: pass
-      if case("MESH_FILE")			: pass
-      if case("SOLID_FORCES_OUTPUT")	: pass
-      if case("CSD_SOLVER")		      	: pass
-      if case("MOVING_MARKER")		: pass
-      if case("STRUCT_TYPE")		:
-        self.Config[this_param] = this_value
-        break
-
-      if case():
-        print(this_param + " is an invalid option !")
-            break
-
-  def __readSU2Mesh(self):
-    """ Description. """
-
-    with open(self.Mesh_file, 'r') as meshfile:
-      print('Opened mesh file ' + self.Mesh_file + '.')
-      while 1:
-        line = meshfile.readline()
-    if not line:
-      break
-
-    pos = line.find('NDIM')
-    if pos != -1:
-      line = line.strip('\r\n')
-          line = line.split("=",1)
-      self.nDim = int(line[1])
-      continue
-
-    pos = line.find('NELEM')
-    if pos != -1:
-      line = line.strip('\r\n')
-          line = line.split("=",1)
-      self.nElem = int(line[1])
-      continue
-
-    pos = line.find('NPOIN')
-    if pos != -1:
-      line = line.strip('\r\n')
-          line = line.split("=",1)
-      self.nPoint = int(line[1])
-          for iPoint in range(self.nPoint):
-        self.node.append(Point())
-        line = meshfile.readline()
-        line = line.strip('\r\n')
-        line = line.split()
-        x = float(line[0])
-        y = float(line[1])
-            z = 0.0
-        if self.nDim == 3:
-          z = float(line[2])
-        self.node[iPoint].SetCoord((x,y,z))
-            self.node[iPoint].SetCoord0((x,y,z)) # this position (oroginal) will stay the same
-        #self.node[iPoint].SetCoord_n((x,y,z))
-      continue
-
-    pos = line.find('NMARK')
-    if pos != -1:
-      line = line.strip('\r\n')
-          line = line.split("=",1)
-      self.nMarker = int(line[1])
-      continue
-
-    pos = line.find('MARKER_TAG')
-    if pos != -1:
-      line = line.strip('\r\n')
-      line = line.replace(" ", "")
-          line = line.split("=",1)
-      markerTag = line[1]
-      if markerTag == self.FSI_marker:
-        self.markers[markerTag] = []
-        line = meshfile.readline()
-        line = line.strip('\r\n')
-        line = line.split("=",1)
-        nElem = int(line[1])
-        for iElem in range(nElem):
-          line = meshfile.readline()
-          line = line.strip('\r\n')
-          line = line.split()
-          elemType = int(line[0])
-          if elemType == 3:
-            nodes = line[1:3]#.split()  ## important modification in case the formatting includes tabs
-        if not int(nodes[0]) in self.markers[markerTag]:
-           self.markers[markerTag].append(int(nodes[0]))
-        if not int(nodes[1]) in self.markers[markerTag]:
-           self.markers[markerTag].append(int(nodes[1]))
-          elif elemType == 5:
-            nodes = line[1:4]#.split()   ## important modification in case the formatting includes tabs
-        if not int(nodes[0]) in self.markers[markerTag]:
-           self.markers[markerTag].append(int(nodes[0]))
-        if not int(nodes[1]) in self.markers[markerTag]:
-           self.markers[markerTag].append(int(nodes[1]))
-        if not int(nodes[2]) in self.markers[markerTag]:
-           self.markers[markerTag].append(int(nodes[2]))
-          else:
-        print "Element type {} is not recognized !!".format(elemType)
-        continue
-      else:
-        continue
-
-    print ("Number of dimensions: {}".format(self.nDim))
-    print ("Number of elements: {}".format(self.nElem))
-    print ("Number of point: {}".format(self.nPoint))
-    print ("Number of markers: {}".format(self.nMarker))
-    if len(self.markers) > 0:
-      print ("Moving marker(s):")
-      for mark in self.markers.keys():
-        print mark
 
   def __computeInterfacePosVel(self,time,FSI_config, MLS_Spline):
     """ Description. """
