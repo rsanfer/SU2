@@ -53,7 +53,7 @@ import pyBeam
 # ----------------------------------------------------------------------
 
 
-class Solver:
+class pyBeamSolver:
   """Description"""
 
   def __init__(self, config_fileName):
@@ -64,72 +64,70 @@ class Solver:
 
     print("\n------------------------------ Configuring the structural tester solver for FSI simulation: pyBeam ------------------------------")
     # Parsing config file
-    self.Config = pyConfig.pyBeamConfig(confFile)  # Beam configuration file
+    self.Config = pyConfig.pyBeamConfig(config_fileName)  # Beam configuration file
 
-    self.Mesh_file = self.Config['MESH_FILE']
+    self.Mesh_file = self.Config['B_MESH']
     self.Property = self.Config['B_PROPERTY']
-    if self.Unsteady:
-      print('Dynamic computation.')
 
     # Parsing mesh file
     self.nDim= pyInput.readDimension(self.Config['B_MESH'])
-    self.node_py, self.nPoint = pyInput.readMesh(self.Config['B_MESH'], self.nDim)
-    self.elem_py, self.nElem = pyInput.readConnectivity(self.Config['B_MESH'])
-    self.Constr, self.nConstr = pyInput.readConstr(self.Config['B_MESH'])
-    self.RBE2_py, self.nRBE2 = pyInput.readRBE2(self.Config['B_MESH'])
+    node_py, self.nPoint = pyInput.readMesh(self.Config['B_MESH'], self.nDim)
+    elem_py, self.nElem = pyInput.readConnectivity(self.Config['B_MESH'])
+    Constr, nConstr = pyInput.readConstr(self.Config['B_MESH'])
+    RBE2_py, nRBE2 = pyInput.readRBE2(self.Config['B_MESH'])
     # Parsing Property file
-    self.Prop, self.nProp = pyInput.readProp(self.Config['B_PROPERTY'])
+    Prop, nProp = pyInput.readProp(self.Config['B_PROPERTY'])
 
     # Initializing objects
-    self.beam = pyBeam.CBeamSolver()
-    self.inputs = pyBeam.CInput(self.nPoint, self.nElem, self.nRBE2)
+    beam = pyBeam.CBeamSolver()
+    inputs = pyBeam.CInput(self.nPoint, self.nElem, nRBE2)
 
     # Sending to CInput object
-    pyConfig.parseInput(self.Config, self.inputs, self.Constr, self.nConstr)
+    pyConfig.parseInput(self.Config, inputs, Constr, nConstr)
     # Assigning input values to the input object in C++
-    self.inputs.SetParameters()
+    inputs.SetParameters()
     # Initialize the input in the beam solver
-    self.beam.InitializeInput(inputs)
+    beam.InitializeInput(inputs)
 
     # Assigning values to the CNode objects in C++
-    self.node = []
+    node = []
     for i in range(self.nPoint):
-        self.node.append(pyBeam.CNode(self.node_py[i].GetID()))
-        for j in range(nDim):
-            self.node[i].SetCoordinate(j, float(self.node_py[i].GetCoord()[j][0]))
-            self.node[i].SetCoordinate0(j, float(self.node_py[i].GetCoord0()[j][0]))
-        self.beam.InitializeNode(node[i], i)
+        node.append(pyBeam.CNode(node_py[i].GetID()))
+        for j in range(self.nDim):
+            node[i].SetCoordinate(j, float(node_py[i].GetCoord()[j][0]))
+            node[i].SetCoordinate0(j, float(node_py[i].GetCoord0()[j][0]))
+        beam.InitializeNode(node[i], i)
 
     # Assigning property values to the property objects in C++
-    self.beam_prop = []
-    for i in range(self.nProp):
-        self.beam_prop.append(pyBeam.CProperty(i))
-        self.beam_prop[i].SetSectionProperties(self.Prop[i].GetA(), self.Prop[i].GetIyy(), self.Prop[i].GetIzz(), self.Prop[i].GetJt())
+    beam_prop = []
+    for i in range(nProp):
+        beam_prop.append(pyBeam.CProperty(i))
+        beam_prop[i].SetSectionProperties(Prop[i].GetA(), Prop[i].GetIyy(), Prop[i].GetIzz(), Prop[i].GetJt())
 
     # Assigning element values to the element objects in C++
-    self.element = []
+    element = []
     for i in range(self.nElem):
-        self.element.append(pyBeam.CElement(i))
-        # element[i].Initializer(CNode* Node1, CNode* Node2, CProperty* Property, CInput* Input, addouble AuxVector_x, addouble AuxVector_y, addouble AuxVector_z)
-        # NB node starts from index 0 and the same happen in beam_prop. But in element_py (connectivity) indexes start from 1 as it is the physical connectivity read from input file
-        self.element[i].Initializer(self.node[self.elem_py[i].GetNodes()[0, 0] - 1], self.node[self.elem_py[i].GetNodes()[1, 0] - 1],
-                               self.beam_prop[self.elem_py[i].GetProperty() - 1], self.inputs, self.elem_py[i].GetAuxVector()[0, 0],
-                               self.elem_py[i].GetAuxVector()[1, 0], self.elem_py[i].GetAuxVector()[2, 0])
-        self.beam.InitializeElement(element[i], i)
+        element.append(pyBeam.CElement(i))
+        element[i].Initializer(node[elem_py[i].GetNodes()[0, 0] - 1], node[elem_py[i].GetNodes()[1, 0] - 1],
+                               beam_prop[elem_py[i].GetProperty() - 1], inputs, elem_py[i].GetAuxVector()[0, 0],
+                               elem_py[i].GetAuxVector()[1, 0], elem_py[i].GetAuxVector()[2, 0])
+        beam.InitializeElement(element[i], i)
 
     print("\n------------------------------ Reading the SU2 mesh (is it needed though?)------------------------------")
-    # Here we need to pass the AeroPoint matrix of the wing grid
 
+    # Here we need to pass the AeroPoint matrix of the wing grid
     # IF ANY, assigning RBE2_element values to the RBE2 objects in C++
-    if self.nRBE2 != 0:
-        self.RBE2 = []
-        for i in range(self.nRBE2):
-            self.RBE2.append(pyBeam.CRBE2(i))
-            self.RBE2[i].Initializer(self.node[self.RBE2_py[i].GetNodes()[0, 0] - 1], self.node[self.RBE2_py[i].GetNodes()[1, 0] - 1])
-            self.beam.InitializeRBE2(self.RBE2[i], i)
+    if nRBE2 != 0:
+        RBE2 = []
+        for i in range(nRBE2):
+            RBE2.append(pyBeam.CRBE2(i))
+            RBE2[i].Initializer(node[RBE2_py[i].GetNodes()[0, 0] - 1], node[RBE2_py[i].GetNodes()[1, 0] - 1])
+            beam.InitializeRBE2(RBE2[i], i)
 
     # finally intializing the structure for the solver
     beam.InitializeStructure()
+
+    self.beam = beam
 
     print("\n------------------------------ pyBeam initialization Done ----------------------------------------------")
 
@@ -141,7 +139,9 @@ class Solver:
     #  SetForces
     #  writeOutput (paraview tecplot etc)
 
+  def getInitialCoordinates(self,iNode):
 
+        return self.beam.GetInitialCoordinates(iNode, 0), self.beam.GetInitialCoordinates(iNode, 1), self.beam.GetInitialCoordinates(iNode, 2)
 
   def __computeInterfacePosVel(self,time,FSI_config, MLS_Spline):
     """ Description. """

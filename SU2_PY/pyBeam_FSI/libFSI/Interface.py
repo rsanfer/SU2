@@ -217,6 +217,12 @@ class Interface:
         # --- Identify the solid interface and store the number of nodes (single core) ---#
         if SolidSolver != None:
             print('Solid solver is initialized on process {}'.format(myid))
+            for iPoint in range(0, SolidSolver.nPoint):
+                coordX, coordY, coordZ = SolidSolver.getInitialCoordinates(iPoint)
+            self.haveSolidSolver = True
+            self.nSolidInterfaceNodes = SolidSolver.nPoint
+            self.nSolidInterfacePhysicalNodes = SolidSolver.nPoint
+            self.nLocalSolidInterfaceNodes = SolidSolver.nPoint
             # self.haveSolidSolver = True
             # self.solidInterfaceIdentifier = SolidSolver.getFSIMarkerID()
             # self.nLocalSolidInterfaceNodes = SolidSolver.getNumberOfSolidInterfaceNodes(self.solidInterfaceIdentifier)
@@ -256,8 +262,6 @@ class Interface:
             self.fluidInterfaceProcessors.append(0)
 
         self.MPIBarrier()
-
-        print(self.fluidInterfaceProcessors)
 
         # --- Calculate the total number of nodes at the fluid interface (sum over all the partitions) ---
         # Calculate the number of halo nodes on each partition

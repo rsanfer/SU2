@@ -42,6 +42,7 @@ from optparse import OptionParser  # use a parser for configuration
 
 from libFSI import FSI_config as io  # imports FSI python tools
 from libFSI import Interface as FSI # imports FSI python tools
+from libFSI import pyBeam_Interface as pyBeam_Interface
 
 # imports the CFD (SU2) module for FSI computation
 import pysu2
@@ -118,7 +119,7 @@ def main():
     if myid == rootProcess:
         print('\n***************************** Initializing pyBeam ************************************')
         try:
-            SolidSolver = pyBeam.CBeamSolver()
+            SolidSolver = pyBeam_Interface.pyBeamSolver(CSD_ConFile)
         except TypeError as exception:
             print('ERROR building the Solid Solver: ', exception)
     else:
