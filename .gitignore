@@ -1,3 +1,6 @@
+# Spline MLS library
+SU2_PY/pyBeam_FSI/libFSI/Spline_Module/pyMLS_Cpp/
+
 # Compiled Object files
 *.slo
 *.lo

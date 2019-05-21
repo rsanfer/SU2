@@ -49,7 +49,16 @@ from util import switch
 # ----------------------------------------------------------------------
 #  Config class
 # ----------------------------------------------------------------------
-
+'''
+What I need: 	          
+SolidSolver.staticComputation()
+              else:
+                  SolidSolver.run(0.0, 0.05)
+	      SolidSolver.writeSolution(0.0, self.FSIIter, Iter, NbIter)		
+	                    SolidSolver.updateSolution()
+	                    setLoad
+	                    OutputDisplacements
+'''
 class Point:
   """ Description. """
 
