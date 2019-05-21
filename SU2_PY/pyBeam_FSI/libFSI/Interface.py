@@ -45,7 +45,7 @@ import scipy as sp
 import scipy.spatial.distance as spdist
 from math import *
 import shelve
-
+import random
 
 # ----------------------------------------------------------------------
 #  FSI Interface Class
@@ -115,9 +115,24 @@ class Interface:
         self.MappingMatrix_T = None  # transposed interpolation/mapping matrix for meshes interpolation/mapping - interpolation happening with MLS module
         self.d_RBF = 0
 
-        self.localFluidInterface_array_X_init = None  # initial fluid interface position on each partition (used for the meshes mapping)
-        self.localFluidInterface_array_Y_init = None
-        self.localFluidInterface_array_Z_init = None
+        self.localFluidInterface_vertex_indices = None
+
+        self.globalFluidInterfaceXcoor = None
+        self.globalFluidInterfaceYcoor = None
+        self.globalFluidInterfaceZcoor = None
+
+        self.sendCounts = None
+        self.globalFluidDispX = None
+        self.globalFluidDispY = None
+        self.globalFluidDispZ = None
+
+        self.globalSolidDispX = None
+        self.globalSolidDispY = None
+        self.globalSolidDispZ = None
+
+        self.globalFluidLoadX = None
+        self.globalFluidLoadY = None
+        self.globalFluidLoadZ = None
 
         self.haloNodesPositionsInit = {}  # initial position of the halo nodes (fluid side only)
 
@@ -263,8 +278,8 @@ class Interface:
 
         self.MPIBarrier()
 
-        # --- Calculate the total number of nodes at the fluid interface (sum over all the partitions) ---
-        # Calculate the number of halo nodes on each partition
+        # --- Calculate the total number of nodes at the fluid interface (sum over all the partitions)
+        # --- Calculate the number of halo nodes on each partition
         self.nLocalFluidInterfaceHaloNode = 0
         for iVertex in range(self.nLocalFluidInterfaceNodes):
             if FluidSolver.IsAHaloNode(self.fluidInterfaceIdentifier, iVertex) == True:
@@ -334,13 +349,16 @@ class Interface:
 
         self.MPIBarrier()
 
-        # --- Get the fluid interface from fluid solver on each partition --- #
+        # --- Get, for the fluid interface on each partition:
+        # --- The vertex indices, which are stored locally on each processor
+        # --- The coordinates X, Y and Z, which are stored in a global list in processor 0
         GlobalIndex = int()
         localIndex = 0
         fluidIndexing_temp = {}
-        self.localFluidInterface_array_X_init = np.zeros((self.nLocalFluidInterfacePhysicalNodes))
-        self.localFluidInterface_array_Y_init = np.zeros((self.nLocalFluidInterfacePhysicalNodes))
-        self.localFluidInterface_array_Z_init = np.zeros((self.nLocalFluidInterfacePhysicalNodes))
+        self.localFluidInterface_vertex_indices = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        localFluidInterface_array_X_init = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        localFluidInterface_array_Y_init = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        localFluidInterface_array_Z_init = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
 
         for iVertex in range(self.nLocalFluidInterfaceNodes):
             GlobalIndex = FluidSolver.GetVertexGlobalIndex(self.fluidInterfaceIdentifier, iVertex)
@@ -352,146 +370,290 @@ class Interface:
                 self.haloNodesPositionsInit[GlobalIndex] = (posx, posy, posz)
             else:
                 fluidIndexing_temp[GlobalIndex] = self.__getGlobalIndex('fluid', myid, localIndex)
-                self.localFluidInterface_array_X_init[localIndex] = posx
-                self.localFluidInterface_array_Y_init[localIndex] = posy
-                self.localFluidInterface_array_Z_init[localIndex] = posz
+                localFluidInterface_array_X_init[localIndex] = posx
+                localFluidInterface_array_Y_init[localIndex] = posy
+                localFluidInterface_array_Z_init[localIndex] = posz
+                self.localFluidInterface_vertex_indices[localIndex] = int(iVertex)
                 localIndex += 1
+
+        print("rank: {}, local_vertex_indices: {}".format(myid, self.localFluidInterface_vertex_indices))
 
         if self.have_MPI:
             fluidIndexing_temp = self.comm.allgather(fluidIndexing_temp)
             for ii in range(len(fluidIndexing_temp)):
                 for key, value in fluidIndexing_temp[ii].items():
                     self.fluidIndexing[key] = value
+
+             # --- Collect local array sizes using gather in root process
+            bufXCoor = np.array(localFluidInterface_array_X_init)
+            bufYCoor = np.array(localFluidInterface_array_Y_init)
+            bufZCoor = np.array(localFluidInterface_array_Z_init)
+            self.sendCounts = np.array(self.comm.gather(self.nLocalFluidInterfacePhysicalNodes, 0))
+
+            if myid == self.rootProcess:
+                print("sendCounts: {}, total: {}".format(self.sendCounts, sum(self.sendCounts)))
+                self.globalFluidInterface_vertex_indices = np.empty(sum(self.sendCounts))
+                self.globalFluidInterfaceXcoor = np.empty(sum(self.sendCounts))
+                self.globalFluidInterfaceYcoor = np.empty(sum(self.sendCounts))
+                self.globalFluidInterfaceZcoor = np.empty(sum(self.sendCounts))
+
+            self.comm.Gatherv(sendbuf=bufXCoor, recvbuf=(self.globalFluidInterfaceXcoor, self.sendCounts), root=0)
+            self.comm.Gatherv(sendbuf=bufYCoor, recvbuf=(self.globalFluidInterfaceYcoor, self.sendCounts), root=0)
+            self.comm.Gatherv(sendbuf=bufZCoor, recvbuf=(self.globalFluidInterfaceZcoor, self.sendCounts), root=0)
+            if myid == 0:
+                print("Gathered array X: {}".format(self.globalFluidInterfaceXcoor))
+                print("Gathered array Y: {}".format(self.globalFluidInterfaceYcoor))
+                print("Gathered array Z: {}".format(self.globalFluidInterfaceZcoor))
+
         else:
             self.fluidIndexing = fluidIndexing_temp.copy()
-        del fluidIndexing_temp
+            self.globalFluidInterface_vertex_indices = fluidIndexing_temp.copy()
+            self.globalFluidInterfaceXcoor = localFluidInterface_array_X_init.copy()
+            self.globalFluidInterfaceYcoor = localFluidInterface_array_Y_init.copy()
+            self.globalFluidInterfaceZcoor = localFluidInterface_array_Z_init.copy()
 
-        if myid is 0:
-            print(self.fluidIndexing)
+        del fluidIndexing_temp, localFluidInterface_array_X_init, \
+            localFluidInterface_array_Y_init, localFluidInterface_array_Z_init
 
-        # print("DEBUG MESSAGE from proc {}, solidIndexing = {}".format(myid, self.solidIndexing))
-    #
-    #     # --- Create all the PETSc vectors required for parallel communication and parallel mesh mapping/interpolation (working for serial too) ---
-    #     if self.have_MPI:
-    #         self.solidInterface_array_DispX = PETSc.Vec().create(self.comm)
-    #         self.solidInterface_array_DispY = PETSc.Vec().create(self.comm)
-    #         self.solidInterface_array_DispZ = PETSc.Vec().create(self.comm)
-    #         self.solidInterface_array_DispX.setType('mpi')
-    #         self.solidInterface_array_DispY.setType('mpi')
-    #         self.solidInterface_array_DispZ.setType('mpi')
-    #     else:
-    #         self.solidInterface_array_DispX = PETSc.Vec().create()
-    #         self.solidInterface_array_DispY = PETSc.Vec().create()
-    #         self.solidInterface_array_DispZ = PETSc.Vec().create()
-    #         self.solidInterface_array_DispX.setType('seq')
-    #         self.solidInterface_array_DispY.setType('seq')
-    #         self.solidInterface_array_DispZ.setType('seq')
-    #     self.solidInterface_array_DispX.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidInterface_array_DispY.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidInterface_array_DispZ.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidInterface_array_DispX.set(0.0)
-    #     self.solidInterface_array_DispY.set(0.0)
-    #     self.solidInterface_array_DispZ.set(0.0)
-    #
-    #     if self.have_MPI:
-    #         self.fluidInterface_array_DispX = PETSc.Vec().create(self.comm)
-    #         self.fluidInterface_array_DispY = PETSc.Vec().create(self.comm)
-    #         self.fluidInterface_array_DispZ = PETSc.Vec().create(self.comm)
-    #         self.fluidInterface_array_DispX.setType('mpi')
-    #         self.fluidInterface_array_DispY.setType('mpi')
-    #         self.fluidInterface_array_DispZ.setType('mpi')
-    #     else:
-    #         self.fluidInterface_array_DispX = PETSc.Vec().create()
-    #         self.fluidInterface_array_DispY = PETSc.Vec().create()
-    #         self.fluidInterface_array_DispZ = PETSc.Vec().create()
-    #         self.fluidInterface_array_DispX.setType('seq')
-    #         self.fluidInterface_array_DispY.setType('seq')
-    #         self.fluidInterface_array_DispZ.setType('seq')
-    #     self.fluidInterface_array_DispX.setSizes(self.nFluidInterfacePhysicalNodes)
-    #     self.fluidInterface_array_DispY.setSizes(self.nFluidInterfacePhysicalNodes)
-    #     self.fluidInterface_array_DispZ.setSizes(self.nFluidInterfacePhysicalNodes)
-    #     self.fluidInterface_array_DispX.set(0.0)
-    #     self.fluidInterface_array_DispY.set(0.0)
-    #     self.fluidInterface_array_DispZ.set(0.0)
-    #
-    #     if self.have_MPI:
-    #         self.fluidLoads_array_X = PETSc.Vec().create(self.comm)
-    #         self.fluidLoads_array_Y = PETSc.Vec().create(self.comm)
-    #         self.fluidLoads_array_Z = PETSc.Vec().create(self.comm)
-    #         self.fluidLoads_array_X.setType('mpi')
-    #         self.fluidLoads_array_Y.setType('mpi')
-    #         self.fluidLoads_array_Z.setType('mpi')
-    #     else:
-    #         self.fluidLoads_array_X = PETSc.Vec().create()
-    #         self.fluidLoads_array_Y = PETSc.Vec().create()
-    #         self.fluidLoads_array_Z = PETSc.Vec().create()
-    #         self.fluidLoads_array_X.setType('seq')
-    #         self.fluidLoads_array_Y.setType('seq')
-    #         self.fluidLoads_array_Z.setType('seq')
-    #     self.fluidLoads_array_X.setSizes(self.nFluidInterfacePhysicalNodes)
-    #     self.fluidLoads_array_Y.setSizes(self.nFluidInterfacePhysicalNodes)
-    #     self.fluidLoads_array_Z.setSizes(self.nFluidInterfacePhysicalNodes)
-    #
-    #     if self.have_MPI:
-    #         self.solidLoads_array_X = PETSc.Vec().create(self.comm)
-    #         self.solidLoads_array_Y = PETSc.Vec().create(self.comm)
-    #         self.solidLoads_array_Z = PETSc.Vec().create(self.comm)
-    #         self.solidLoads_array_X.setType('mpi')
-    #         self.solidLoads_array_Y.setType('mpi')
-    #         self.solidLoads_array_Z.setType('mpi')
-    #     else:
-    #         self.solidLoads_array_X = PETSc.Vec().create()
-    #         self.solidLoads_array_Y = PETSc.Vec().create()
-    #         self.solidLoads_array_Z = PETSc.Vec().create()
-    #         self.solidLoads_array_X.setType('seq')
-    #         self.solidLoads_array_Y.setType('seq')
-    #         self.solidLoads_array_Z.setType('seq')
-    #     self.solidLoads_array_X.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidLoads_array_Y.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidLoads_array_Z.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidLoads_array_X.set(0.0)
-    #     self.solidLoads_array_Y.set(0.0)
-    #     self.solidLoads_array_Z.set(0.0)
-    #
-    #     # --- Create the PETSc vectors required for parallel relaxed BGS algo (working for serial too) ---
-    #     if self.have_MPI:
-    #         self.solidInterfaceResidual_array_X = PETSc.Vec().create(self.comm)
-    #         self.solidInterfaceResidual_array_Y = PETSc.Vec().create(self.comm)
-    #         self.solidInterfaceResidual_array_Z = PETSc.Vec().create(self.comm)
-    #         self.solidInterfaceResidual_array_X.setType('mpi')
-    #         self.solidInterfaceResidual_array_Y.setType('mpi')
-    #         self.solidInterfaceResidual_array_Z.setType('mpi')
-    #     else:
-    #         self.solidInterfaceResidual_array_X = PETSc.Vec().create()
-    #         self.solidInterfaceResidual_array_Y = PETSc.Vec().create()
-    #         self.solidInterfaceResidual_array_Z = PETSc.Vec().create()
-    #         self.solidInterfaceResidual_array_X.setType('seq')
-    #         self.solidInterfaceResidual_array_Y.setType('seq')
-    #         self.solidInterfaceResidual_array_Z.setType('seq')
-    #     self.solidInterfaceResidual_array_X.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidInterfaceResidual_array_Y.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidInterfaceResidual_array_Z.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #
-    #     if self.have_MPI:
-    #         self.solidInterfaceResidualnM1_array_X = PETSc.Vec().create(self.comm)
-    #         self.solidInterfaceResidualnM1_array_Y = PETSc.Vec().create(self.comm)
-    #         self.solidInterfaceResidualnM1_array_Z = PETSc.Vec().create(self.comm)
-    #         self.solidInterfaceResidualnM1_array_X.setType('mpi')
-    #         self.solidInterfaceResidualnM1_array_Y.setType('mpi')
-    #         self.solidInterfaceResidualnM1_array_Z.setType('mpi')
-    #     else:
-    #         self.solidInterfaceResidualnM1_array_X = PETSc.Vec().create()
-    #         self.solidInterfaceResidualnM1_array_Y = PETSc.Vec().create()
-    #         self.solidInterfaceResidualnM1_array_Z = PETSc.Vec().create()
-    #         self.solidInterfaceResidualnM1_array_X.setType('seq')
-    #         self.solidInterfaceResidualnM1_array_Y.setType('seq')
-    #         self.solidInterfaceResidualnM1_array_Z.setType('seq')
-    #     self.solidInterfaceResidualnM1_array_X.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidInterfaceResidualnM1_array_Y.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidInterfaceResidualnM1_array_Z.setSizes(self.nSolidInterfacePhysicalNodes + self.d_RBF)
-    #     self.solidInterfaceResidualnM1_array_X.set(0.0)
-    #     self.solidInterfaceResidualnM1_array_Y.set(0.0)
-    #     self.solidInterfaceResidualnM1_array_Z.set(0.0)
+
+        # # --- Scatter the values of the coordinates (to test)
+        # # --- The vertex indices
+        # # --- The coordinates X, Y and Z
+        # GlobalIndex = int()
+        # localIndex = 0
+        # fluidIndexing_temp = {}
+        # localCoorX = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        # localCoorY = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        # localCoorZ = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        #
+        # if self.have_MPI:
+        #
+        #     self.comm.Scatterv(sendbuf=(self.globalFluidInterfaceXcoor, self.sendCounts), recvbuf=localCoorX, root=0)
+        #     self.comm.Scatterv(sendbuf=(self.globalFluidInterfaceYcoor, self.sendCounts), recvbuf=localCoorY, root=0)
+        #     self.comm.Scatterv(sendbuf=(self.globalFluidInterfaceZcoor, self.sendCounts), recvbuf=localCoorZ, root=0)
+        #
+        #     print("rank: {}, local_array X: {}".format(myid, localCoorX))
+        #     print("rank: {}, local_array Y: {}".format(myid, localCoorY))
+        #     print("rank: {}, local_array Z: {}".format(myid, localCoorZ))
+        #
+        # else:
+        #     self.globalFluidInterface_vertex_indices = fluidIndexing_temp.copy()
+        #     self.globalFluidInterfaceXcoor = self.localFluidInterface_array_X_init.copy()
+        #     self.globalFluidInterfaceYcoor = self.localFluidInterface_array_Y_init.copy()
+        #     self.globalFluidInterfaceZcoor = self.localFluidInterface_array_Z_init.copy()
+
+
+
+    def transferFluidTractions(self, FluidSolver, SolidSolver):
+        """
+        Transfer fluid tractions.
+        Gathers the fluid tractions from the interface into the root process.
+        Interpolates the tractions using the transposed matrix.
+        Applies the tractions into the solid solver.
+        """
+        if self.have_MPI:
+            myid = self.comm.Get_rank()
+            MPIsize = self.comm.Get_size()
+        else:
+            myid = 0
+            MPIsize = 1
+
+        ################################################################################################################
+        # --- STEP 1: Retrieve the fluid loads
+        # --- Get, for the fluid interface on each partition:
+        # --- The vertex indices, which are stored locally on each processor
+        # --- The coordinates X, Y and Z, which are stored in a global list in processor 0
+        ################################################################################################################
+
+        # Initialize the local load array
+        localFluidLoadX = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        localFluidLoadY = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        localFluidLoadZ = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+
+        localIndex = 0
+        # For the vertices that belong to the interface
+        for iVertex in self.localFluidInterface_vertex_indices:
+             # Store them in the local load array
+            localFluidLoadX[localIndex] = FluidSolver.GetVertexForceX(self.fluidInterfaceIdentifier, iVertex)
+            localFluidLoadY[localIndex] = FluidSolver.GetVertexForceY(self.fluidInterfaceIdentifier, iVertex)
+            localFluidLoadZ[localIndex] = FluidSolver.GetVertexForceZ(self.fluidInterfaceIdentifier, iVertex)
+            localIndex += 1
+
+        if self.have_MPI:
+
+            # Store the local loads in buffers in the form of numpy arrays
+            bufXLoad = np.array(localFluidLoadX)
+            bufYLoad = np.array(localFluidLoadY)
+            bufZLoad = np.array(localFluidLoadZ)
+
+            # Initialize the global load array
+            if myid == self.rootProcess:
+                print("sendCounts: {}, total: {}".format(self.sendCounts, sum(self.sendCounts)))
+                globalFluidLoadX = np.empty(sum(self.sendCounts))
+                globalFluidLoadY = np.empty(sum(self.sendCounts))
+                globalFluidLoadZ = np.empty(sum(self.sendCounts))
+
+            # Gatherv using self.sendCounts maintains the ordering of the coordinates
+            self.comm.Gatherv(sendbuf=bufXLoad, recvbuf=(globalFluidLoadX, self.sendCounts), root=0)
+            self.comm.Gatherv(sendbuf=bufYLoad, recvbuf=(globalFluidLoadY, self.sendCounts), root=0)
+            self.comm.Gatherv(sendbuf=bufZLoad, recvbuf=(globalFluidLoadZ, self.sendCounts), root=0)
+
+            if myid == 0:
+                print("Gathered array X: {}".format(globalFluidLoadX))
+                print("Gathered array Y: {}".format(globalFluidLoadY))
+                print("Gathered array Z: {}".format(globalFluidLoadZ))
+
+        else:
+            self.globalFluidLoadX = localFluidLoadX.copy()
+            self.globalFluidLoadY = localFluidLoadY.copy()
+            self.globalFluidLoadZ = localFluidLoadZ.copy()
+
+        # Delete local variables
+        del localFluidLoadX, localFluidLoadY, localFluidLoadZ
+
+        ################################################################################################################
+        # --- STEP 2: Interpolate
+        ################################################################################################################
+
+        # ---> Input: self.globalSolidDispX, self.globalSolidDispX, self.globalSolidDispX
+
+        # ---> Output: self.globalSolidLoadX, self.globalSolidLoadY, self.globalSolidLoadZ
+
+        ################################################################################################################
+        # --- STEP 3: Check conservation
+        ################################################################################################################
+
+        #     FY = 0.0  # solid-side resultant forces
+        #     FX = 0.0
+        #     FZ = 0.0
+        #     FFX = 0.0  # fluid-side resultant forces
+        #     FFY = 0.0
+        #     FFZ = 0.0
+        #
+        #     # --- Check for total force conservation after interpolation
+        #     FFX = self.fluidLoads_array_X.sum()
+        #     FFY = self.fluidLoads_array_Y.sum()
+        #     FFZ = self.fluidLoads_array_Z.sum()
+        #
+        #     for iVertex in range(self.nLocalSolidInterfaceNodes):
+        #         FX += self.localSolidLoads_array_X[iVertex]
+        #         FY += self.localSolidLoads_array_Y[iVertex]
+        #         FZ += self.localSolidLoads_array_Z[iVertex]
+        #
+        #     if self.have_MPI == True:
+        #         FX = self.comm.allreduce(FX)
+        #         FY = self.comm.allreduce(FY)
+        #         FZ = self.comm.allreduce(FZ)
+        #
+        #     self.MPIPrint("Checking f/s interface total force...")
+        #     self.MPIPrint('Solid side (Fx, Fy, Fz) = ({}, {}, {})'.format(FX, FY, FZ))
+        #     self.MPIPrint('Fluid side (Fx, Fy, Fz) = ({}, {}, {})'.format(FFX, FFY, FFZ))
+
+        ################################################################################################################
+        # --- STEP 4: Transfer to the structural solver
+        # --- pyBeam runs in single core, so there is no need to deal with the parallelization
+        ################################################################################################################
+
+        # For the vertices that belong to the interface
+        for iVertex in range(0, self.nSolidInterfaceNodes):
+             # Store them in the solid solver directly
+            SolidSolver.SetLoads(iVertex, 0, self.globalSolidDispX[iVertex])
+            SolidSolver.SetLoads(iVertex, 1, self.globalSolidDispY[iVertex])
+            SolidSolver.SetLoads(iVertex, 2, self.globalSolidDispZ[iVertex])
+
+
+    def transferStructuralDisplacements(self, FluidSolver, SolidSolver):
+        """
+        Transfer structural displacements tractions.
+        Gathers the structural displacements from the interface.
+        Interpolates the displacements using the transposed matrix.
+        Applies the fluid displacements by scattering them into the correct position for the fluid solver.
+        """
+        if self.have_MPI:
+            myid = self.comm.Get_rank()
+            MPIsize = self.comm.Get_size()
+        else:
+            myid = 0
+            MPIsize = 1
+
+        ################################################################################################################
+        # --- STEP 1: Retrieve the structural displacements from pyBeam
+        # --- pyBeam runs in single core, so there is no need to deal with the parallelization
+        ################################################################################################################
+
+        # Initialize the local load array
+        self.globalSolidDispX = np.zeros(self.nSolidInterfaceNodes)
+        self.globalSolidDispY = np.zeros(self.nSolidInterfaceNodes)
+        self.globalSolidDispZ = np.zeros(self.nSolidInterfaceNodes)
+
+        # For the vertices that belong to the interface
+        for iVertex in range(0, self.nSolidInterfaceNodes):
+             # Store them in the global load array directly
+            self.globalSolidDispX[iVertex] = SolidSolver.ExtractDisplacements(iVertex, 0)
+            self.globalSolidDispY[iVertex] = SolidSolver.ExtractDisplacements(iVertex, 1)
+            self.globalSolidDispZ[iVertex] = SolidSolver.ExtractDisplacements(iVertex, 2)
+
+        ################################################################################################################
+        # --- STEP 2: Interpolate
+        ################################################################################################################
+        # ---> Input: self.globalSolidDispX, self.globalSolidDispX, self.globalSolidDispX
+
+        # ---> Output: self.globalFluidDispX, self.globalFluidDispY, self.globalFluidDispZ
+
+        ################################################################################################################
+        # --- STEP 3: Check conservation
+        ################################################################################################################
+
+        #     # --- Checking conservation ---
+        #     WSX = self.solidLoads_array_X.dot(self.solidInterface_array_DispX)
+        #     WSY = self.solidLoads_array_Y.dot(self.solidInterface_array_DispY)
+        #     WSZ = self.solidLoads_array_Z.dot(self.solidInterface_array_DispZ)
+        #
+        #     WFX = self.fluidLoads_array_X.dot(self.fluidInterface_array_DispX)
+        #     WFY = self.fluidLoads_array_Y.dot(self.fluidInterface_array_DispY)
+        #     WFZ = self.fluidLoads_array_Z.dot(self.fluidInterface_array_DispZ)
+        #
+        #     self.MPIPrint("Checking f/s interface conservation...")
+        #     self.MPIPrint('Solid side (Wx, Wy, Wz) = ({}, {}, {})'.format(WSX, WSY, WSZ))
+        #     self.MPIPrint('Fluid side (Wx, Wy, Wz) = ({}, {}, {})'.format(WFX, WFY, WFZ))
+
+        ################################################################################################################
+        # --- STEP 4: Transfer to the fluid solver
+        ################################################################################################################
+
+        # --- Recover them from the interpolated vectors
+        localFluidDispX = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        localFluidDispY = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        localFluidDispZ = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+
+        if self.have_MPI:
+
+            self.comm.Scatterv(sendbuf=(self.globalFluidDispX, self.sendCounts), recvbuf=localFluidDispX, root=0)
+            self.comm.Scatterv(sendbuf=(self.globalFluidDispY, self.sendCounts), recvbuf=localFluidDispY, root=0)
+            self.comm.Scatterv(sendbuf=(self.globalFluidDispZ, self.sendCounts), recvbuf=localFluidDispZ, root=0)
+
+            print("rank: {}, local_array X: {}".format(myid, localFluidDispX))
+            print("rank: {}, local_array Y: {}".format(myid, localFluidDispY))
+            print("rank: {}, local_array Z: {}".format(myid, localFluidDispZ))
+
+        else:
+            localFluidDispX = self.globalFluidDispX.copy()
+            localFluidDispY = self.globalFluidDispY.copy()
+            localFluidDispZ = self.globalFluidDispZ.copy()
+
+        # For the vertices that belong to the interface
+        localIndex = 0
+        for iVertex in self.localFluidInterface_vertex_indices:
+            # Store them in the mesh displacement routine
+            FluidSolver.SetMeshDisplacement(self.fluidInterfaceIdentifier, iVertex, localFluidDispX[localIndex],
+                                            localFluidDispY[localIndex], localFluidDispZ[localIndex])
+            # Increment the local index
+            localIndex += 1
+
+        # Delete local variables
+        del localFluidDispX, localFluidDispY, localFluidDispZ
+
+
     #
     # def interfaceMapping(self, FluidSolver, SolidSolver, FSI_config):
     #     """

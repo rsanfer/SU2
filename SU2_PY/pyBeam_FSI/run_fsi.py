@@ -150,66 +150,69 @@ def main():
     if have_MPI == True:
         comm.barrier()
 
-    # Perform MLS
-    if myid == rootProcess:  # we perform this calculation on the root core
-        print('\n***************************** Initializing MLS Interpolation *************************')
-    try:
-        MLS = FSI.Spline_Module.MLS_Spline(MLS_confFile, FSI_config, SolidSolver)
-    except TypeError as exception:
-        print('ERROR building the MLS Interpolation: ', exception)
+    if myid == 4:
+        FSIInterface.transferFluidTractions(FluidSolver, SolidSolver)
 
-    if have_MPI == True:
-        comm.barrier()
-
-    # --- Initialize and set the coupling environment --- #
-    if myid == rootProcess:
-        print('\n***************************** Initializing FSI interface *****************************')
-    try:
-        FSIInterface = FSI.Interface(FSI_config, FluidSolver, SolidSolver, MLS, have_MPI)
-    except TypeError as exception:
-        print('ERROR building the FSI Interface: ', exception)
-
-    if have_MPI == True:
-        comm.barrier()
-
-
-    if myid == rootProcess:
-        print('\n***************************** Mapping fluid-solid interfaces *****************************')
-    try:
-        FSIInterface.interfaceMapping(FluidSolver, SolidSolver, FSI_config)
-    except TypeError as exception:
-        print('ERROR building the Interface Mapping: ', exception)
-
-    # --- Launch a steady or unsteady FSI computation --- #
-    try:
-        FSIInterface.SteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
-    except NameError as exception:
-        if myid == rootProcess:
-            print('An NameError occured in FSIInterface.SteadyFSI : ', exception)
-    except TypeError as exception:
-        if myid == rootProcess:
-            print('A TypeError occured in FSIInterface.SteadyFSI : ', exception)
-    except KeyboardInterrupt as exception:
-        if myid == rootProcess:
-            print('A KeyboardInterrupt occured in FSIInterface.SteadyFSI : ', exception)
-
-    if have_MPI == True:
-        comm.barrier()
-
-    # --- Exit cleanly the fluid and solid solvers --- #
-    FluidSolver.Postprocessing()
-    if myid == rootProcess:
-        SolidSolver.exit()
-
-    if have_MPI == True:
-        comm.barrier()
-
-    # stops timer
-    stop = timer.time()
-    elapsedTime = stop - start
-
-    if myid == rootProcess:
-        print("\n Computation successfully performed in {} seconds.".format(elapsedTime))
+    # # Perform MLS
+    # if myid == rootProcess:  # we perform this calculation on the root core
+    #     print('\n***************************** Initializing MLS Interpolation *************************')
+    # try:
+    #     MLS = FSI.Spline_Module.MLS_Spline(MLS_confFile, FSI_config, SolidSolver)
+    # except TypeError as exception:
+    #     print('ERROR building the MLS Interpolation: ', exception)
+    #
+    # if have_MPI == True:
+    #     comm.barrier()
+    #
+    # # --- Initialize and set the coupling environment --- #
+    # if myid == rootProcess:
+    #     print('\n***************************** Initializing FSI interface *****************************')
+    # try:
+    #     FSIInterface = FSI.Interface(FSI_config, FluidSolver, SolidSolver, MLS, have_MPI)
+    # except TypeError as exception:
+    #     print('ERROR building the FSI Interface: ', exception)
+    #
+    # if have_MPI == True:
+    #     comm.barrier()
+    #
+    #
+    # if myid == rootProcess:
+    #     print('\n***************************** Mapping fluid-solid interfaces *****************************')
+    # try:
+    #     FSIInterface.interfaceMapping(FluidSolver, SolidSolver, FSI_config)
+    # except TypeError as exception:
+    #     print('ERROR building the Interface Mapping: ', exception)
+    #
+    # # --- Launch a steady or unsteady FSI computation --- #
+    # try:
+    #     FSIInterface.SteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
+    # except NameError as exception:
+    #     if myid == rootProcess:
+    #         print('An NameError occured in FSIInterface.SteadyFSI : ', exception)
+    # except TypeError as exception:
+    #     if myid == rootProcess:
+    #         print('A TypeError occured in FSIInterface.SteadyFSI : ', exception)
+    # except KeyboardInterrupt as exception:
+    #     if myid == rootProcess:
+    #         print('A KeyboardInterrupt occured in FSIInterface.SteadyFSI : ', exception)
+    #
+    # if have_MPI == True:
+    #     comm.barrier()
+    #
+    # # --- Exit cleanly the fluid and solid solvers --- #
+    # FluidSolver.Postprocessing()
+    # if myid == rootProcess:
+    #     SolidSolver.exit()
+    #
+    # if have_MPI == True:
+    #     comm.barrier()
+    #
+    # # stops timer
+    # stop = timer.time()
+    # elapsedTime = stop - start
+    #
+    # if myid == rootProcess:
+    #     print("\n Computation successfully performed in {} seconds.".format(elapsedTime))
 
     return
 

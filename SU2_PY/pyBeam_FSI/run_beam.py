@@ -99,7 +99,7 @@ if nRBE2 != 0:
   
 beam.InitializeStructure()
 
-beam.SetLoads(4,0,10000000000000)
+beam.SetLoads(4,0,1000)
 #beam.SetLoads(6,0,100000000000)
 #beam.SetLoads(7,0,100000000000)
 #beam.SetLoads(8,0,100000000000)
@@ -137,6 +137,6 @@ plt.plot(coordinate_X, coordinate_Y)
 plt.plot(coordinate_X0, coordinate_Y0)
 plt.xlabel('X')
 plt.ylabel('Y')
-plt.xlim((-0.0001, 0.0001)) 
+#plt.xlim((-0.001, 0.001)) 
 plt.show()
 
