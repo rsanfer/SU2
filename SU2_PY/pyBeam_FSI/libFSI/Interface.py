@@ -121,6 +121,8 @@ class Interface:
         self.globalFluidInterfaceYcoor = None
         self.globalFluidInterfaceZcoor = None
 
+        self.globalFluidCoordinates = None
+
         self.sendCounts = None
         self.globalFluidDispX = None
         self.globalFluidDispY = None
@@ -411,6 +413,9 @@ class Interface:
             self.globalFluidInterfaceXcoor = localFluidInterface_array_X_init.copy()
             self.globalFluidInterfaceYcoor = localFluidInterface_array_Y_init.copy()
             self.globalFluidInterfaceZcoor = localFluidInterface_array_Z_init.copy()
+
+        self.globalFluidCoordinates = np.matrix(self.globalFluidInterfaceXcoor, self.globalFluidInterfaceYcoor,
+                                                self.globalFluidInterfaceZcoor)
 
         del fluidIndexing_temp, localFluidInterface_array_X_init, \
             localFluidInterface_array_Y_init, localFluidInterface_array_Z_init

@@ -151,14 +151,19 @@ class pyBeamSolver:
   	                    OutputDisplacements
   '''
 
+  def SetLoads(self,iVertex,iDim,valLoad):
 
-
-  def __SetLoads(self,FluidSolver):
     """ This function sets the load  """
+    self.beam.SetLoads(iVertex,iDim,valLoad)
 
-    for iNode in range(0,self.nPoint):
-      self.beam.SetLoads(iNode,3 -1,50000000))
-      # etc. etc.
+  def getInitialCoordinates(self,iVertex):
+
+    """ This function returns the initial coordinates of the structural beam model  """
+    coordX = self.beam.ExtractCoordinate0(iVertex, 0)
+    coordY = self.beam.ExtractCoordinate0(iVertex, 1)
+    coordZ = self.beam.ExtractCoordinate0(iVertex, 2)
+
+    return coordX, coordY, coordZ
 
 
   def run(self):
