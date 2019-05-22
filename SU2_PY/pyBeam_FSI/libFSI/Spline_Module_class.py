@@ -53,7 +53,7 @@ class MLS_Spline:
     MLS_Spline class that handles fluid/solid solver synchronisation and communication
     """
 
-    def __init__(self, MLS_Config_File, nDim, NrAeroPoint, AeroPoint, StructNodes, FSI_config): # NrAeroElem, BoundElem,
+    def __init__(self, MLS_Config_File, nDim, AeroNodes, StructNodes, FSI_config): # NrAeroElem, BoundElem,
         """
          Class constructor. Declare some variables and do some screen outputs.
         """
@@ -61,44 +61,45 @@ class MLS_Spline:
         # BoundElem is an object. here we need the function .GetNodes() or something similar
         # The MLS configurations parameters are stored from the MLS input file
         print("Storing MLS parameters from input file ")
-        print(MLS_Config_File)
         MLS_conf = MLS_config.MLSConfig(MLS_Config_File)
-        print("pues no")
 
-        print(AeroPoint)
+        self.nAeroNodes = np.shape(AeroNodes)[0]
+        self.nStructNodes = np.shape(StructNodes)[0]
 
-        self.nStrPoint = np.shape(StructNodes)[0]
+        lenAeroNodes = self.nAeroNodes * 3
+        lenStructNodes = self.nStructNodes * 3
 
         # Performing the meshless method
         print("Performing the Meshless Method")
         # Arrange structural nodes in the wrapped standard vector
-        str_data_std = Spline.DoubleVector(self.nStrPoint * 3)
+
+        str_data_std = Spline.DoubleVector(lenStructNodes)
         l = 0
         for i in range(0, 3):
-            for j in range(0, self.nStrPoint):
-                str_data_std[l] = round(float(StructNodes[j].GetCoord()[i]) * pow(10, 5)) / pow(10, 5)  # str_data[j,i]
+            for j in range(0, self.nStructNodes):
+                str_data_std[l] = float(StructNodes[j][i])  # str_data[j,i]
                 l = l + 1
+
         # Arrange aerodynamic nodes in the wrapped standard vector
-        aero_data_std = Spline.DoubleVector(NrAeroPoint * 3)
+        aero_data_std = Spline.DoubleVector(lenAeroNodes)
         l = 0
         for i in range(0, 3):
-            for j in range(0, NrAeroPoint):
-                # aero_data[j,i]     The j-th node of the boundary is given by AeroPoint[markers[FSI_marker][j]
-                aero_data_std[l] = float(AeroPoint[j][i])
+            for j in range(0, self.nAeroNodes):
+                aero_data_std[l] = float(AeroNodes[j][i])
                 l = l + 1
 
-        interpolation_matrix_std = Spline.DoubleVector(NrAeroPoint * self.nStrPoint)
-        norm_err_std = Spline.DoubleVector(NrAeroPoint)
+        interpolation_matrix_std = Spline.DoubleVector(self.nAeroNodes * self.nStructNodes)
+        norm_err_std = Spline.DoubleVector(self.nAeroNodes)
 
-        Spline.MLS(interpolation_matrix_std, norm_err_std, self.nStrPoint, NrAeroPoint, str_data_std, aero_data_std,
-                   MLS_conf['POLY'], MLS_conf['WEIGHT'], MLS_conf['POINTS'],
-                   MLS_conf['RMAX'], MLS_conf['DELTA'], MLS_conf['TOLL_SVD'])
+        Spline.mls_interface(interpolation_matrix_std, norm_err_std, self.nStructNodes, self.nAeroNodes, str_data_std,
+                             aero_data_std, MLS_conf['POLY'], MLS_conf['WEIGHT'], MLS_conf['POINTS'],
+                             MLS_conf['RMAX'], MLS_conf['DELTA'], MLS_conf['TOLL_SVD'])
 
         # --- OUTPUT ----------------------------------------------------------------
-        self.interpolation_matrix = np.zeros((NrAeroPoint, self.nStrPoint))
+        self.interpolation_matrix = np.zeros((self.nAeroNodes, self.nStructNodes))
         l = 0
-        for i in range(0, self.nStrPoint):
-            for j in range(0, NrAeroPoint):
+        for i in range(0, self.nStructNodes):
+            for j in range(0, self.nAeroNodes):
                 self.interpolation_matrix[j][i] = interpolation_matrix_std[l]
                 l = l + 1
 
@@ -117,17 +118,17 @@ class MLS_Spline:
             self.nModes = int(self.nModes[0])
 
             # --- PLOTTING ---DEBUGGING options------------------------------------------------------------
-            Aero_Matrix = np.zeros((NrAeroPoint, 3))
+            Aero_Matrix = np.zeros((self.nAeroNodes, 3))
             l = 0
             for i in range(0, nDim):
-                for j in range(0, NrAeroPoint):
+                for j in range(0, self.nAeroNodes):
                     Aero_Matrix[j][i] = aero_data_std[l]
                     l = l + 1
 
-            str_Matrix = np.zeros((self.nStrPoint, 3))
+            str_Matrix = np.zeros((self.nStructNodes, 3))
             l = 0
             for i in range(0, nDim):
-                for j in range(0, self.nStrPoint):
+                for j in range(0, self.nStructNodes):
                     str_Matrix[j][i] = str_data_std[l]
                     l = l + 1
             # print(str_Matrix)
@@ -143,7 +144,7 @@ class MLS_Spline:
             # error on the interpolation plot
 
             fig = plt.figure(0)
-            X = np.linspace(0, NrAeroPoint - 1, NrAeroPoint)
+            X = np.linspace(0, self.nAeroNodes - 1, self.nAeroNodes)
 
             plt.plot(X, np.asarray(norm_err_std), 'ro')
 

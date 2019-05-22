@@ -43,6 +43,7 @@ from optparse import OptionParser  # use a parser for configuration
 from libFSI import FSI_config as io  # imports FSI python tools
 from libFSI import Interface as FSI # imports FSI python tools
 from libFSI import pyBeam_Interface as pyBeam_Interface
+from libFSI import Spline_Module_class as Spline_Module
 
 # imports the CFD (SU2) module for FSI computation
 import pysu2
@@ -150,19 +151,56 @@ def main():
     if have_MPI == True:
         comm.barrier()
 
-    if myid == 4:
-        FSIInterface.transferFluidTractions(FluidSolver, SolidSolver)
+    if myid == rootProcess:  # we perform this calculation on the root core
+        print('\n***************************** Initializing MLS Interpolation *************************')
+    try:
+        MLS = Spline_Module.MLS_Spline(MLS_confFile, FSIInterface.nDim,
+                                       FSIInterface.globalFluidCoordinates, FSIInterface.globalSolidCoordinates,
+                                       FSI_config)
+    except TypeError as exception:
+        print('ERROR building the MLS Interpolation: ', exception)
 
-    # # Perform MLS
-    # if myid == rootProcess:  # we perform this calculation on the root core
-    #     print('\n***************************** Initializing MLS Interpolation *************************')
-    # try:
-    #     MLS = FSI.Spline_Module.MLS_Spline(MLS_confFile, FSI_config, SolidSolver)
-    # except TypeError as exception:
-    #     print('ERROR building the MLS Interpolation: ', exception)
-    #
-    # if have_MPI == True:
-    #     comm.barrier()
+    if have_MPI == True:
+        comm.barrier()
+
+    if myid == rootProcess:  # we perform this calculation on the root core
+        print('\n***************************** Transfering some displacements *************************')
+    try:
+        FSIInterface.transferStructuralDisplacements(FluidSolver, SolidSolver, MLS)
+    except TypeError as exception:
+        print('ERROR transferring displacements: ', exception)
+
+    if have_MPI == True:
+        comm.barrier()
+
+    # Time loop is defined in Python so that we have acces to SU2 functionalities at each time step
+    if myid == 0:
+        print("\n------------------------------ Begin Solver -----------------------------\n")
+    sys.stdout.flush()
+    if options.with_MPI == True:
+        comm.Barrier()
+
+    # Time iteration preprocessing
+    FluidSolver.Preprocess(0)
+
+    # Run one time-step (static: one simulation)
+    FluidSolver.Run()
+
+    # Update the solver for the next time iteration
+    FluidSolver.Update()
+
+    # Monitor the solver and output solution to file if required
+    stopCalc = FluidSolver.Monitor(0)
+
+    # Output the solution to file
+    FluidSolver.Output(0)
+
+    # Postprocess the solver and exit cleanly
+    FluidSolver.Postprocessing()
+
+    if FluidSolver != None:
+        del FluidSolver
+
     #
     # # --- Initialize and set the coupling environment --- #
     # if myid == rootProcess:

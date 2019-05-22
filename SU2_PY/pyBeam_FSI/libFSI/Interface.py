@@ -122,6 +122,7 @@ class Interface:
         self.globalFluidInterfaceZcoor = None
 
         self.globalFluidCoordinates = None
+        self.globalSolidCoordinates = None
 
         self.sendCounts = None
         self.globalFluidDispX = None
@@ -234,12 +235,16 @@ class Interface:
         # --- Identify the solid interface and store the number of nodes (single core) ---#
         if SolidSolver != None:
             print('Solid solver is initialized on process {}'.format(myid))
-            for iPoint in range(0, SolidSolver.nPoint):
-                coordX, coordY, coordZ = SolidSolver.getInitialCoordinates(iPoint)
             self.haveSolidSolver = True
             self.nSolidInterfaceNodes = SolidSolver.nPoint
             self.nSolidInterfacePhysicalNodes = SolidSolver.nPoint
             self.nLocalSolidInterfaceNodes = SolidSolver.nPoint
+            self.globalSolidCoordinates = np.zeros((SolidSolver.nPoint, 3))
+            for iPoint in range(0, SolidSolver.nPoint):
+                coordX, coordY, coordZ = SolidSolver.getInitialCoordinates(iPoint)
+                self.globalSolidCoordinates[iPoint, 0] = coordX
+                self.globalSolidCoordinates[iPoint, 1] = coordY
+                self.globalSolidCoordinates[iPoint, 2] = coordZ
             # self.haveSolidSolver = True
             # self.solidInterfaceIdentifier = SolidSolver.getFSIMarkerID()
             # self.nLocalSolidInterfaceNodes = SolidSolver.getNumberOfSolidInterfaceNodes(self.solidInterfaceIdentifier)
@@ -357,7 +362,7 @@ class Interface:
         GlobalIndex = int()
         localIndex = 0
         fluidIndexing_temp = {}
-        self.localFluidInterface_vertex_indices = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
+        self.localFluidInterface_vertex_indices = np.zeros(self.nLocalFluidInterfacePhysicalNodes, dtype=int)
         localFluidInterface_array_X_init = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
         localFluidInterface_array_Y_init = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
         localFluidInterface_array_Z_init = np.zeros(self.nLocalFluidInterfacePhysicalNodes)
@@ -378,7 +383,7 @@ class Interface:
                 self.localFluidInterface_vertex_indices[localIndex] = int(iVertex)
                 localIndex += 1
 
-        print("rank: {}, local_vertex_indices: {}".format(myid, self.localFluidInterface_vertex_indices))
+        #print("rank: {}, local_vertex_indices: {}".format(myid, self.localFluidInterface_vertex_indices))
 
         if self.have_MPI:
             fluidIndexing_temp = self.comm.allgather(fluidIndexing_temp)
@@ -402,10 +407,10 @@ class Interface:
             self.comm.Gatherv(sendbuf=bufXCoor, recvbuf=(self.globalFluidInterfaceXcoor, self.sendCounts), root=0)
             self.comm.Gatherv(sendbuf=bufYCoor, recvbuf=(self.globalFluidInterfaceYcoor, self.sendCounts), root=0)
             self.comm.Gatherv(sendbuf=bufZCoor, recvbuf=(self.globalFluidInterfaceZcoor, self.sendCounts), root=0)
-            if myid == 0:
-                print("Gathered array X: {}".format(self.globalFluidInterfaceXcoor))
-                print("Gathered array Y: {}".format(self.globalFluidInterfaceYcoor))
-                print("Gathered array Z: {}".format(self.globalFluidInterfaceZcoor))
+            #if myid == 0:
+                #print("Gathered array X: {}".format(self.globalFluidInterfaceXcoor))
+                #print("Gathered array Y: {}".format(self.globalFluidInterfaceYcoor))
+                #print("Gathered array Z: {}".format(self.globalFluidInterfaceZcoor))
 
         else:
             self.fluidIndexing = fluidIndexing_temp.copy()
@@ -414,8 +419,16 @@ class Interface:
             self.globalFluidInterfaceYcoor = localFluidInterface_array_Y_init.copy()
             self.globalFluidInterfaceZcoor = localFluidInterface_array_Z_init.copy()
 
-        self.globalFluidCoordinates = np.matrix(self.globalFluidInterfaceXcoor, self.globalFluidInterfaceYcoor,
-                                                self.globalFluidInterfaceZcoor)
+        # Store the global fluid coordinates
+        if myid == self.rootProcess:
+            self.globalFluidCoordinates = np.zeros((self.nFluidInterfacePhysicalNodes, 3))
+            for i in range(0, self.nFluidInterfacePhysicalNodes):
+                self.globalFluidCoordinates[i][0] = self.globalFluidInterfaceXcoor[i]
+                self.globalFluidCoordinates[i][1] = self.globalFluidInterfaceYcoor[i]
+                self.globalFluidCoordinates[i][2] = self.globalFluidInterfaceZcoor[i]
+
+            print(self.globalFluidCoordinates.shape)
+            print(self.globalSolidCoordinates.shape)
 
         del fluidIndexing_temp, localFluidInterface_array_X_init, \
             localFluidInterface_array_Y_init, localFluidInterface_array_Z_init
@@ -567,7 +580,7 @@ class Interface:
             SolidSolver.SetLoads(iVertex, 2, self.globalSolidDispZ[iVertex])
 
 
-    def transferStructuralDisplacements(self, FluidSolver, SolidSolver):
+    def transferStructuralDisplacements(self, FluidSolver, SolidSolver, MLSSolver):
         """
         Transfer structural displacements tractions.
         Gathers the structural displacements from the interface.
@@ -602,6 +615,10 @@ class Interface:
         # --- STEP 2: Interpolate
         ################################################################################################################
         # ---> Input: self.globalSolidDispX, self.globalSolidDispX, self.globalSolidDispX
+
+        self.globalFluidDispX = MLSSolver.interpolation_matrix.dot(self.globalSolidDispX)
+        self.globalFluidDispY = MLSSolver.interpolation_matrix.dot(self.globalSolidDispY)
+        self.globalFluidDispZ = MLSSolver.interpolation_matrix.dot(self.globalSolidDispZ)
 
         # ---> Output: self.globalFluidDispX, self.globalFluidDispY, self.globalFluidDispZ
 
@@ -650,7 +667,7 @@ class Interface:
         localIndex = 0
         for iVertex in self.localFluidInterface_vertex_indices:
             # Store them in the mesh displacement routine
-            FluidSolver.SetMeshDisplacement(self.fluidInterfaceIdentifier, iVertex, localFluidDispX[localIndex],
+            FluidSolver.SetMeshDisplacement(self.fluidInterfaceIdentifier, int(iVertex), localFluidDispX[localIndex],
                                             localFluidDispY[localIndex], localFluidDispZ[localIndex])
             # Increment the local index
             localIndex += 1

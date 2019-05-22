@@ -37,7 +37,7 @@
 
 import os, sys, shutil, copy
 import ast
-from libFSI import switch as switch
+from .switch import switch
 
 # ----------------------------------------------------------------------
 #  MLS Configuration Class
@@ -50,11 +50,8 @@ class MLSConfig:
     """
 
     def __init__(self,FileName):
-        print("ola")
         self.ConfigFileName = FileName
-        print("ke")
         self._ConfigContent = {}
-        print("ase")
         self.readConfig()
 
     def __str__(self):
@@ -73,12 +70,10 @@ class MLSConfig:
         input_file = open(self.ConfigFileName)
         while 1:
             line = input_file.readline()
-            print("I print the line", line)
             if not line:
                 break
             # remove line returns
             line = line.strip('\r\n')
-            print(line)
             # make sure it has useful data
             if (not "=" in line) or (line[0] == '%'):
                 continue
@@ -86,9 +81,7 @@ class MLSConfig:
             line = line.split("=",1)
             this_param = line[0].strip()
             this_value = line[1].strip()
-            print(line)
             for case in switch(this_param):
-                print("HOLA")
             #integer values
                 if case("MODES")			      : pass
                 if case("POLY")		                      : pass
