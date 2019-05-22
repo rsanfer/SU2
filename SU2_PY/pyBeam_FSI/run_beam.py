@@ -99,16 +99,20 @@ if nRBE2 != 0:
   
 beam.InitializeStructure()
 
-beam.SetLoads(4,0,1000)
-#beam.SetLoads(6,0,100000000000)
-#beam.SetLoads(7,0,100000000000)
-#beam.SetLoads(8,0,100000000000)
+beam.SetLoads(4,0,10000)
+#beam.SetLoads(6,0,100)
+#beam.SetLoads(7,0,100)
+#beam.SetLoads(8,0,100)
 
-beam.Solve()
+beam.Solve(0)
 
 coordinate_X = []
 coordinate_Y = []
 coordinate_Z = []
+
+disp_X = []
+disp_Y = []
+disp_Z = []
 
 coordinate_X0 = []
 coordinate_Y0 = []
@@ -116,17 +120,21 @@ coordinate_Z0 = []
 
 for jNode in range(0,5):
     
-  coordinate_X.append(beam.ExtractCoordinates(jNode, 0))
-  coordinate_Y.append(beam.ExtractCoordinates(jNode, 1))
-  coordinate_Z.append(beam.ExtractCoordinates(jNode, 2))  
+  coordinate_X.append(beam.ExtractCoordinate(jNode, 0))
+  coordinate_Y.append(beam.ExtractCoordinate(jNode, 1))
+  coordinate_Z.append(beam.ExtractCoordinate(jNode, 2))
   
-  coordinate_X0.append(beam.ExtractInitialCoordinates(jNode, 0))
-  coordinate_Y0.append(beam.ExtractInitialCoordinates(jNode, 1))
-  coordinate_Z0.append(beam.ExtractInitialCoordinates(jNode, 2))
+  disp_X.append(beam.ExtractDisplacements(jNode, 0))
+  disp_Y.append(beam.ExtractDisplacements(jNode, 1))
+  disp_Z.append(beam.ExtractDisplacements(jNode, 2))  
   
-test_val = np.sqrt((coordinate_X[4]-0.0)**2+
-                   (coordinate_Y[4]-0.016)**2+
-                   (coordinate_Z[4]-0.0)**2)
+  coordinate_X0.append(beam.ExtractCoordinate0(jNode, 0))
+  coordinate_Y0.append(beam.ExtractCoordinate0(jNode, 1))
+  coordinate_Z0.append(beam.ExtractCoordinate0(jNode, 2))
+  
+test_val = np.sqrt((disp_X[4])**2+
+                   (disp_Y[4])**2+
+                   (disp_Z[4])**2)
                    
 print("Displacement tip: ",test_val)          
   
@@ -137,6 +145,6 @@ plt.plot(coordinate_X, coordinate_Y)
 plt.plot(coordinate_X0, coordinate_Y0)
 plt.xlabel('X')
 plt.ylabel('Y')
-#plt.xlim((-0.001, 0.001)) 
+plt.xlim((-0.01, 0.01)) 
 plt.show()
 

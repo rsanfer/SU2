@@ -462,7 +462,7 @@ class Interface:
 
 
 
-    def transferFluidTractions(self, FluidSolver, SolidSolver):
+    def transferFluidTractions(self, FluidSolver, SolidSolver, MLSSolver):
         """
         Transfer fluid tractions.
         Gathers the fluid tractions from the interface into the root process.
@@ -533,7 +533,11 @@ class Interface:
         # --- STEP 2: Interpolate
         ################################################################################################################
 
-        # ---> Input: self.globalSolidDispX, self.globalSolidDispX, self.globalSolidDispX
+        # ---> Input: self.globalFluidLoadX, self.globalFluidLoadY, self.globalFluidLoadZ
+
+        self.globalFluidDispX = MLSSolver.interpolation_matrix.transpose.dot(self.globalSolidDispX)
+        self.globalFluidDispY = MLSSolver.interpolation_matrix.transpose.dot(self.globalSolidDispY)
+        self.globalFluidDispZ = MLSSolver.interpolation_matrix.transpose.dot(self.globalSolidDispZ)
 
         # ---> Output: self.globalSolidLoadX, self.globalSolidLoadY, self.globalSolidLoadZ
 
@@ -614,6 +618,7 @@ class Interface:
         ################################################################################################################
         # --- STEP 2: Interpolate
         ################################################################################################################
+
         # ---> Input: self.globalSolidDispX, self.globalSolidDispX, self.globalSolidDispX
 
         self.globalFluidDispX = MLSSolver.interpolation_matrix.dot(self.globalSolidDispX)
