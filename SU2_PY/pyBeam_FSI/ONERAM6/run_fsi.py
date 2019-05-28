@@ -152,12 +152,15 @@ def main():
 
     if myid == rootProcess:  # we perform this calculation on the root core
         print('\n***************************** Initializing MLS Interpolation *************************')
-    try:
-        MLS = Spline_Module.MLS_Spline(MLS_confFile, FSIInterface.nDim,
-                                       FSIInterface.globalFluidCoordinates, FSIInterface.globalSolidCoordinates,
-                                       FSI_config)
-    except TypeError as exception:
-        print('ERROR building the MLS Interpolation: ', exception)
+        try:
+            MLS = Spline_Module.MLS_Spline(MLS_confFile, FSIInterface.nDim,
+                                          FSIInterface.globalFluidCoordinates, FSIInterface.globalSolidCoordinates,
+                                          FSI_config)
+        except TypeError as exception:
+            print('ERROR building the MLS Interpolation: ', exception)
+
+    else:
+        MLS = None
 
     if have_MPI:
         comm.barrier()
