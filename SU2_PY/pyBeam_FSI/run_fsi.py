@@ -92,7 +92,6 @@ def main():
     confFile = str(options.filename)
 
     FSI_config = io.FSIConfig(confFile)  # FSI configuration file
-    print(FSI_config)
     CFD_ConFile = FSI_config['SU2_CONFIG']  # CFD configuration file
     CSD_ConFile = FSI_config['PYBEAM_CONFIG']  # CSD configuration file
     MLS_confFile = FSI_config['MLS_CONFIG_FILE_NAME']  # MLS configuration file
@@ -126,7 +125,7 @@ def main():
     else:
         SolidSolver = None
 
-    if have_MPI == True:
+    if have_MPI:
         comm.barrier()
 
     # --- Initialize and set the coupling environment --- #
@@ -137,7 +136,7 @@ def main():
     except TypeError as exception:
         print('ERROR building the FSI Interface: ', exception)
 
-    if have_MPI == True:
+    if have_MPI:
         comm.barrier()
 
 
@@ -148,57 +147,37 @@ def main():
     except TypeError as exception:
         print('ERROR building the Interpolation Interface: ', exception)
 
-    if have_MPI == True:
+    if have_MPI:
         comm.barrier()
 
     if myid == rootProcess:  # we perform this calculation on the root core
         print('\n***************************** Initializing MLS Interpolation *************************')
-    try:
-        MLS = Spline_Module.MLS_Spline(MLS_confFile, FSIInterface.nDim,
-                                       FSIInterface.globalFluidCoordinates, FSIInterface.globalSolidCoordinates,
-                                       FSI_config)
-    except TypeError as exception:
-        print('ERROR building the MLS Interpolation: ', exception)
+        try:
+            MLS = Spline_Module.MLS_Spline(MLS_confFile, FSIInterface.nDim,
+                                          FSIInterface.globalFluidCoordinates, FSIInterface.globalSolidCoordinates,
+                                          FSI_config)
+        except TypeError as exception:
+            print('ERROR building the MLS Interpolation: ', exception)
 
-    if have_MPI == True:
+    else:
+        MLS = None
+
+    if have_MPI:
         comm.barrier()
 
-    if myid == rootProcess:  # we perform this calculation on the root core
-        print('\n***************************** Transfering some displacements *************************')
-    try:
-        FSIInterface.transferStructuralDisplacements(FluidSolver, SolidSolver, MLS)
-    except TypeError as exception:
-        print('ERROR transferring displacements: ', exception)
-
-    if have_MPI == True:
-        comm.barrier()
-
-    # Time loop is defined in Python so that we have acces to SU2 functionalities at each time step
+    # Run the solver
     if myid == 0:
         print("\n------------------------------ Begin Solver -----------------------------\n")
     sys.stdout.flush()
-    if options.with_MPI == True:
+    if options.with_MPI:
         comm.Barrier()
 
-    # Time iteration preprocessing
-    FluidSolver.Preprocess(0)
-
-    # Run one time-step (static: one simulation)
-    FluidSolver.Run()
-
-    # Update the solver for the next time iteration
-    FluidSolver.Update()
-
-    # Monitor the solver and output solution to file if required
-    stopCalc = FluidSolver.Monitor(0)
-
-    # Output the solution to file
-    FluidSolver.Output(0)
+    FSIInterface.SteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
 
     # Postprocess the solver and exit cleanly
     FluidSolver.Postprocessing()
 
-    if FluidSolver != None:
+    if FluidSolver is not None:
         del FluidSolver
 
     #

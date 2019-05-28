@@ -92,7 +92,6 @@ def main():
     confFile = str(options.filename)
 
     FSI_config = io.FSIConfig(confFile)  # FSI configuration file
-    print(FSI_config)
     CFD_ConFile = FSI_config['SU2_CONFIG']  # CFD configuration file
     CSD_ConFile = FSI_config['PYBEAM_CONFIG']  # CSD configuration file
     MLS_confFile = FSI_config['MLS_CONFIG_FILE_NAME']  # MLS configuration file
@@ -126,7 +125,7 @@ def main():
     else:
         SolidSolver = None
 
-    if have_MPI == True:
+    if have_MPI:
         comm.barrier()
 
     # --- Initialize and set the coupling environment --- #
@@ -137,7 +136,7 @@ def main():
     except TypeError as exception:
         print('ERROR building the FSI Interface: ', exception)
 
-    if have_MPI == True:
+    if have_MPI:
         comm.barrier()
 
 
@@ -148,13 +147,9 @@ def main():
     except TypeError as exception:
         print('ERROR building the Interpolation Interface: ', exception)
 
-    if have_MPI == True:
+    if have_MPI:
         comm.barrier()
 
-    #if myid == 4:
-    #    FSIInterface.transferFluidTractions(FluidSolver, SolidSolver)
-
-    # Perform MLS
     if myid == rootProcess:  # we perform this calculation on the root core
         print('\n***************************** Initializing MLS Interpolation *************************')
     try:
@@ -164,8 +159,24 @@ def main():
     except TypeError as exception:
         print('ERROR building the MLS Interpolation: ', exception)
 
-    if have_MPI == True:
+    if have_MPI:
         comm.barrier()
+
+    # Run the solver
+    if myid == 0:
+        print("\n------------------------------ Begin Solver -----------------------------\n")
+    sys.stdout.flush()
+    if options.with_MPI:
+        comm.Barrier()
+
+    FSIInterface.SteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
+
+    # Postprocess the solver and exit cleanly
+    FluidSolver.Postprocessing()
+
+    if FluidSolver is not None:
+        del FluidSolver
+
     #
     # # --- Initialize and set the coupling environment --- #
     # if myid == rootProcess:
