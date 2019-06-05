@@ -72,7 +72,9 @@ class MLS_Spline:
         # Performing the meshless method
         print("Performing the Meshless Method")
         # Arrange structural nodes in the wrapped standard vector
-
+        StructNodes[18][0] = 0.843060000000000
+        StructNodes[18][1] = 1.133340000000000
+        StructNodes[18][2] = 0.0        
         str_data_std = Spline.DoubleVector(lenStructNodes)
         l = 0
         for i in range(0, 3):
@@ -90,7 +92,17 @@ class MLS_Spline:
 
         interpolation_matrix_std = Spline.DoubleVector(self.nAeroNodes * self.nStructNodes)
         norm_err_std = Spline.DoubleVector(self.nAeroNodes)
-
+        '''
+        /print("str_Matrix = {}".format(StructNodes))
+        print("Aero_Matrix = {}".format(AeroNodes))
+        print("NrAeroPoint = {}".format(self.nAeroNodes))
+        print("self.nStrPoint = {}".format(self.nStructNodes))
+        print("MLS_conf['POLY'] = {}".format(MLS_conf['POLY']))
+        print("MLS_conf['WEIGHT'] = {}".format(MLS_conf['WEIGHT']))
+        print("MLS_conf['RMAX'] = {}".format(MLS_conf['RMAX']))
+        print("MLS_conf['DELTA'] = {}".format(MLS_conf['DELTA']))     
+        print("MLS_conf['TOLL_SVD'] = {}".format(MLS_conf['TOLL_SVD'])) 
+        '''
         Spline.mls_interface(interpolation_matrix_std, norm_err_std, self.nStructNodes, self.nAeroNodes, str_data_std,
                              aero_data_std, MLS_conf['POLY'], MLS_conf['WEIGHT'], MLS_conf['POINTS'],
                              MLS_conf['RMAX'], MLS_conf['DELTA'], MLS_conf['TOLL_SVD'])
