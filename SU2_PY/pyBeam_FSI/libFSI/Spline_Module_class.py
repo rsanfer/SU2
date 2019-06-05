@@ -72,9 +72,7 @@ class MLS_Spline:
         # Performing the meshless method
         print("Performing the Meshless Method")
         # Arrange structural nodes in the wrapped standard vector
-        StructNodes[18][0] = 0.843060000000000
-        StructNodes[18][1] = 1.133340000000000
-        StructNodes[18][2] = 0.0        
+
         str_data_std = Spline.DoubleVector(lenStructNodes)
         l = 0
         for i in range(0, 3):
@@ -143,13 +141,6 @@ class MLS_Spline:
                 for j in range(0, self.nStructNodes):
                     str_Matrix[j][i] = str_data_std[l]
                     l = l + 1
-            # print(str_Matrix)
-
-            # Connectivity = np.zeros((NrAeroElem, nDim))
-            #
-            # for i in range(0, NrAeroElem):
-            #     for j in range(0, nDim):
-            #         Connectivity[i][j] = int(BoundElem[i].GetNodes()[j])  # this has to be reviewed in
 
             # ------ Plotting options   -------------------
 
