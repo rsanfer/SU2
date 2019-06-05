@@ -557,7 +557,7 @@ void CMeshSolver::UpdateGridCoord(CGeometry *geometry, CConfig *config){
   /*--- Update the grid coordinates using the solution of the linear system ---*/
 
   /*--- LinSysSol contains the absolute x, y, z displacements. ---*/
-  for (iPoint = 0; iPoint < nPoint; iPoint++){
+  for (iPoint = 0; iPoint < nPointDomain; iPoint++){
     for (iDim = 0; iDim < nDim; iDim++) {
       total_index = iPoint*nDim + iDim;
       /*--- Retrieve the displacement from the solution of the linear system ---*/
