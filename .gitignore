@@ -1,5 +1,7 @@
 # Spline MLS library
 SU2_PY/pyBeam_FSI/libFSI/Spline_Module/pyMLS_Cpp/
+SU2_PY/pyBeam_FSI/ONERA*
+*.vtk
 
 # Compiled Object files
 *.slo

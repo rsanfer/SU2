@@ -262,7 +262,7 @@ class Interface:
         else:
             pass
 
-        # --- Exchange information about processors on which the solvers are defined and where the interface nodes are lying --- #
+        # --- Exchange information about processors --- #
         if self.have_MPI:
             if self.haveFluidSolver:
                 sendBufFluid = np.array(int(1))

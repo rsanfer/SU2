@@ -40,8 +40,6 @@ from pyBeamIO import pyBeamConfig as pyConfig
 from pyBeamIO import pyBeamInput as pyInput
 import pyBeam
 
-
-
 # ----------------------------------------------------------------------
 #  Beam object
 # ----------------------------------------------------------------------
