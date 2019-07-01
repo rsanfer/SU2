@@ -796,6 +796,42 @@ CEulerSolver::CEulerSolver(CGeometry *geometry, CConfig *config, unsigned short 
     }
   }
 
+  VertexTraction = NULL;
+  VertexTractionAdjoint = NULL;
+
+  /*--- Only initialize when there is a Marker Interface (this avoids overhead in all other cases while
+   *--- a more permanent structure is being developed ---*/
+  if(config->GetnMarker_Interface() > 0){
+
+  /* Store the forces at the boundary
+   * (this will be moved to a new postprocessing structure once in place)
+   */
+    VertexTraction = new su2double** [nMarker];
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      VertexTraction[iMarker] = new su2double* [geometry->nVertex[iMarker]];
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+        VertexTraction[iMarker][iVertex] = new su2double [nDim];
+        for (iVar = 0; iVar < nDim ; iVar++) {
+          VertexTraction[iMarker][iVertex][iVar] = 0.0;
+        }
+      }
+    }
+
+  /* Store the force adjoint at the boundary
+   * (this will be moved to a new postprocessing structure once in place)
+   */
+    VertexTractionAdjoint = new su2double** [nMarker];
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      VertexTractionAdjoint[iMarker] = new su2double* [geometry->nVertex[iMarker]];
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+        VertexTractionAdjoint[iMarker][iVertex] = new su2double [nDim];
+        for (iVar = 0; iVar < nDim ; iVar++) {
+          VertexTractionAdjoint[iMarker][iVertex][iVar] = 0.0;
+        }
+      }
+    }
+  }
+
   /*--- Initialize the solution to the far-field state everywhere. ---*/
 
   for (iPoint = 0; iPoint < nPoint; iPoint++)
@@ -1036,6 +1072,24 @@ CEulerSolver::~CEulerSolver(void) {
             delete [] SlidingStateNodes[iMarker];  
     }
     delete [] SlidingStateNodes;
+  }
+
+  if (VertexTraction != NULL) {
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      for (iVertex = 0; iVertex < nVertex[iMarker]; iVertex++)
+        delete [] VertexTraction[iMarker][iVertex];
+      delete [] VertexTraction[iMarker];
+    }
+    delete [] VertexTraction;
+  }
+
+  if (VertexTractionAdjoint != NULL) {
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      for (iVertex = 0; iVertex < nVertex[iMarker]; iVertex++)
+        delete [] VertexTractionAdjoint[iMarker][iVertex];
+      delete [] VertexTractionAdjoint[iMarker];
+    }
+    delete [] VertexTractionAdjoint;
   }
   
   if (DonorPrimVar != NULL) {
@@ -3293,13 +3347,12 @@ void CEulerSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container
   bool disc_adjoint     = config->GetDiscrete_Adjoint();
   bool implicit         = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
   bool muscl            = (config->GetMUSCL_Flow() || (cont_adjoint && config->GetKind_ConvNumScheme_AdjFlow() == ROE));
-  bool limiter          = ((config->GetKind_SlopeLimit_Flow() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter()) && !(disc_adjoint && config->GetFrozen_Limiter_Disc()));
+  bool limiter          = (config->GetKind_SlopeLimit_Flow() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter());
   bool center           = (config->GetKind_ConvNumScheme_Flow() == SPACE_CENTERED) || (cont_adjoint && config->GetKind_ConvNumScheme_AdjFlow() == SPACE_CENTERED);
   bool center_jst       = center && (config->GetKind_Centered_Flow() == JST);
   bool engine           = ((config->GetnMarker_EngineInflow() != 0) || (config->GetnMarker_EngineExhaust() != 0));
   bool actuator_disk    = ((config->GetnMarker_ActDiskInlet() != 0) || (config->GetnMarker_ActDiskOutlet() != 0));
   bool nearfield        = (config->GetnMarker_NearFieldBound() != 0);
-  bool interface        = (config->GetnMarker_InterfaceBound() != 0);
   bool fixed_cl         = config->GetFixed_CL_Mode();
   bool van_albada       = config->GetKind_SlopeLimit_Flow() == VAN_ALBADA_EDGE;
   unsigned short kind_row_dissipation = config->GetKind_RoeLowDiss();
@@ -3327,10 +3380,6 @@ void CEulerSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container
     GetPower_Properties(geometry, config, iMesh, Output);
     SetActDisk_BCThrust(geometry, solver_container, config, iMesh, Output);
   }
-
-  /*--- Compute Interface MPI ---*/
-
-  if (interface) { Set_MPI_Interface(geometry, config); }
 
   /*--- Compute NearField MPI ---*/
 
@@ -3682,8 +3731,7 @@ void CEulerSolver::Upwind_Residual(CGeometry *geometry, CSolver **solver_contain
   unsigned long ExtIter = config->GetExtIter();
   bool implicit         = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
   bool muscl            = (config->GetMUSCL_Flow() && (iMesh == MESH_0));
-  bool disc_adjoint     = config->GetDiscrete_Adjoint();
-  bool limiter          = ((config->GetKind_SlopeLimit_Flow() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter()) && !(disc_adjoint && config->GetFrozen_Limiter_Disc()));
+  bool limiter          = (config->GetKind_SlopeLimit_Flow() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter());
   bool grid_movement    = config->GetGrid_Movement();
   bool roe_turkel       = (config->GetKind_Upwind_Flow() == TURKEL);
   bool ideal_gas        = (config->GetKind_FluidModel() == STANDARD_AIR || config->GetKind_FluidModel() == IDEAL_GAS );
@@ -5819,9 +5867,20 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
   unsigned long iEdge, iPoint, jPoint;
   unsigned short iVar, iDim;
   su2double **Gradient_i, **Gradient_j, *Coord_i, *Coord_j,
-  *Primitive, *Primitive_i, *Primitive_j, *LocalMinPrimitive, *LocalMaxPrimitive,
-  *GlobalMinPrimitive, *GlobalMaxPrimitive,
+  *Primitive, *Primitive_i, *Primitive_j,
+  *LocalMinPrimitive = NULL, *LocalMaxPrimitive = NULL,
+  *GlobalMinPrimitive = NULL, *GlobalMaxPrimitive = NULL,
   dave, LimK, eps2, eps1, dm, dp, du, y, limiter;
+
+#ifdef CODI_REVERSE_TYPE
+  bool TapeActive = false;
+
+  if (config->GetDiscrete_Adjoint() && config->GetFrozen_Limiter_Disc()) {
+    /*--- If limiters are frozen do not record the computation ---*/
+    TapeActive = AD::globalTape.isActive();
+    AD::StopRecording();
+  }
+#endif
   
   dave = config->GetRefElemLength();
   LimK = config->GetVenkat_LimiterCoeff();
@@ -5965,33 +6024,34 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
   if ((config->GetKind_SlopeLimit_Flow() == VENKATAKRISHNAN) ||
       (config->GetKind_SlopeLimit_Flow() == VENKATAKRISHNAN_WANG)) {
     
-    /*--- Allocate memory for the max and min primitive value --*/
-    
-    LocalMinPrimitive = new su2double [nPrimVarGrad]; GlobalMinPrimitive = new su2double [nPrimVarGrad];
-    LocalMaxPrimitive = new su2double [nPrimVarGrad]; GlobalMaxPrimitive = new su2double [nPrimVarGrad];
-    
-    /*--- Compute the max value and min value of the solution ---*/
-    
-    Primitive = node[0]->GetPrimitive();
-    for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
-      LocalMinPrimitive[iVar] = Primitive[iVar];
-      LocalMaxPrimitive[iVar] = Primitive[iVar];
-    }
-    
-    for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
+    if (config->GetKind_SlopeLimit_Flow() == VENKATAKRISHNAN_WANG) {
+
+      /*--- Allocate memory for the max and min primitive value --*/
       
-      /*--- Get the primitive variables ---*/
+      LocalMinPrimitive = new su2double [nPrimVarGrad]; GlobalMinPrimitive = new su2double [nPrimVarGrad];
+      LocalMaxPrimitive = new su2double [nPrimVarGrad]; GlobalMaxPrimitive = new su2double [nPrimVarGrad];
       
-      Primitive = node[iPoint]->GetPrimitive();
+      /*--- Compute the max value and min value of the solution ---*/
       
+      Primitive = node[0]->GetPrimitive();
       for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
-        LocalMinPrimitive[iVar] = min (LocalMinPrimitive[iVar], Primitive[iVar]);
-        LocalMaxPrimitive[iVar] = max (LocalMaxPrimitive[iVar], Primitive[iVar]);
+        LocalMinPrimitive[iVar] = Primitive[iVar];
+        LocalMaxPrimitive[iVar] = Primitive[iVar];
       }
       
-    }
-    
-    if (config->GetKind_SlopeLimit_Flow() == VENKATAKRISHNAN_WANG) {
+      for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
+        
+        /*--- Get the primitive variables ---*/
+        
+        Primitive = node[iPoint]->GetPrimitive();
+        
+        for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+          LocalMinPrimitive[iVar] = min (LocalMinPrimitive[iVar], Primitive[iVar]);
+          LocalMaxPrimitive[iVar] = max (LocalMaxPrimitive[iVar], Primitive[iVar]);
+        }
+        
+      }
+      
 #ifdef HAVE_MPI
       SU2_MPI::Allreduce(LocalMinPrimitive, GlobalMinPrimitive, nPrimVarGrad, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
       SU2_MPI::Allreduce(LocalMaxPrimitive, GlobalMaxPrimitive, nPrimVarGrad, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
@@ -6011,16 +6071,22 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
       Gradient_j = node[jPoint]->GetGradient_Primitive();
       Coord_i    = geometry->node[iPoint]->GetCoord();
       Coord_j    = geometry->node[jPoint]->GetCoord();
-      
-      AD::StartPreacc();
-      AD::SetPreaccIn(Gradient_i, nPrimVarGrad, nDim);
-      AD::SetPreaccIn(Gradient_j, nPrimVarGrad, nDim);
-      AD::SetPreaccIn(Coord_i, nDim); AD::SetPreaccIn(Coord_j, nDim);
-      AD::SetPreaccIn(eps2);
 
       for (iVar = 0; iVar < nPrimVarGrad; iVar++) {
+
+        AD::StartPreacc();
+        AD::SetPreaccIn(Gradient_i[iVar], nDim);
+        AD::SetPreaccIn(Gradient_j[iVar], nDim);
+        AD::SetPreaccIn(Coord_i, nDim);
+        AD::SetPreaccIn(Coord_j, nDim);
+        AD::SetPreaccIn(node[iPoint]->GetSolution_Max(iVar));
+        AD::SetPreaccIn(node[iPoint]->GetSolution_Min(iVar));
+        AD::SetPreaccIn(node[jPoint]->GetSolution_Max(iVar));
+        AD::SetPreaccIn(node[jPoint]->GetSolution_Min(iVar));
         
         if (config->GetKind_SlopeLimit_Flow() == VENKATAKRISHNAN_WANG) {
+          AD::SetPreaccIn(GlobalMaxPrimitive[iVar]);
+          AD::SetPreaccIn(GlobalMinPrimitive[iVar]);
           eps1 = LimK * (GlobalMaxPrimitive[iVar] - GlobalMinPrimitive[iVar]);
           eps2 = eps1*eps1;
         }
@@ -6028,11 +6094,6 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
           eps1 = LimK*dave;
           eps2 = eps1*eps1*eps1;
         }
-
-        AD::SetPreaccIn(node[iPoint]->GetSolution_Max(iVar));
-        AD::SetPreaccIn(node[iPoint]->GetSolution_Min(iVar));
-        AD::SetPreaccIn(node[jPoint]->GetSolution_Max(iVar));
-        AD::SetPreaccIn(node[jPoint]->GetSolution_Min(iVar));
 
         /*--- Calculate the interface left gradient, delta- (dm) ---*/
         
@@ -6068,14 +6129,14 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
           AD::SetPreaccOut(node[jPoint]->GetLimiter_Primitive()[iVar]);
         }
         
+        AD::EndPreacc();
       }
-
-      AD::EndPreacc();
-      
     }
     
-    delete [] LocalMinPrimitive; delete [] GlobalMinPrimitive;
-    delete [] LocalMaxPrimitive; delete [] GlobalMaxPrimitive;
+    if (LocalMinPrimitive  != NULL) delete [] LocalMinPrimitive;
+    if (LocalMaxPrimitive  != NULL) delete [] LocalMaxPrimitive;
+    if (GlobalMinPrimitive != NULL) delete [] GlobalMinPrimitive;
+    if (GlobalMaxPrimitive != NULL) delete [] GlobalMaxPrimitive;
     
   }
 
@@ -6091,6 +6152,9 @@ void CEulerSolver::SetPrimitive_Limiter(CGeometry *geometry, CConfig *config) {
   InitiateComms(geometry, config, PRIMITIVE_LIMITER);
   CompleteComms(geometry, config, PRIMITIVE_LIMITER);
   
+#ifdef CODI_REVERSE_TYPE
+  if (TapeActive) AD::StartRecording();
+#endif
 }
 
 void CEulerSolver::SetPreconditioner(CConfig *config, unsigned long iPoint) {
@@ -14473,6 +14537,180 @@ void CEulerSolver::GatherInOutAverageValues(CConfig *config, CGeometry *geometry
   }
 }
 
+void CEulerSolver::ComputeVertexTractions(CGeometry *geometry, CConfig *config){
+
+  /*--- Compute the constant factor to dimensionalize pressure and shear stress. ---*/
+  su2double *Velocity_ND, *Velocity_Real;
+  su2double Density_ND,  Density_Real, Velocity2_Real, Velocity2_ND;
+  su2double factor;
+
+  unsigned short iDim, jDim;
+
+  // Check whether the problem is viscous
+  bool viscous_flow = ((config->GetKind_Solver() == NAVIER_STOKES) ||
+                       (config->GetKind_Solver() == RANS) ||
+                       (config->GetKind_Solver() == DISC_ADJ_NAVIER_STOKES) ||
+                       (config->GetKind_Solver() == DISC_ADJ_RANS));
+
+  // Parameters for the calculations
+  su2double Pn = 0.0, div_vel = 0.0;
+  su2double Viscosity = 0.0;
+  su2double Tau[3][3] = {{0.0, 0.0, 0.0},{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
+  su2double Grad_Vel[3][3] = {{0.0, 0.0, 0.0},{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
+  su2double delta[3][3] = {{1.0, 0.0, 0.0},{0.0, 1.0, 0.0},{0.0, 0.0, 1.0}};
+  su2double auxForce[3] = {1.0, 0.0, 0.0};
+
+  unsigned short iMarker;
+  unsigned long iVertex, iPoint;
+  su2double const *iNormal;
+
+  Velocity_Real = config->GetVelocity_FreeStream();
+  Density_Real  = config->GetDensity_FreeStream();
+
+  Velocity_ND = config->GetVelocity_FreeStreamND();
+  Density_ND  = config->GetDensity_FreeStreamND();
+
+  Velocity2_Real = 0.0;
+  Velocity2_ND   = 0.0;
+  for (unsigned short iDim = 0; iDim < nDim; iDim++) {
+    Velocity2_Real += Velocity_Real[iDim]*Velocity_Real[iDim];
+    Velocity2_ND   += Velocity_ND[iDim]*Velocity_ND[iDim];
+  }
+
+  factor = Density_Real * Velocity2_Real / ( Density_ND * Velocity2_ND );
+
+  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+
+    /*--- If this is defined as an interface marker ---*/
+    if (config->GetMarker_All_Interface(iMarker) == YES) {
+
+      // Loop over the vertices
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+
+        // Recover the point index
+        iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+        // Get the normal at the vertex: this normal goes inside the fluid domain.
+        iNormal = geometry->vertex[iMarker][iVertex]->GetNormal();
+
+        /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+        if (geometry->node[iPoint]->GetDomain()) {
+
+          // Retrieve the values of pressure
+          Pn = node[iPoint]->GetPressure();
+
+          // Calculate tn in the fluid nodes for the inviscid term --> Units of force (non-dimensional).
+          for (iDim = 0; iDim < nDim; iDim++)
+            auxForce[iDim] = -(Pn-Pressure_Inf)*iNormal[iDim];
+
+          // Calculate tn in the fluid nodes for the viscous term
+          if (viscous_flow) {
+
+            Viscosity = node[iPoint]->GetLaminarViscosity();
+
+            for (iDim = 0; iDim < nDim; iDim++) {
+              for (jDim = 0 ; jDim < nDim; jDim++) {
+                Grad_Vel[iDim][jDim] = node[iPoint]->GetGradient_Primitive(iDim+1, jDim);
+              }
+            }
+
+            // Divergence of the velocity
+            div_vel = 0.0; for (iDim = 0; iDim < nDim; iDim++) div_vel += Grad_Vel[iDim][iDim];
+
+            for (iDim = 0; iDim < nDim; iDim++) {
+              for (jDim = 0 ; jDim < nDim; jDim++) {
+
+                // Viscous stress
+                Tau[iDim][jDim] = Viscosity*(Grad_Vel[jDim][iDim] + Grad_Vel[iDim][jDim])
+                                 - TWO3*Viscosity*div_vel*delta[iDim][jDim];
+
+                // Viscous component in the tn vector --> Units of force (non-dimensional).
+                auxForce[iDim] += Tau[iDim][jDim]*iNormal[jDim];
+              }
+            }
+          }
+
+          // Redimensionalize the forces
+          for (iDim = 0; iDim < nDim; iDim++) {
+            VertexTraction[iMarker][iVertex][iDim] = factor * auxForce[iDim];
+          }
+        }
+        else{
+          for (iDim = 0; iDim < nDim; iDim++) {
+            VertexTraction[iMarker][iVertex][iDim] = 0.0;
+          }
+        }
+      }
+    }
+  }
+
+}
+
+void CEulerSolver::RegisterVertexTractions(CGeometry *geometry, CConfig *config){
+
+  unsigned short iMarker, iDim;
+  unsigned long iVertex, iPoint;
+
+  /*--- Loop over all the markers ---*/
+  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+
+    /*--- If this is defined as an interface marker ---*/
+    if (config->GetMarker_All_Interface(iMarker) == YES) {
+
+      /*--- Loop over the vertices ---*/
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+
+        /*--- Recover the point index ---*/
+        iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+
+        /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+        if (geometry->node[iPoint]->GetDomain()) {
+
+          /*--- Register the vertex traction as output ---*/
+          for (iDim = 0; iDim < nDim; iDim++) {
+            AD::RegisterOutput(VertexTraction[iMarker][iVertex][iDim]);
+          }
+
+        }
+      }
+    }
+  }
+
+}
+
+void CEulerSolver::SetVertexTractionsAdjoint(CGeometry *geometry, CConfig *config){
+
+  unsigned short iMarker, iDim;
+  unsigned long iVertex, iPoint;
+
+  /*--- Loop over all the markers ---*/
+  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+
+    /*--- If this is defined as an interface marker ---*/
+    if (config->GetMarker_All_Interface(iMarker) == YES) {
+
+      /*--- Loop over the vertices ---*/
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+
+        /*--- Recover the point index ---*/
+        iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+
+        /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+        if (geometry->node[iPoint]->GetDomain()) {
+
+          /*--- Set the adjoint of the vertex traction from the value received ---*/
+          for (iDim = 0; iDim < nDim; iDim++) {
+
+            SU2_TYPE::SetDerivative(VertexTraction[iMarker][iVertex][iDim],
+                                    SU2_TYPE::GetValue(VertexTractionAdjoint[iMarker][iVertex][iDim]));
+          }
+
+        }
+      }
+    }
+  }
+
+}
+
 CNSSolver::CNSSolver(void) : CEulerSolver() {
   
   /*--- Basic array initialization ---*/
@@ -15198,6 +15436,42 @@ CNSSolver::CNSSolver(CGeometry *geometry, CConfig *config, unsigned short iMesh)
     }
   }
 
+  VertexTraction = NULL;
+  VertexTractionAdjoint = NULL;
+
+  /*--- Only initialize when there is a Marker Interface (this avoids overhead in all other cases while
+   *--- a more permanent structure is being developed) ---*/
+  if(config->GetnMarker_Interface() > 0){
+
+  /* Store the forces at the boundary
+   * (this will be moved to a new postprocessing structure once in place)
+   */
+    VertexTraction = new su2double** [nMarker];
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      VertexTraction[iMarker] = new su2double* [geometry->nVertex[iMarker]];
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+        VertexTraction[iMarker][iVertex] = new su2double [nDim];
+        for (iVar = 0; iVar < nDim ; iVar++) {
+          VertexTraction[iMarker][iVertex][iVar] = 0.0;
+        }
+      }
+    }
+
+  /* Store the force adjoint at the boundary
+   * (this will be moved to a new postprocessing structure once in place)
+   */
+    VertexTractionAdjoint = new su2double** [nMarker];
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      VertexTractionAdjoint[iMarker] = new su2double* [geometry->nVertex[iMarker]];
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+        VertexTractionAdjoint[iMarker][iVertex] = new su2double [nDim];
+        for (iVar = 0; iVar < nDim ; iVar++) {
+          VertexTractionAdjoint[iMarker][iVertex][iVar] = 0.0;
+        }
+      }
+    }
+  }
+
   /*--- Initialize the solution to the far-field state everywhere. ---*/
 
   for (iPoint = 0; iPoint < nPoint; iPoint++)
@@ -15374,14 +15648,13 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
   bool implicit             = (config->GetKind_TimeIntScheme_Flow() == EULER_IMPLICIT);
   bool center               = (config->GetKind_ConvNumScheme_Flow() == SPACE_CENTERED) || (cont_adjoint && config->GetKind_ConvNumScheme_AdjFlow() == SPACE_CENTERED);
   bool center_jst           = center && config->GetKind_Centered_Flow() == JST;
-  bool limiter_flow         = ((config->GetKind_SlopeLimit_Flow() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter()) && !(disc_adjoint && config->GetFrozen_Limiter_Disc()));
-  bool limiter_turb         = ((config->GetKind_SlopeLimit_Turb() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter()) && !(disc_adjoint && config->GetFrozen_Limiter_Disc()));
+  bool limiter_flow         = (config->GetKind_SlopeLimit_Flow() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter());
+  bool limiter_turb         = (config->GetKind_SlopeLimit_Turb() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter());
   bool limiter_adjflow      = (cont_adjoint && (config->GetKind_SlopeLimit_AdjFlow() != NO_LIMITER) && (ExtIter <= config->GetLimiterIter()));
   bool fixed_cl             = config->GetFixed_CL_Mode();
   bool engine               = ((config->GetnMarker_EngineInflow() != 0) || (config->GetnMarker_EngineExhaust() != 0));
   bool actuator_disk        = ((config->GetnMarker_ActDiskInlet() != 0) || (config->GetnMarker_ActDiskOutlet() != 0));
   bool nearfield            = (config->GetnMarker_NearFieldBound() != 0);
-  bool interface            = (config->GetnMarker_InterfaceBound() != 0);
   bool van_albada           = config->GetKind_SlopeLimit_Flow() == VAN_ALBADA_EDGE;
   unsigned short kind_row_dissipation = config->GetKind_RoeLowDiss();
   bool roe_low_dissipation  = (kind_row_dissipation != NO_ROELOWDISS) &&
@@ -15408,10 +15681,6 @@ void CNSSolver::Preprocessing(CGeometry *geometry, CSolver **solver_container, C
     Set_MPI_ActDisk(solver_container, geometry, config);
     SetActDisk_BCThrust(geometry, solver_container, config, iMesh, Output);
   }
-
-  /*--- Compute Interface MPI ---*/
-
-  if (interface) { Set_MPI_Interface(geometry, config); }
 
   /*--- Compute NearField MPI ---*/
 
