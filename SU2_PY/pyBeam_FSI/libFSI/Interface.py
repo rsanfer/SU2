@@ -230,19 +230,19 @@ class Interface:
         if FluidSolver != None:
             print('Fluid solver is initialized on process {}'.format(myid))
             self.haveFluidSolver = True
-            allMovingMarkersTags = FluidSolver.GetAllMovingMarkersTag()
+            allInterfaceMarkersTags = FluidSolver.GetAllInterfaceMarkersTag()
             allMarkersID = FluidSolver.GetAllBoundaryMarkers()
-            if not allMovingMarkersTags:
+            if not allInterfaceMarkersTags:
                 raise Exception('No moving marker was defined in SU2.')
             else:
-                if allMovingMarkersTags[0] in allMarkersID.keys():
-                    self.fluidInterfaceIdentifier = allMarkersID[allMovingMarkersTags[0]]
+                if allInterfaceMarkersTags[0] in allMarkersID.keys():
+                    self.fluidInterfaceIdentifier = allMarkersID[allInterfaceMarkersTags[0]]
             if self.fluidInterfaceIdentifier != None:
                 self.nLocalFluidInterfaceNodes = FluidSolver.GetNumberVertices(self.fluidInterfaceIdentifier)
             if self.nLocalFluidInterfaceNodes != 0:
                 self.haveFluidInterface = True
                 print('Number of interface fluid nodes (halo nodes included) on proccess {} and marker {}: {}'\
-                      .format(myid,allMovingMarkersTags[0],self.nLocalFluidInterfaceNodes))
+                      .format(myid,allInterfaceMarkersTags[0],self.nLocalFluidInterfaceNodes))
         else:
             pass
 
@@ -715,10 +715,11 @@ class Interface:
 
             self.MPIPrint("\n>>>> FSI iteration {} <<<<".format(self.FSIIter))
 
-            # --- Surface displacements interpolation and communication ---#
-            self.MPIPrint('\n##### Transferring displacements\n')
-            self.MPIBarrier()
-            self.transferStructuralDisplacements(FSIconfig, FluidSolver, SolidSolver, MLSSolver)
+            if self.FSIIter > 0:
+                # --- Surface displacements interpolation and communication ---#
+                self.MPIPrint('\n##### Transferring displacements\n')
+                self.MPIBarrier()
+                self.transferStructuralDisplacements(FSIconfig, FluidSolver, SolidSolver, MLSSolver)
 
             # --- Fluid solver call for FSI subiteration --- #
             self.MPIPrint('\n##### Launching fluid solver for a steady computation\n')
