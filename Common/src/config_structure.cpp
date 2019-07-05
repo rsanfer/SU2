@@ -2047,9 +2047,6 @@ void CConfig::SetConfig_Options(unsigned short val_iZone, unsigned short val_nZo
   /* DESCRIPTION: Order of the predictor */
   addUnsignedShortOption("PREDICTOR_ORDER", Pred_Order, 0);
 
-  /* DESCRIPTION: Register flow traction as input in adjoint applications */
-  addBoolOption("REGISTER_FLOW_TRACTION", RegisterFlowTraction, false);
-
   /* DESCRIPTION: Initialize FSI structures, as loads will come from a python wrapper */
   addBoolOption("PY_FSI", pyFSI, false);
 
@@ -9225,6 +9222,8 @@ void CConfig::SetMultizone(CConfig *driver_config, CConfig **config_container){
   if (driver_config->GetTime_Domain()){
     Delta_UnstTime = driver_config->GetTime_Step();
     Delta_DynTime  = driver_config->GetTime_Step();
+
+    Time_Domain = true;
   }
 
   /*------------------------------------------------------------*/

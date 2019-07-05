@@ -348,6 +348,10 @@ CDriver::CDriver(char* confFile,
       integration_container[iZone][iInst] = NULL;
 
       integration_container[iZone][iInst] = new CIntegration*[MAX_SOLS];
+
+      for (iSol = 0; iSol < MAX_SOLS; iSol++)
+        integration_container[iZone][iInst][iSol] = NULL;
+
       Integration_Preprocessing(integration_container[iZone], geometry_container[iZone],
           config_container[iZone], iInst);
     }
@@ -1619,8 +1623,7 @@ void CDriver::Solver_Restart(CSolver ****solver_container, CGeometry ***geometry
   bool restart      = config->GetRestart();
   bool restart_flow = config->GetRestart_Flow();
   bool no_restart   = false;
-  bool grid_movement = (config->GetGrid_Movement() &&
-                       (config->GetKind_GridMovement() == ELASTICITY));
+  bool grid_movement = (config->GetKind_GridMovement() == ELASTICITY);
 
   /*--- Adjust iteration number for unsteady restarts. ---*/
 
@@ -1727,7 +1730,7 @@ void CDriver::Solver_Restart(CSolver ****solver_container, CGeometry ***geometry
     }
   }
 
-  if (restart && grid_movement && update_geo){
+  if ((restart || restart_flow) && grid_movement && update_geo){
     /*--- Always restart with the last state ---*/
     val_iter = SU2_TYPE::Int(config->GetUnst_RestartIter())-1;
     solver_container[val_iInst][MESH_0][MESH_SOL]->LoadRestart(geometry[val_iInst], solver_container[val_iInst], config, val_iter, update_geo);
@@ -3565,10 +3568,19 @@ void CDriver::Interface_Preprocessing() {
         if (rank == MASTER_NODE) cout << "flow tractions. "<< endl;
       }
       else if (structural_donor && fluid_target && (!discrete_adjoint)) {
-        transfer_types[donorZone][targetZone] = STRUCTURAL_DISPLACEMENTS;
-        nVarTransfer = 0;
-        transfer_container[donorZone][targetZone] = new CTransfer_StructuralDisplacements(nVar, nVarTransfer, config_container[donorZone]);
-        if (rank == MASTER_NODE) cout << "structural displacements. "<< endl;
+        if (solver_container[targetZone][INST_0][MESH_0][MESH_SOL] != NULL){
+          transfer_types[donorZone][targetZone] = BOUNDARY_DISPLACEMENTS;
+          nVarTransfer = 0;
+          transfer_container[donorZone][targetZone] = new CTransfer_BoundaryDisplacements(nVar, nVarTransfer, config_container[donorZone]);
+          if (rank == MASTER_NODE) cout << "boundary displacements from the structural solver. "<< endl;
+        }
+        /*--- We keep the legacy method temporarily until FSI-adjoint has been adapted ---*/
+        else{
+          transfer_types[donorZone][targetZone] = STRUCTURAL_DISPLACEMENTS_LEGACY;
+          nVarTransfer = 0;
+          transfer_container[donorZone][targetZone] = new CTransfer_StructuralDisplacements(nVar, nVarTransfer, config_container[donorZone]);
+          if (rank == MASTER_NODE) cout << "structural displacements. "<< endl;
+        }
       }
       else if (fluid_donor && structural_target && discrete_adjoint) {
         transfer_types[donorZone][targetZone] = FLOW_TRACTION;
@@ -7078,7 +7090,7 @@ void CMultiphysicsZonalDriver::Run() {
 
       if (iZone != jZone) {
         bool not_capable_fsi        = (   (transfer_types[iZone][jZone] == FLOW_TRACTION)
-                                      ||  (transfer_types[iZone][jZone] == STRUCTURAL_DISPLACEMENTS)
+                                      ||  (transfer_types[iZone][jZone] == STRUCTURAL_DISPLACEMENTS_LEGACY)
                                       ||  (transfer_types[iZone][jZone] == STRUCTURAL_DISPLACEMENTS_DISC_ADJ));
         bool not_capable_turbo      = transfer_types[iZone][jZone] == MIXING_PLANE;
         bool not_capable_ConsVar    = transfer_types[iZone][jZone] == CONSERVATIVE_VARIABLES;
