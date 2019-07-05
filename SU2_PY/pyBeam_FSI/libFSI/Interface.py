@@ -374,9 +374,7 @@ class Interface:
 
         for iVertex in range(self.nLocalFluidInterfaceNodes):
             GlobalIndex = FluidSolver.GetVertexGlobalIndex(self.fluidInterfaceIdentifier, iVertex)
-            posx = FluidSolver.GetVertexCoordX(self.fluidInterfaceIdentifier, iVertex)
-            posy = FluidSolver.GetVertexCoordY(self.fluidInterfaceIdentifier, iVertex)
-            posz = FluidSolver.GetVertexCoordZ(self.fluidInterfaceIdentifier, iVertex)
+            posx, posy, posz = FluidSolver.GetVertex_UndeformedCoord(self.fluidInterfaceIdentifier, iVertex)
 
             if GlobalIndex in self.FluidHaloNodeList[myid].keys():
                 self.haloNodesPositionsInit[GlobalIndex] = (posx, posy, posz)
