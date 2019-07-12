@@ -255,7 +255,7 @@ class Interface:
             self.nLocalSolidInterfaceNodes = SolidSolver.nPoint
             self.globalSolidCoordinates = np.zeros((SolidSolver.nPoint, 3))
             for iPoint in range(0, SolidSolver.nPoint):
-                coordX, coordY, coordZ = SolidSolver.getInitialCoordinates(iPoint)
+                coordX, coordY, coordZ = SolidSolver.GetInitialCoordinates(iPoint)
                 self.globalSolidCoordinates[iPoint, 0] = coordX
                 self.globalSolidCoordinates[iPoint, 1] = coordY
                 self.globalSolidCoordinates[iPoint, 2] = coordZ
@@ -743,10 +743,10 @@ class Interface:
 
             # Move the restart file to a solution file
             if myid is 0:
-                new_name_flow = "./flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
-                new_name_surf = "./surface_flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
-                shutil.move("./flow.vtk", new_name_flow)
-                shutil.move("./surface_flow.vtk", new_name_surf)
+                new_name_flow = "./Output/flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
+                new_name_surf = "./Output/surface_flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
+                shutil.move("./Output/flow.vtk", new_name_flow)
+                shutil.move("./Output/surface_flow.vtk", new_name_surf)
 
         self.MPIBarrier()
 
