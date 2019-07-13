@@ -744,10 +744,6 @@ class AdjointInterface:
                 loadSensY[iVertex] = sensY
                 loadSensZ[iVertex] = sensZ
 
-            print("Load Sens Beam X: {}".format(loadSensX))
-            print("Load Sens Beam Y: {}".format(loadSensY))
-            print("Load Sens Beam Z: {}".format(loadSensZ))
-
         ################################################################################################################
         # --- STEP 2: Interpolate
         ################################################################################################################
@@ -878,8 +874,9 @@ class AdjointInterface:
 
             self.MPIBarrier()
             if self.haveSolidSolver:
-                self.MPIPrint('\n##### Recording the \n')
+                self.MPIPrint('\n##### Recording the pyBeam solution process\n')
                 SolidSolver.RecordSolver()
+                self.MPIPrint('\n##### Running the adjoint\n')
                 SolidSolver.RunAdjoint()
 
             self.FSIIter += 1
