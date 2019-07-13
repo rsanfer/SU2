@@ -38,6 +38,7 @@
 # Imports from pyBeam (need to be reviewed)
 import sys, os
 from pyBeamLib import pyBeamSolver as pyBeamSolver_pyBeam
+from pyBeamLibAD import pyBeamSolverAD as pyBeamSolverAD_pyBeam
 
 # ----------------------------------------------------------------------
 #  Beam object
@@ -87,13 +88,86 @@ class pyBeamSolver:
 
   def run(self):
       "This function runs the solver. Needs to be run after __SetLoads"
-      self.beam.Run()
+
+      if self.beam.Config['RESTART'] == 1:
+        self.beam.Restart()
+      else:
+        self.beam.Run()
 
 
   def OutputDisplacements(self):
       "This function gives back the displacements on the nodes"
 
 
+
+class pyBeamADSolver:
+  """Description"""
+
+  def __init__(self, config_fileName):
+    """ Description. """
+
+    self.Config_file = config_fileName
+    self.Config = {}
+
+    print("\n----------- Configuring the AD solver in pyBeam --------------------")
+
+    # Load testcase directory directory
+    file_dir = os.getcwd()
+
+    self.beam = pyBeamSolverAD_pyBeam(file_dir, self.Config_file)
+
+    # Some intermediate variables
+    self.nPoint = self.beam.nPoint
+
+
+  def SetLoads(self, iVertex, loadX, loadY, loadZ):
+
+    """ This function sets the load  """
+    self.beam.SetLoads(iVertex, loadX, loadY, loadZ)
+
+  def SetDisplacementAdjoint(self, iVertex, adjX, adjY, adjZ):
+
+    """ This function sets the displacement adjoint  """
+    self.beam.SetDisplacementAdjoint(iVertex, adjX, adjY, adjZ)
+
+  def GetLoadAdjoint(self, iVertex):
+
+      """ This function gets the displacement adjoint  """
+      sensX, sensY, sensZ = self.beam.GetLoadSensitivity(iVertex)
+      return sensX, sensY, sensZ
+
+  def RecordSolver(self):
+      "This function completes the pyBeam recording. Needs to be run after __SetLoads"
+
+      self.beam.StartRecording()
+      self.beam.SetDependencies()
+      self.beam.Run()
+      self.beam.StopRecording()
+
+  def GetInitialCoordinates(self,iVertex):
+
+    """ This function returns the initial coordinates of the structural beam model  """
+    coordX, coordY, coordZ = self.beam.GetInitialCoordinates(iVertex)
+
+    return coordX, coordY, coordZ
+
+  def ExtractDisplacements(self,iVertex):
+
+    """ This function returns the initial coordinates of the structural beam model  """
+    dispX, dispY, dispZ = self.beam.ExtractDisplacements(iVertex)
+
+    return dispX, dispY, dispZ
+
+
+  def RunAdjoint(self):
+      "This function runs the solver. Needs to be run after __SetLoads"
+
+      self.beam.ComputeAdjoint()
+      self.beam.PrintSensitivitiesAllLoads()
+
+
+  def OutputDisplacements(self):
+      "This function gives back the displacements on the nodes"
 
 
 
