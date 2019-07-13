@@ -859,11 +859,10 @@ class AdjointInterface:
             FluidSolver.Monitor(0)             # Monitor the solver and output solution to file if required
             FluidSolver.Output(0)              # Output the solution to file
 
-            # --- Surface fluid loads interpolation and communication - only initial iteration ---#
-            if self.FSIIter == 0:
-                self.MPIPrint('\n##### Transferring fluid tractions to the beam solver\n')
-                self.MPIBarrier()
-                self.transferFluidTractions(FluidSolver, SolidSolver, MLSSolver)
+            # --- Surface fluid loads interpolation and communication ---#
+            self.MPIPrint('\n##### Transferring fluid tractions to the beam solver\n')
+            self.MPIBarrier()
+            self.transferFluidTractions(FluidSolver, SolidSolver, MLSSolver)
 
             # --- Surface fluid loads interpolation and communication ---#
             self.MPIPrint('\n##### Transferring displacement adjoint to the beam solver\n')
