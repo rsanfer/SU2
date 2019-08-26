@@ -879,7 +879,7 @@ class AdjointInterface:
         # For the number of iterations allowed
         while self.FSIIter < nFSIIter:
 
-            self.MPIPrint("\n>>>> FSI iteration {} <<<<".format(self.FSIIter))
+            self.MPIPrint("\n>>>> Adjoint FSI iteration {} <<<<".format(self.FSIIter))
 
             if self.FSIIter > 0:
                 # --- Surface displacements interpolation and communication ---#
