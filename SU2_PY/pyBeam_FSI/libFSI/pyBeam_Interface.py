@@ -90,6 +90,7 @@ class pyBeamSolver:
       "This function runs the solver. Needs to be run after __SetLoads"
 
       if self.beam.Config['RESTART'] == 1:
+        self.beam.ReadRestart()
         self.beam.Restart()
       else:
         self.beam.Run()
@@ -119,6 +120,10 @@ class pyBeamADSolver:
     # Some intermediate variables
     self.nPoint = self.beam.nPoint
 
+    self.sens_file = open("sensitivity_E.dat", "w")
+    self.sens_file.write("Sensitivity E\n")
+    self.sens_file.close()
+
 
   def SetLoads(self, iVertex, loadX, loadY, loadZ):
 
@@ -139,9 +144,10 @@ class pyBeamADSolver:
   def RecordSolver(self):
       "This function completes the pyBeam recording. Needs to be run after __SetLoads"
 
+      self.beam.ReadRestart()
       self.beam.StartRecording()
       self.beam.SetDependencies()
-      self.beam.Run()
+      self.beam.Restart()
       self.beam.StopRecording()
 
   def GetInitialCoordinates(self,iVertex):
@@ -163,8 +169,10 @@ class pyBeamADSolver:
       "This function runs the solver. Needs to be run after __SetLoads"
 
       self.beam.ComputeAdjoint()
-      self.beam.PrintSensitivitiesAllLoads()
-
+      sens_E = self.beam.PrintSensitivityE()
+      self.sens_file = open("sensitivity_E.dat", "a")
+      self.sens_file.write(str(sens_E) + "\n")
+      self.sens_file.close()
 
   def OutputDisplacements(self):
       "This function gives back the displacements on the nodes"

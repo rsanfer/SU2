@@ -230,7 +230,7 @@ class Interface:
         if FluidSolver != None:
             print('Fluid solver is initialized on process {}'.format(myid))
             self.haveFluidSolver = True
-            allInterfaceMarkersTags = FluidSolver.GetAllInterfaceMarkersTag()
+            allInterfaceMarkersTags = FluidSolver.GetAllDeformMeshMarkersTag()
             allMarkersID = FluidSolver.GetAllBoundaryMarkers()
             if not allInterfaceMarkersTags:
                 raise Exception('No moving marker was defined in SU2.')
@@ -480,14 +480,12 @@ class Interface:
         # For the vertices that belong to the interface
         for iVertex in self.localFluidInterface_vertex_indices:
             # Compute the vertex forces on the fluid solver
-            FluidSolver.ComputeVertexForces(self.fluidInterfaceIdentifier, int(iVertex))
+            loadX, loadY, loadZ = FluidSolver.GetFlowLoad(self.fluidInterfaceIdentifier, int(iVertex))
             # Store them in the local load array
-            localFluidLoadX[localIndex] = FluidSolver.GetVertexForceX(self.fluidInterfaceIdentifier, int(iVertex))
-            localFluidLoadY[localIndex] = FluidSolver.GetVertexForceY(self.fluidInterfaceIdentifier, int(iVertex))
-            if self.nDim == 3:
-                localFluidLoadZ[localIndex] = FluidSolver.GetVertexForceZ(self.fluidInterfaceIdentifier, int(iVertex))
-            else:
-                localFluidLoadZ[localIndex] = 0.0
+            localFluidLoadX[localIndex] = loadX
+            localFluidLoadY[localIndex] = loadY
+            localFluidLoadZ[localIndex] = loadZ
+            #print(iVertex, localFluidLoadX[localIndex], localFluidLoadY[localIndex], localFluidLoadZ[localIndex])
             localIndex += 1
 
         if self.have_MPI:
@@ -722,8 +720,10 @@ class Interface:
             # --- Fluid solver call for FSI subiteration --- #
             self.MPIPrint('\n##### Launching fluid solver for a steady computation\n')
             self.MPIBarrier()
+            FluidSolver.ResetConvergence()     # Make sure the solver starts convergence from 0
             FluidSolver.Preprocess(0)          # Time iteration pre-processing
             FluidSolver.Run()                  # Run one time-step (static: one simulation)
+            FluidSolver.Postprocess()          # Run one time-step (static: one simulation)
             FluidSolver.Update()               # Update the solver for the next time iteration
             FluidSolver.Monitor(0)             # Monitor the solver and output solution to file if required
             FluidSolver.Output(0)              # Output the solution to file
@@ -743,8 +743,8 @@ class Interface:
 
             # Move the restart file to a solution file
             if myid is 0:
-                new_name_flow = "flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
-                new_name_surf = "surface_flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
+                new_name_flow = "./Output/flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
+                new_name_surf = "./Output/surface_flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
                 shutil.move("flow.vtk", new_name_flow)
                 shutil.move("surface_flow.vtk", new_name_surf)
 

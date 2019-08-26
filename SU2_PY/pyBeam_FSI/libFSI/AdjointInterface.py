@@ -152,6 +152,10 @@ class AdjointInterface:
         self.globalDispSolidAdjointY = None
         self.globalDispSolidAdjointZ = None
 
+        self.globalDispSolidAdjointXOld = None
+        self.globalDispSolidAdjointYOld = None
+        self.globalDispSolidAdjointZOld = None
+
         self.haloNodesPositionsInit = {}  # initial position of the halo nodes (fluid side only)
 
         self.solidInterface_array_DispX = None  # solid interface displacement
@@ -244,7 +248,7 @@ class AdjointInterface:
         if FluidSolver != None:
             print('Fluid solver is initialized on process {}'.format(myid))
             self.haveFluidSolver = True
-            allInterfaceMarkersTags = FluidSolver.GetAllInterfaceMarkersTag()
+            allInterfaceMarkersTags = FluidSolver.GetAllDeformMeshMarkersTag()
             allMarkersID = FluidSolver.GetAllBoundaryMarkers()
             if not allInterfaceMarkersTags:
                 raise Exception('No moving marker was defined in SU2.')
@@ -475,6 +479,10 @@ class AdjointInterface:
             self.globalSolidLoadSensY = np.zeros(self.nSolidInterfaceNodes)
             self.globalSolidLoadSensZ = np.zeros(self.nSolidInterfaceNodes)
 
+            self.globalDispSolidAdjointX = np.zeros(self.nSolidInterfaceNodes)
+            self.globalDispSolidAdjointY = np.zeros(self.nSolidInterfaceNodes)
+            self.globalDispSolidAdjointZ = np.zeros(self.nSolidInterfaceNodes)
+
     def transferFluidTractions(self, FluidSolver, SolidSolver, MLSSolver):
         """
         Transfer fluid tractions.
@@ -502,14 +510,12 @@ class AdjointInterface:
         # For the vertices that belong to the interface
         for iVertex in self.localFluidInterface_vertex_indices:
             # Compute the vertex forces on the fluid solver
-            FluidSolver.ComputeVertexForces(self.fluidInterfaceIdentifier, int(iVertex))
+            loadX, loadY, loadZ = FluidSolver.GetFlowLoad(self.fluidInterfaceIdentifier, int(iVertex))
             # Store them in the local load array
-            localFluidLoadX[localIndex] = FluidSolver.GetVertexForceX(self.fluidInterfaceIdentifier, int(iVertex))
-            localFluidLoadY[localIndex] = FluidSolver.GetVertexForceY(self.fluidInterfaceIdentifier, int(iVertex))
-            if self.nDim == 3:
-                localFluidLoadZ[localIndex] = FluidSolver.GetVertexForceZ(self.fluidInterfaceIdentifier, int(iVertex))
-            else:
-                localFluidLoadZ[localIndex] = 0.0
+            localFluidLoadX[localIndex] = loadX
+            localFluidLoadY[localIndex] = loadY
+            localFluidLoadZ[localIndex] = loadZ
+            #print(iVertex, localFluidLoadX[localIndex], localFluidLoadY[localIndex], localFluidLoadZ[localIndex])
             localIndex += 1
 
         if self.have_MPI:
@@ -590,10 +596,11 @@ class AdjointInterface:
                 SolidSolver.SetLoads(iVertex, self.globalSolidLoadX[iVertex],
                                               self.globalSolidLoadY[iVertex],
                                               self.globalSolidLoadZ[iVertex])
+                #print(iVertex, self.globalSolidLoadX[iVertex], self.globalSolidLoadY[iVertex])
 
 
 
-    def transferDisplacementAdjoint_SourceTerm(self, FluidSolver, SolidSolver, MLSSolver):
+    def transferDisplacementAdjoint_SourceTerm(self, FSIConfig, FluidSolver, SolidSolver, MLSSolver):
         """
         Transfer fluid tractions.
         Gathers the fluid tractions from the interface into the root process.
@@ -603,6 +610,22 @@ class AdjointInterface:
 
         # Recover the process and the size of the parallelization
         myid, MPIsize = self.checkMPI()
+
+        ################################################################################################################
+        # --- STEP 0: Store old displacement adjoints for relaxation
+        ################################################################################################################
+
+        if self.haveSolidSolver:
+
+            # Store the old displacements
+            self.globalDispSolidAdjointXOld = self.globalDispSolidAdjointX.copy()
+            self.globalDispSolidAdjointYOld = self.globalDispSolidAdjointY.copy()
+            self.globalDispSolidAdjointZOld = self.globalDispSolidAdjointZ.copy()
+
+            # Initialize the local load array
+            localDispSolidAdjointX = np.zeros(self.nSolidInterfaceNodes)
+            localDispSolidAdjointY = np.zeros(self.nSolidInterfaceNodes)
+            localDispSolidAdjointZ = np.zeros(self.nSolidInterfaceNodes)
 
         ################################################################################################################
         # --- STEP 1: Retrieve the fluid loads
@@ -621,13 +644,11 @@ class AdjointInterface:
         for iVertex in self.localFluidInterface_vertex_indices:
             # Compute the vertex forces on the fluid solver
             FluidSolver.ComputeVertexForces(self.fluidInterfaceIdentifier, int(iVertex))
+            sensX, sensY, sensZ = FluidSolver.GetMeshDisp_Sensitivity(self.fluidInterfaceIdentifier, int(iVertex))
             # Store them in the local load array
-            localDispFlowAdjointX[localIndex] = FluidSolver.GetVertexForceX(self.fluidInterfaceIdentifier, int(iVertex))
-            localDispFlowAdjointY[localIndex] = FluidSolver.GetVertexForceY(self.fluidInterfaceIdentifier, int(iVertex))
-            if self.nDim == 3:
-                localDispFlowAdjointZ[localIndex] = FluidSolver.GetVertexForceZ(self.fluidInterfaceIdentifier, int(iVertex))
-            else:
-                localDispFlowAdjointZ[localIndex] = 0.0
+            localDispFlowAdjointX[localIndex] = sensX
+            localDispFlowAdjointY[localIndex] = sensY
+            localDispFlowAdjointZ[localIndex] = sensZ
             localIndex += 1
 
         if self.have_MPI:
@@ -696,15 +717,28 @@ class AdjointInterface:
         ################################################################################################################
 
         if self.haveSolidSolver:
+
+            # Recover the relaxation parameter
+            relaxParam = float(FSIConfig["RELAX_PARAM"])
+
             # For the vertices that belong to the interface
             for iVertex in range(0, self.nSolidInterfaceNodes):
+                localDispSolidAdjointX[iVertex] = relaxParam * self.globalDispSolidAdjointX[iVertex] + \
+                                                  (1.0 - relaxParam) * self.globalDispSolidAdjointXOld[iVertex]
+                localDispSolidAdjointY[iVertex] = relaxParam * self.globalDispSolidAdjointY[iVertex] + \
+                                                  (1.0 - relaxParam) * self.globalDispSolidAdjointYOld[iVertex]
+                localDispSolidAdjointZ[iVertex] = relaxParam * self.globalDispSolidAdjointZ[iVertex] + \
+                                                  (1.0 - relaxParam) * self.globalDispSolidAdjointZOld[iVertex]
                 # Store them in the solid solver directly
-                SolidSolver.SetDisplacementAdjoint(iVertex, self.globalDispSolidAdjointX[iVertex],
-                                                            self.globalDispSolidAdjointY[iVertex],
-                                                            self.globalDispSolidAdjointZ[iVertex])
+                SolidSolver.SetDisplacementAdjoint(iVertex, localDispSolidAdjointX[iVertex],
+                                                            localDispSolidAdjointY[iVertex],
+                                                            localDispSolidAdjointZ[iVertex])
 
         # Delete local variables
         del localDispFlowAdjointX, localDispFlowAdjointY, localDispFlowAdjointZ
+
+        if self.haveSolidSolver:
+            del localDispSolidAdjointX, localDispSolidAdjointY, localDispSolidAdjointZ
 
 
     def transferFlowLoadAdjoint(self, FSIConfig, FluidSolver, SolidSolver, MLSSolver):
@@ -839,6 +873,9 @@ class AdjointInterface:
         # --- External FSI loop --- #
         self.FSIIter = 0
 
+        # Preprocess only done once at the beginning
+        FluidSolver.Preprocess(0)  # Time iteration pre-processing
+
         # For the number of iterations allowed
         while self.FSIIter < nFSIIter:
 
@@ -853,7 +890,7 @@ class AdjointInterface:
             # --- Fluid solver call for FSI subiteration --- #
             self.MPIPrint('\n##### Launching fluid solver for a steady computation\n')
             self.MPIBarrier()
-            FluidSolver.Preprocess(0)          # Time iteration pre-processing
+            FluidSolver.ResetConvergence()     # Make sure the solver starts convergence from 0
             FluidSolver.Run()                  # Run one time-step (static: one simulation)
             FluidSolver.Update()               # Update the solver for the next time iteration
             FluidSolver.Monitor(0)             # Monitor the solver and output solution to file if required
@@ -867,7 +904,7 @@ class AdjointInterface:
             # --- Surface fluid loads interpolation and communication ---#
             self.MPIPrint('\n##### Transferring displacement adjoint to the beam solver\n')
             self.MPIBarrier()
-            self.transferDisplacementAdjoint_SourceTerm(FluidSolver, SolidSolver, MLSSolver)
+            self.transferDisplacementAdjoint_SourceTerm(FSIconfig, FluidSolver, SolidSolver, MLSSolver)
 
             # --- Solid solver call for FSI subiteration --- #
 
@@ -882,8 +919,8 @@ class AdjointInterface:
 
             # Move the restart file to a solution file
             if myid is 0:
-                new_name_flow = "./adjoint_flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
-                shutil.move("./adjoint.vtk", new_name_flow)
+                new_name_flow = "./Output/adjoint_flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
+                shutil.move("adjoint.vtk", new_name_flow)
 
         self.MPIBarrier()
 
