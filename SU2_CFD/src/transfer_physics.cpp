@@ -35,7 +35,7 @@
  * License along with SU2. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../include/transfer_structure.hpp"
+#include "../include/transfer/CTransfer.hpp"
 
 CTransfer_FlowTraction::CTransfer_FlowTraction(void) : CTransfer() {
 
@@ -128,9 +128,11 @@ void CTransfer_FlowTraction::GetDonor_Variable(CSolver *flow_solution, CGeometry
   bool compressible       = (flow_config->GetKind_Regime() == COMPRESSIBLE);
   bool incompressible     = (flow_config->GetKind_Regime() == INCOMPRESSIBLE);
   bool viscous_flow       = ((flow_config->GetKind_Solver() == NAVIER_STOKES) ||
-                              (flow_config->GetKind_Solver() == RANS) ||
-                              (flow_config->GetKind_Solver() == DISC_ADJ_NAVIER_STOKES) ||
-                              (flow_config->GetKind_Solver() == DISC_ADJ_RANS));
+                             (flow_config->GetKind_Solver() == RANS) ||
+                             (flow_config->GetKind_Solver() == DISC_ADJ_NAVIER_STOKES) ||
+                             (flow_config->GetKind_Solver() == DISC_ADJ_RANS) ||
+                             (flow_config->GetKind_Solver() == DISC_ADJ_INC_NAVIER_STOKES) ||
+                             (flow_config->GetKind_Solver() == DISC_ADJ_INC_RANS));
 
   // Parameters for the calculations
   // Pn: Pressure
@@ -209,45 +211,6 @@ void CTransfer_FlowTraction::SetTarget_Variable(CSolver *fea_solution, CGeometry
   fea_solution->node[Point_Struct]->Add_FlowTraction(Target_Variable);
 
 }
-
-CTransfer_BoundaryDisplacements::CTransfer_BoundaryDisplacements(unsigned short val_nVar, unsigned short val_nConst, CConfig *config) : CTransfer(val_nVar, val_nConst, config) {
-
-}
-
-CTransfer_BoundaryDisplacements::~CTransfer_BoundaryDisplacements(void) {
-
-}
-
-
-void CTransfer_BoundaryDisplacements::GetPhysical_Constants(CSolver *struct_solution, CSolver *flow_solution,
-                                                              CGeometry *struct_geometry, CGeometry *flow_geometry,
-                                                              CConfig *struct_config, CConfig *flow_config) {
-}
-
-void CTransfer_BoundaryDisplacements::GetDonor_Variable(CSolver *struct_solution, CGeometry *struct_geometry, CConfig *struct_config,
-                                                       unsigned long Marker_Struct, unsigned long Vertex_Struct, unsigned long Point_Struct) {
-
-  su2double *DisplacementDonor;
-  unsigned short iVar;
-
-  /*--- The displacements come from the predicted solution, but they are no longer incremental ---*/
-  DisplacementDonor = struct_solution->node[Point_Struct]->GetSolution_Pred();
-
-  for (iVar = 0; iVar < nVar; iVar++)
-    Donor_Variable[iVar] = DisplacementDonor[iVar];
-
-}
-
-void CTransfer_BoundaryDisplacements::SetTarget_Variable(CSolver *mesh_solver, CGeometry *flow_geometry,
-                               CConfig *flow_config, unsigned long Marker_Flow,
-                               unsigned long Vertex_Flow, unsigned long Point_Mesh) {
-
-  /*--- Impose the boundary displacements ---*/
-
-  mesh_solver->node[Point_Mesh]->SetBound_Disp(Target_Variable);
-
-}
-
 
 CTransfer_StructuralDisplacements::CTransfer_StructuralDisplacements(void) : CTransfer() {
 
@@ -453,7 +416,7 @@ void CTransfer_MixingPlaneInterface::GetDonor_Variable(CSolver *donor_solution, 
     unsigned long iSpan, unsigned long rank) {
 
   unsigned short nDim = nVar - 2;
-  bool turbulent = ((donor_config->GetKind_Solver() == RANS) || (donor_config->GetKind_Solver() == DISC_ADJ_RANS));
+  bool turbulent = (donor_config->GetKind_Turb_Model() != NONE);
 
 
 
@@ -488,7 +451,7 @@ void CTransfer_MixingPlaneInterface::SetTarget_Variable(CSolver *target_solution
     unsigned long iSpan, unsigned long rank) {
 
   unsigned short nDim = nVar - 2;
-  bool turbulent = ((target_config->GetKind_Solver() == RANS) || (target_config->GetKind_Solver() == DISC_ADJ_RANS));
+  bool turbulent = (target_config->GetKind_Turb_Model() != NONE);
 
 
   target_solution->SetExtAverageDensity(Marker_Target, iSpan, Target_Variable[0]);
@@ -683,9 +646,15 @@ void CTransfer_ConjugateHeatVars::GetDonor_Variable(CSolver *donor_solution, CGe
   bool flow = ((donor_config->GetKind_Solver() == NAVIER_STOKES)
                || (donor_config->GetKind_Solver() == RANS)
                || (donor_config->GetKind_Solver() == DISC_ADJ_NAVIER_STOKES)
-               || (donor_config->GetKind_Solver() == DISC_ADJ_RANS));
+               || (donor_config->GetKind_Solver() == DISC_ADJ_RANS) 
+               ||(donor_config->GetKind_Solver() == INC_NAVIER_STOKES)
+               || (donor_config->GetKind_Solver() == INC_RANS)
+               || (donor_config->GetKind_Solver() == DISC_ADJ_INC_NAVIER_STOKES)
+               || (donor_config->GetKind_Solver() == DISC_ADJ_INC_RANS));
+  
   bool compressible_flow  = (donor_config->GetKind_Regime() == COMPRESSIBLE) && flow;
   bool incompressible_flow = (donor_config->GetEnergy_Equation()) && flow;
+  
   bool heat_equation      = donor_config->GetKind_Solver() == HEAT_EQUATION_FVM;
 
   Temperature_Ref   = donor_config->GetTemperature_Ref();

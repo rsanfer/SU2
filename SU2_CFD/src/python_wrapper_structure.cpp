@@ -35,9 +35,9 @@
  * License along with SU2. If not, see <http://www.gnu.org/licenses/>.
  */
 
- #include "../include/driver_structure.hpp"
+ #include "../include/drivers/CDriver.hpp"
 
-void CDriver::PythonInterface_Preprocessing(){
+void CDriver::PythonInterface_Preprocessing(CConfig **config, CGeometry ****geometry, CSolver *****solver){
 
   int rank = MASTER_NODE;
 
@@ -47,17 +47,23 @@ void CDriver::PythonInterface_Preprocessing(){
 
   /* --- Initialize boundary conditions customization, this is achieve through the Python wrapper --- */
   for(iZone=0; iZone < nZone; iZone++){
-    if (rank == MASTER_NODE) cout << "Setting customized boundary conditions for zone " << iZone << endl;
-    for (iMesh = 0; iMesh <= config_container[iZone]->GetnMGLevels(); iMesh++) {
-      geometry_container[iZone][INST_0][iMesh]->SetCustomBoundary(config_container[iZone]);
-    }
-    geometry_container[iZone][INST_0][MESH_0]->UpdateCustomBoundaryConditions(geometry_container[iZone][INST_0], config_container[iZone]);
-
-    if ((config_container[iZone]->GetKind_Solver() == EULER) ||
-        (config_container[iZone]->GetKind_Solver() == NAVIER_STOKES) ||
-        (config_container[iZone]->GetKind_Solver() == RANS)) {
-
-          solver_container[iZone][INST_0][MESH_0][FLOW_SOL]->UpdateCustomBoundaryConditions(geometry_container[iZone][INST_0], config_container[iZone]);
+    
+    if (config[iZone]->GetnMarker_PyCustom() > 0){
+      
+      if (rank == MASTER_NODE) cout << endl << "----------------- Python Interface Preprocessing ( Zone "<< iZone <<" ) -----------------" << endl;
+      
+      if (rank == MASTER_NODE) cout << "Setting customized boundary conditions for zone " << iZone << endl;
+      for (iMesh = 0; iMesh <= config[iZone]->GetnMGLevels(); iMesh++) {
+        geometry[iZone][INST_0][iMesh]->SetCustomBoundary(config[iZone]);
+      }
+      geometry[iZone][INST_0][MESH_0]->UpdateCustomBoundaryConditions(geometry[iZone][INST_0], config[iZone]);
+      
+      if ((config[iZone]->GetKind_Solver() == EULER) ||
+          (config[iZone]->GetKind_Solver() == NAVIER_STOKES) ||
+          (config[iZone]->GetKind_Solver() == RANS)) {
+        
+        solver[iZone][INST_0][MESH_0][FLOW_SOL]->UpdateCustomBoundaryConditions(geometry[iZone][INST_0], config[iZone]);
+      }
     }
   }
   /*--- Initialize some variables used for external communications trough the Py wrapper. ---*/
@@ -517,7 +523,7 @@ passivedouble CDriver::GetVertexTemperature(unsigned short iMarker, unsigned sho
   su2double vertexWallTemp(0.0);
 
   bool compressible = (config_container[ZONE_0]->GetKind_Regime() == COMPRESSIBLE);
-
+  
   iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
 
   if(geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetDomain() && compressible){
@@ -599,7 +605,7 @@ passivedouble CDriver::GetVertexNormalHeatFlux(unsigned short iMarker, unsigned 
   su2double *Normal, GradT[3] = {0.0,0.0,0.0}, UnitNormal[3] = {0.0,0.0,0.0};
 
   bool compressible = (config_container[ZONE_0]->GetKind_Regime() == COMPRESSIBLE);
-
+  
   vertexWallHeatFlux = 0.0;
   dTdn = 0.0;
 
@@ -713,23 +719,39 @@ vector<string> CDriver::GetAllMovingMarkersTag(){
   return movingBoundariesTagList;
 }
 
-vector<string> CDriver::GetAllInterfaceMarkersTag(){
+vector<string> CDriver::GetAllDeformMeshMarkersTag(){
 
   vector<string> interfaceBoundariesTagList;
   unsigned short iMarker, nBoundariesMarker;
   string Marker_Tag;
 
-  nBoundariesMarker = config_container[ZONE_0]->GetnMarker_Interface();
+  nBoundariesMarker = config_container[ZONE_0]->GetnMarker_Deform_Mesh();
   interfaceBoundariesTagList.resize(nBoundariesMarker);
 
   for(iMarker=0; iMarker < nBoundariesMarker; iMarker++){
-    Marker_Tag = config_container[ZONE_0]->GetMarker_Interface_TagBound(iMarker);
+    Marker_Tag = config_container[ZONE_0]->GetMarker_Deform_Mesh_TagBound(iMarker);
     interfaceBoundariesTagList[iMarker] = Marker_Tag;
   }
 
   return interfaceBoundariesTagList;
 }
 
+vector<string> CDriver::GetAllFluidLoadMarkersTag(){
+
+  vector<string> interfaceBoundariesTagList;
+  unsigned short iMarker, nBoundariesMarker;
+  string Marker_Tag;
+
+  nBoundariesMarker = config_container[ZONE_0]->GetnMarker_Fluid_Load();
+  interfaceBoundariesTagList.resize(nBoundariesMarker);
+
+  for(iMarker=0; iMarker < nBoundariesMarker; iMarker++){
+    Marker_Tag = config_container[ZONE_0]->GetMarker_Fluid_Load_TagBound(iMarker);
+    interfaceBoundariesTagList[iMarker] = Marker_Tag;
+  }
+
+  return interfaceBoundariesTagList;
+}
 
 vector<string> CDriver::GetAllCHTMarkersTag(){
 
@@ -995,7 +1017,7 @@ vector<passivedouble> CDriver::GetMeshDisp_Sensitivity(unsigned short iMarker, u
 
 }
 
-void CDriver::SetLoads(unsigned short iMarker, unsigned short iVertex, passivedouble LoadX,
+void CDriver::SetFEA_Loads(unsigned short iMarker, unsigned short iVertex, passivedouble LoadX,
                        passivedouble LoadY, passivedouble LoadZ) {
 
   unsigned long iPoint;
@@ -1008,7 +1030,7 @@ void CDriver::SetLoads(unsigned short iMarker, unsigned short iVertex, passivedo
 
 }
 
-vector<passivedouble> CDriver::GetDisplacements(unsigned short iMarker, unsigned short iVertex) {
+vector<passivedouble> CDriver::GetFEA_Displacements(unsigned short iMarker, unsigned short iVertex) {
 
   unsigned long iPoint;
   vector<su2double> Displacements(3, 0.0);
@@ -1031,7 +1053,7 @@ vector<passivedouble> CDriver::GetDisplacements(unsigned short iMarker, unsigned
 }
 
 
-vector<passivedouble> CDriver::GetVelocity(unsigned short iMarker, unsigned short iVertex) {
+vector<passivedouble> CDriver::GetFEA_Velocity(unsigned short iMarker, unsigned short iVertex) {
 
   unsigned long iPoint, GlobalIndex;
   vector<su2double> Velocity(3, 0.0);
@@ -1061,14 +1083,13 @@ vector<passivedouble> CDriver::GetVelocity(unsigned short iMarker, unsigned shor
   return Velocity_passive;
 }
 
-vector<passivedouble> CDriver::GetVelocity_n(unsigned short iMarker, unsigned short iVertex) {
+vector<passivedouble> CDriver::GetFEA_Velocity_n(unsigned short iMarker, unsigned short iVertex) {
 
-  unsigned long iPoint, GlobalIndex;
+  unsigned long iPoint;
   vector<su2double> Velocity_n(3, 0.0);
   vector<passivedouble> Velocity_n_passive(3, 0.0);
 
   iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
-  GlobalIndex = geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetGlobalIndex();
 
   if (config_container[ZONE_0]->GetDynamic_Analysis() == DYNAMIC){
     Velocity_n[0] = solver_container[ZONE_0][INST_0][MESH_0][FEA_SOL]->node[iPoint]->GetSolution_Vel_time_n(0);
@@ -1094,12 +1115,11 @@ vector<passivedouble> CDriver::GetVelocity_n(unsigned short iMarker, unsigned sh
 
 vector<passivedouble> CDriver::GetFlowLoad_Sensitivity(unsigned short iMarker, unsigned short iVertex) {
 
-  unsigned long iPoint, GlobalIndex;
+  unsigned long iPoint;
   vector<su2double> FlowLoad_Sens(3, 0.0);
   vector<passivedouble> FlowLoad_Sens_passive(3, 0.0);
 
   iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
-  GlobalIndex = geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetGlobalIndex();
 
   FlowLoad_Sens[0] = solver_container[ZONE_0][INST_0][MESH_0][ADJFEA_SOL]->node[iPoint]->GetFlowTractionSensitivity(0);
   FlowLoad_Sens[1] = solver_container[ZONE_0][INST_0][MESH_0][ADJFEA_SOL]->node[iPoint]->GetFlowTractionSensitivity(1);
@@ -1118,15 +1138,15 @@ vector<passivedouble> CDriver::GetFlowLoad_Sensitivity(unsigned short iMarker, u
 
 vector<passivedouble> CDriver::GetFlowLoad(unsigned short iMarker, unsigned short iVertex) {
 
-  unsigned long iPoint, GlobalIndex;
+  unsigned long iPoint;
   vector<su2double> FlowLoad(3, 0.0);
   vector<passivedouble> FlowLoad_passive(3, 0.0);
 
   CSolver *solver = solver_container[ZONE_0][INST_0][MESH_0][FLOW_SOL];
 
   iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
-  GlobalIndex = geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetGlobalIndex();
-  if (config_container[ZONE_0]->GetMarker_All_Interface(iMarker) == YES) {
+
+  if (config_container[ZONE_0]->GetMarker_All_Fluid_Load(iMarker) == YES) {
     FlowLoad[0] = solver->GetVertexTractions(iMarker, iVertex, 0);
     FlowLoad[1] = solver->GetVertexTractions(iMarker, iVertex, 1);
     if (solver->GetnVar() == 3)
@@ -1177,14 +1197,14 @@ void CDriver::SetSourceTerm_DispAdjoint(unsigned short iMarker, unsigned short i
 
 vector<passivedouble> CDriver::GetVertex_UndeformedCoord(unsigned short iMarker, unsigned short iVertex) {
 
-  unsigned long iPoint, GlobalIndex;
+  unsigned long iPoint;
   vector<su2double> MeshCoord(3, 0.0);
   vector<passivedouble> MeshCoord_passive(3, 0.0);
 
   CSolver *solver = solver_container[ZONE_0][INST_0][MESH_0][MESH_SOL];
 
   iPoint = geometry_container[ZONE_0][INST_0][MESH_0]->vertex[iMarker][iVertex]->GetNode();
-  GlobalIndex = geometry_container[ZONE_0][INST_0][MESH_0]->node[iPoint]->GetGlobalIndex();
+
   if (solver != NULL) {
     MeshCoord[0] = solver->node[iPoint]->GetMesh_Coord(0);
     MeshCoord[1] = solver->node[iPoint]->GetMesh_Coord(1);

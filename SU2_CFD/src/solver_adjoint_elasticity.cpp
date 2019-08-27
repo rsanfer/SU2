@@ -36,6 +36,8 @@
  */
 
 #include "../include/solver_structure.hpp"
+#include "../include/variables/CDiscAdjFEAVariable.hpp"
+#include "../include/variables/CDiscAdjFEABoundVariable.hpp"
 
 CDiscAdjFEASolver::CDiscAdjFEASolver(void) : CSolver (){
 
@@ -79,20 +81,11 @@ CDiscAdjFEASolver::CDiscAdjFEASolver(CGeometry *geometry, CConfig *config, CSolv
 
   unsigned short iVar, iMarker, iDim;
 
-  bool restart = config->GetRestart();
-
-  restart = false;
-
-  unsigned long iVertex, iPoint, index;
+  unsigned long iVertex, iPoint;
   string text_line, mesh_filename;
-  ifstream restart_file;
   string filename, AdjExt;
-  su2double dull_val;
 
   bool dynamic = (config->GetDynamic_Analysis() == DYNAMIC);
-
-  bool compressible = (config->GetKind_Regime() == COMPRESSIBLE);
-  bool incompressible = (config->GetKind_Regime() == INCOMPRESSIBLE);
 
   nVar = direct_solver->GetnVar();
   nDim = geometry->GetnDim();
@@ -204,7 +197,7 @@ CDiscAdjFEASolver::CDiscAdjFEASolver(CGeometry *geometry, CConfig *config, CSolv
     for (iPoint = 0; iPoint < nPoint; iPoint++) {
       isVertex = false;
       for (unsigned short iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
-        if (config->GetMarker_All_Interface(iMarker) == YES) {
+        if (config->GetMarker_All_Fluid_Load(iMarker) == YES) {
           indexVertex = geometry->node[iPoint]->GetVertex(iMarker);
           if (indexVertex != -1){isVertex = true; break;}
         }
@@ -523,7 +516,7 @@ void CDiscAdjFEASolver::RegisterVariables(CGeometry *geometry, CConfig *config, 
           direct_solver->RegisterVariables(geometry,config);
 
         /*--- Register the flow traction sensitivities ---*/
-        if (config->GetnMarker_Interface() > 0){
+        if (config->GetnMarker_Fluid_Load() > 0){
           for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++){
             direct_solver->node[iPoint]->RegisterFlowTraction();
           }
@@ -578,7 +571,11 @@ void CDiscAdjFEASolver::RegisterObj_Func(CConfig *config){
       ObjFunc_Value = direct_solver->GetTotal_OFRefNode();
       break;
   case VOLUME_FRACTION:
+  case TOPOL_DISCRETENESS:
       ObjFunc_Value = direct_solver->GetTotal_OFVolFrac();
+      break;
+  case TOPOL_COMPLIANCE:
+      ObjFunc_Value = direct_solver->GetTotal_OFCompliance();
       break;
   default:
       ObjFunc_Value = 0.0;  // If the objective function is computed in a different physical problem
@@ -701,7 +698,7 @@ void CDiscAdjFEASolver::ExtractAdjoint_Solution(CGeometry *geometry, CConfig *co
 
       /*--- Store the adjoint solution at time n ---*/
 
-      node[iPoint]->SetSolution_time_n(Solution);
+      node[iPoint]->Set_Solution_time_n(Solution);
     }
 
     /*--- The acceleration solution at time n... ---*/
@@ -818,7 +815,7 @@ void CDiscAdjFEASolver::ExtractAdjoint_Variables(CGeometry *geometry, CConfig *c
       direct_solver->ExtractAdjoint_Variables(geometry,config);
 
     /*--- Extract the flow traction sensitivities ---*/
-    if (config->GetnMarker_Interface() > 0){
+    if (config->GetnMarker_Fluid_Load() > 0){
       su2double val_sens;
       for (unsigned long iPoint = 0; iPoint < nPoint; iPoint++){
         for (unsigned short iDim = 0; iDim < nDim; iDim++){
@@ -837,7 +834,7 @@ void CDiscAdjFEASolver::SetAdjoint_Output(CGeometry *geometry, CConfig *config){
 
   bool dynamic = (config->GetDynamic_Analysis() == DYNAMIC);
   bool fsi = config->GetFSI_Simulation();
-  bool interface = (config->GetnMarker_Interface() > 0);
+  bool deform_mesh = (config->GetnMarker_Deform_Mesh() > 0);
 
   unsigned short iVar;
   unsigned long iPoint;
@@ -855,7 +852,7 @@ void CDiscAdjFEASolver::SetAdjoint_Output(CGeometry *geometry, CConfig *config){
       }
     }
 
-    if(interface){
+    if(deform_mesh){
       for (iVar = 0; iVar < nVar; iVar++){
         Solution[iVar] += node[iPoint]->GetSourceTerm_DispAdjoint(iVar);
       }
@@ -1265,3 +1262,4 @@ void CDiscAdjFEASolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CCo
 
 }
 
+    

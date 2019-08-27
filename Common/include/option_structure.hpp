@@ -1,4 +1,4 @@
-﻿/*!
+/*!
  * \file option_structure.hpp
  * \brief Defines classes for referencing options for easy input in CConfig
  * \author J. Hicken, B. Tracey
@@ -193,27 +193,33 @@ enum ENUM_SOLVER {
   EULER = 1,							/*!< \brief Definition of the Euler's solver. */
   NAVIER_STOKES = 2,					/*!< \brief Definition of the Navier-Stokes' solver. */
   RANS = 3,								/*!< \brief Definition of the Reynolds-averaged Navier-Stokes' (RANS) solver. */
-  HEAT_EQUATION_FVM = 28,     /*!< \brief Definition of the finite volume heat solver. */
-  FLUID_STRUCTURE_INTERACTION = 12,		/*!< \brief Definition of a FSI solver. */
-  FEM_ELASTICITY = 13,					/*!< \brief Definition of a FEM solver. */
-  ADJ_EULER = 18,						/*!< \brief Definition of the continuous adjoint Euler's solver. */
-  ADJ_NAVIER_STOKES = 19,				/*!< \brief Definition of the continuous adjoint Navier-Stokes' solver. */
-  ADJ_RANS = 20,						/*!< \brief Definition of the continuous adjoint Reynolds-averaged Navier-Stokes' (RANS) solver. */
-  TEMPLATE_SOLVER = 30,                 /*!< \brief Definition of template solver. */
-  ZONE_SPECIFIC = 31,          /*!< \brief Definition of a solver option that will induce a zone-wise definition once the driver is created. Not a reference to an own solver. */
-  DISC_ADJ_EULER = 35,
-  DISC_ADJ_RANS = 36,
-  DISC_ADJ_NAVIER_STOKES = 37,
-  DISC_ADJ_HEAT = 38,
-  DISC_ADJ_FEM_EULER = 65,
-  DISC_ADJ_FEM_RANS = 66,
-  DISC_ADJ_FEM_NS = 67,
-  DISC_ADJ_FEM = 40,
-  FEM_EULER = 50,                       /*!< \brief Definition of the finite element Euler's solver. */
-  FEM_NAVIER_STOKES = 51,               /*!< \brief Definition of the finite element Navier-Stokes' solver. */
-  FEM_RANS = 52,                        /*!< \brief Definition of the finite element Reynolds-averaged Navier-Stokes' (RANS) solver. */
-  FEM_LES = 53,                         /*!< \brief Definition of the finite element Large Eddy Simulation Navier-Stokes' (LES) solver. */
-  MULTIZONE = 99
+  INC_EULER = 4,							/*!< \brief Definition of the incompressible Euler's solver. */
+  INC_NAVIER_STOKES =5,					/*!< \brief Definition of the incompressible Navier-Stokes' solver. */
+  INC_RANS = 6,								/*!< \brief Definition of the incompressible Reynolds-averaged Navier-Stokes' (RANS) solver. */
+  HEAT_EQUATION_FVM = 7,     /*!< \brief Definition of the finite volume heat solver. */
+  FLUID_STRUCTURE_INTERACTION = 8,		/*!< \brief Definition of a FSI solver. */
+  FEM_ELASTICITY = 9,					/*!< \brief Definition of a FEM solver. */
+  ADJ_EULER = 10,						/*!< \brief Definition of the continuous adjoint Euler's solver. */
+  ADJ_NAVIER_STOKES = 11,				/*!< \brief Definition of the continuous adjoint Navier-Stokes' solver. */
+  ADJ_RANS = 12,						/*!< \brief Definition of the continuous adjoint Reynolds-averaged Navier-Stokes' (RANS) solver. */
+  TEMPLATE_SOLVER = 13,                 /*!< \brief Definition of template solver. */
+  ZONE_SPECIFIC = 14,          /*!< \brief Definition of a solver option that will induce a zone-wise definition once the driver is created. Not a reference to an own solver. */
+  DISC_ADJ_EULER = 15,
+  DISC_ADJ_RANS = 16,
+  DISC_ADJ_NAVIER_STOKES = 17,
+  DISC_ADJ_INC_EULER = 18,
+  DISC_ADJ_INC_RANS = 19,
+  DISC_ADJ_INC_NAVIER_STOKES = 20,
+  DISC_ADJ_HEAT = 21,
+  DISC_ADJ_FEM_EULER = 22,
+  DISC_ADJ_FEM_RANS = 23,
+  DISC_ADJ_FEM_NS = 24,
+  DISC_ADJ_FEM = 25,
+  FEM_EULER = 26,                       /*!< \brief Definition of the finite element Euler's solver. */
+  FEM_NAVIER_STOKES = 27,               /*!< \brief Definition of the finite element Navier-Stokes' solver. */
+  FEM_RANS = 28,                        /*!< \brief Definition of the finite element Reynolds-averaged Navier-Stokes' (RANS) solver. */
+  FEM_LES = 29,                         /*!< \brief Definition of the finite element Large Eddy Simulation Navier-Stokes' (LES) solver. */
+  MULTIPHYSICS = 30
 };
 /* BEGIN_CONFIG_ENUMS */
 static const map<string, ENUM_SOLVER> Solver_Map = CCreateMap<string, ENUM_SOLVER>
@@ -221,6 +227,9 @@ static const map<string, ENUM_SOLVER> Solver_Map = CCreateMap<string, ENUM_SOLVE
 ("EULER", EULER)
 ("NAVIER_STOKES", NAVIER_STOKES)
 ("RANS", RANS)
+("INC_EULER", INC_EULER)
+("INC_NAVIER_STOKES", INC_NAVIER_STOKES)
+("INC_RANS", INC_RANS)
 ("FEM_EULER", FEM_EULER)
 ("FEM_NAVIER_STOKES", FEM_NAVIER_STOKES)
 ("FEM_RANS", FEM_RANS)
@@ -232,7 +241,10 @@ static const map<string, ENUM_SOLVER> Solver_Map = CCreateMap<string, ENUM_SOLVE
 ("ELASTICITY", FEM_ELASTICITY)
 ("DISC_ADJ_EULER", DISC_ADJ_EULER)
 ("DISC_ADJ_RANS", DISC_ADJ_RANS)
-("DISC_ADJ_NAVIERSTOKES", DISC_ADJ_EULER)
+("DISC_ADJ_NAVIERSTOKES", DISC_ADJ_NAVIER_STOKES)
+("DISC_ADJ_INC_EULER", DISC_ADJ_INC_EULER)
+("DISC_ADJ_INC_RANS", DISC_ADJ_INC_RANS)
+("DISC_ADJ_INC_NAVIERSTOKES", DISC_ADJ_INC_NAVIER_STOKES)
 ("DISC_ADJ_HEAT_EQUATION_FVM", DISC_ADJ_HEAT)
 ("DISC_ADJ_FEM_EULER", DISC_ADJ_FEM_EULER)
 ("DISC_ADJ_FEM_RANS", DISC_ADJ_FEM_RANS)
@@ -241,7 +253,7 @@ static const map<string, ENUM_SOLVER> Solver_Map = CCreateMap<string, ENUM_SOLVE
 ("FLUID_STRUCTURE_INTERACTION", FLUID_STRUCTURE_INTERACTION)
 ("TEMPLATE_SOLVER", TEMPLATE_SOLVER)
 ("ZONE_SPECIFIC", ZONE_SPECIFIC)
-("MULTIZONE", MULTIZONE);
+("MULTIPHYSICS", MULTIPHYSICS);
 
 /*!
  * \brief different solver types for the multizone environment component
@@ -275,7 +287,7 @@ static const map<string, ENUM_FSI_FLUID_PROBLEM> FSI_Fluid_Solver_Map = CCreateM
  */
 enum ENUM_FSI_STRUC_PROBLEM {
   NO_SOLVER_SFSI = 0,				/*!< \brief Definition of no solver. */
-  FEM_ELASTICITY_SFSI = 13,		/*!< \brief Nonlinear elasticity equations for the FSI problem */
+  FEM_ELASTICITY_SFSI = 9,		/*!< \brief Nonlinear elasticity equations for the FSI problem */
 };
 static const map<string, ENUM_FSI_STRUC_PROBLEM> FSI_Struc_Solver_Map = CCreateMap<string, ENUM_FSI_STRUC_PROBLEM>
 ("NONE", NO_SOLVER_SFSI)
@@ -382,10 +394,8 @@ enum ENUM_TRANSFER {
 enum ENUM_REGIME {
   COMPRESSIBLE = 0,			/*!< \brief Definition of compressible solver. */
   INCOMPRESSIBLE = 1,				/*!< \brief Definition of incompressible solver. */
+  NO_FLOW = 2
 };
-static const map<string, ENUM_REGIME> Regime_Map = CCreateMap<string, ENUM_REGIME>
-("COMPRESSIBLE", COMPRESSIBLE)
-("INCOMPRESSIBLE", INCOMPRESSIBLE);
 
 /*!
  * \brief different non-dimensional modes
@@ -617,38 +627,48 @@ static const map<string, ENUM_CONDUCTIVITYMODEL_TURB> TurbConductivityModel_Map 
  */
 enum ENUM_GRIDMOVEMENT {
   NO_MOVEMENT = 0, /*!< \brief Simulation on a static mesh. */
-  DEFORMING = 1,		/*!< \brief Simulation with dynamically deforming meshes (plunging/pitching/rotation). */
   RIGID_MOTION = 2,		/*!< \brief Simulation with rigid mesh motion (plunging/pitching/rotation). */
-  FLUID_STRUCTURE = 3,		/*!< \brief Fluid structure deformation. */
-  EXTERNAL = 4,  /*!< \brief Arbitrary grid motion specified by external files at each time step. */
-  EXTERNAL_ROTATION = 5,  /*!< \brief Arbitrary grid motion specified by external files at each time step with rigid rotation. */
-  AEROELASTIC = 6,    /*!< \brief Simulation with aeroelastic motion. */
-  MOVING_WALL = 7,    /*!< \brief Simulation with moving walls (translation/rotation). */
   ROTATING_FRAME = 8,    /*!< \brief Simulation in a rotating frame. */
   ELASTICITY = 9,    /*!< \brief Linear Elasticity. */
-  AEROELASTIC_RIGID_MOTION = 10, /*!< \brief Simulation with rotation and aeroelastic motion. */
   STEADY_TRANSLATION = 11,    /*!< \brief Simulation in a steadily translating frame. */
   GUST = 12, /*!< \brief Simulation on a static mesh with a gust. */
   MOVING_HTP = 13,    /*!< \brief Simulation with moving HTP (rotation). */
-  FLUID_STRUCTURE_STATIC = 14 /*!< \brief Fluid structure deformation with no grid velocity. */
+
 };
 
 static const map<string, ENUM_GRIDMOVEMENT> GridMovement_Map = CCreateMap<string, ENUM_GRIDMOVEMENT>
 ("NONE", NO_MOVEMENT)
-("DEFORMING", DEFORMING)
 ("RIGID_MOTION", RIGID_MOTION)
-("FLUID_STRUCTURE", FLUID_STRUCTURE)
-("EXTERNAL", EXTERNAL)
-("EXTERNAL_ROTATION", EXTERNAL_ROTATION)
-("AEROELASTIC", AEROELASTIC)
 ("ROTATING_FRAME", ROTATING_FRAME)
 ("ELASTICITY", ELASTICITY)
-("MOVING_WALL", MOVING_WALL)
 ("MOVING_HTP", MOVING_HTP)
-("AEROELASTIC_RIGID_MOTION", AEROELASTIC_RIGID_MOTION)
 ("STEADY_TRANSLATION", STEADY_TRANSLATION)
-("GUST", GUST)
-("FLUID_STRUCTURE_STATIC", FLUID_STRUCTURE_STATIC);
+("GUST", GUST);
+
+
+
+enum ENUM_SURFACEMOVEMENT {
+  DEFORMING = 1,
+  MOVING_WALL = 2,
+  AEROELASTIC = 3,    /*!< \brief Simulation with aeroelastic motion. */
+  AEROELASTIC_RIGID_MOTION = 4, /*!< \brief Simulation with rotation and aeroelastic motion. */
+  FLUID_STRUCTURE = 5,		/*!< \brief Fluid structure deformation. */
+  EXTERNAL = 6,
+  EXTERNAL_ROTATION = 7,
+  FLUID_STRUCTURE_STATIC = 8 /*!< \brief Fluid structure deformation with no grid velocity. */
+  
+};
+
+static const map<string, ENUM_SURFACEMOVEMENT> SurfaceMovement_Map = CCreateMap<string, ENUM_SURFACEMOVEMENT>
+("DEFORMING", DEFORMING)
+("MOVING_WALL", MOVING_WALL)
+("AEROELASTIC_RIGID_MOTION", AEROELASTIC_RIGID_MOTION)
+("AEROELASTIC", AEROELASTIC)
+("FLUID_STRUCTURE_STATIC", FLUID_STRUCTURE_STATIC)
+("FLUID_STRUCTURE", FLUID_STRUCTURE)
+("EXTERNAL", EXTERNAL)
+("EXTERNAL_ROTATION", EXTERNAL_ROTATION);
+
 
 /*!
  * \brief type of wind gusts
@@ -800,28 +820,30 @@ static const map<string, ENUM_LIMITER> Limiter_Map = CCreateMap<string, ENUM_LIM
  */
 enum ENUM_TURB_MODEL {
   NO_TURB_MODEL = 0, /*!< \brief No turbulence model. */
-  SA      = 1, /*!< \brief Kind of Turbulent model (Spalart-Allmaras). */
-  SA_NEG  = 2, /*!< \brief Kind of Turbulent model (Spalart-Allmaras). */
-  SST     = 3, /*!< \brief Kind of Turbulence model (Menter SST). */
-  SA_E    = 4, /*!< \brief Kind of Turbulent model (Spalart-Allmaras Edwards). */
-  SA_COMP = 5, /*!< \brief Kind of Turbulent model (Spalart-Allmaras Compressibility Correction). */
-  SA_E_COMP = 6, /*!< \brief Kind of Turbulent model (Spalart-Allmaras Edwards with Compressibility Correction). */
+  SA        = 1, /*!< \brief Kind of Turbulent model (Spalart-Allmaras). */
+  SA_NEG    = 2, /*!< \brief Kind of Turbulent model (Spalart-Allmaras). */
+  SA_E      = 3, /*!< \brief Kind of Turbulent model (Spalart-Allmaras Edwards). */
+  SA_COMP   = 4, /*!< \brief Kind of Turbulent model (Spalart-Allmaras Compressibility Correction). */
+  SA_E_COMP = 5, /*!< \brief Kind of Turbulent model (Spalart-Allmaras Edwards with Compressibility Correction). */
+  SST       = 6, /*!< \brief Kind of Turbulence model (Menter SST). */
+  SST_SUST  = 7  /*!< \brief Kind of Turbulence model (Menter SST with sustaining terms for free-stream preservation). */
 };
 static const map<string, ENUM_TURB_MODEL> Turb_Model_Map = CCreateMap<string, ENUM_TURB_MODEL>
 ("NONE", NO_TURB_MODEL)
 ("SA", SA)
 ("SA_NEG", SA_NEG)
-("SST", SST)
 ("SA_E", SA_E)
 ("SA_COMP", SA_COMP)
-("SA_E_COMP", SA_E_COMP);
+("SA_E_COMP", SA_E_COMP)
+("SST", SST)
+("SST_SUST", SST_SUST);
 
 /*!
  * \brief types of transition models
  */
 enum ENUM_TRANS_MODEL {
   NO_TRANS_MODEL = 0,            /*!< \brief No transition model. */
-  LM = 1,	/*!< \brief Kind of transition model (LM for Spalart-Allmaras). */
+  LM = 1,	/*!< \brief Kind of transition model (Langtry-Menter (LM) for SST and Spalart-Allmaras). */
   BC = 2	/*!< \brief Kind of transition model (BAS-CAKMAKCIOGLU (BC) for Spalart-Allmaras). */
 };
 static const map<string, ENUM_TRANS_MODEL> Trans_Model_Map = CCreateMap<string, ENUM_TRANS_MODEL>
@@ -1364,7 +1386,9 @@ enum ENUM_OBJECTIVE {
   ENTROPY_GENERATION = 50,
   REFERENCE_GEOMETRY=60,          /*!<\brief Norm of displacements with respect to target geometry. */
   REFERENCE_NODE=61,              /*!<\brief Objective function defined as the difference of a particular node respect to a reference position. */
-  VOLUME_FRACTION=62              /*!<\brief Volume average physical density, for material-based topology optimization applications. */
+  VOLUME_FRACTION=62,             /*!<\brief Volume average physical density, for material-based topology optimization applications. */
+  TOPOL_DISCRETENESS=63,          /*!<\brief Measure of the discreteness of the current topology. */
+  TOPOL_COMPLIANCE=64             /*!<\brief Measure of the discreteness of the current topology. */
 };
 
 static const map<string, ENUM_OBJECTIVE> Objective_Map = CCreateMap<string, ENUM_OBJECTIVE>
@@ -1413,7 +1437,9 @@ static const map<string, ENUM_OBJECTIVE> Objective_Map = CCreateMap<string, ENUM
 ("KINETIC_ENERGY_LOSS", KINETIC_ENERGY_LOSS)
 ("REFERENCE_GEOMETRY", REFERENCE_GEOMETRY)
 ("REFERENCE_NODE", REFERENCE_NODE)
-("VOLUME_FRACTION", VOLUME_FRACTION);
+("VOLUME_FRACTION", VOLUME_FRACTION)
+("TOPOL_DISCRETENESS", TOPOL_DISCRETENESS)
+("TOPOL_COMPLIANCE", TOPOL_COMPLIANCE);
 
 /*!
  * \brief types of residual criteria equations
@@ -1691,10 +1717,7 @@ enum ENUM_LINEAR_SOLVER {
   FGMRES = 5,    	/*!< \brief Flexible Generalized Minimal Residual method. */
   BCGSTAB = 6,	/*!< \brief BCGSTAB - Biconjugate Gradient Stabilized Method (main solver). */
   RESTARTED_FGMRES = 7,  /*!< \brief Flexible Generalized Minimal Residual method with restart. */
-  SMOOTHER_LUSGS = 8,  /*!< \brief LU_SGS smoother. */
-  SMOOTHER_JACOBI = 9,  /*!< \brief Jacobi smoother. */
-  SMOOTHER_ILU = 10,  /*!< \brief ILU smoother. */
-  SMOOTHER_LINELET = 11  /*!< \brief Linelet smoother. */
+  SMOOTHER = 8,  /*!< \brief Iterative smoother. */
 };
 static const map<string, ENUM_LINEAR_SOLVER> Linear_Solver_Map = CCreateMap<string, ENUM_LINEAR_SOLVER>
 ("STEEPEST_DESCENT", STEEPEST_DESCENT)
@@ -1704,10 +1727,7 @@ static const map<string, ENUM_LINEAR_SOLVER> Linear_Solver_Map = CCreateMap<stri
 ("BCGSTAB", BCGSTAB)
 ("FGMRES", FGMRES)
 ("RESTARTED_FGMRES", RESTARTED_FGMRES)
-("SMOOTHER_LUSGS", SMOOTHER_LUSGS)
-("SMOOTHER_JACOBI", SMOOTHER_JACOBI)
-("SMOOTHER_LINELET", SMOOTHER_LINELET)
-("SMOOTHER_ILU", SMOOTHER_ILU);
+("SMOOTHER", SMOOTHER);
 
 /*!
  * \brief types surface continuity at the intersection with the FFD
@@ -1969,7 +1989,9 @@ enum MPI_QUANTITIES {
   NEIGHBORS            = 24,  /*!< \brief Neighbor point count communication (for JST). */
   SOLUTION_FEA         = 25,  /*!< \brief FEA solution communication. */
   SOLUTION_FEA_OLD     = 26,  /*!< \brief FEA solution old communication. */
-  MESH_DISPLACEMENTS   = 27   /*!< \brief Mesh displacements at the interface. */
+  MESH_DISPLACEMENTS   = 27,  /*!< \brief Mesh displacements at the interface. */
+  SOLUTION_TIME_N      = 28,  /*!< \brief Solution at time n. */
+  SOLUTION_TIME_N1     = 29   /*!< \brief Solution at time n-1. */
 };
 
 /*!
@@ -2052,11 +2074,13 @@ static const map<string, ENUM_VERIFICATION_SOLUTIONS> Verification_Solution_Map 
 
 class COptionBase {
 private:
+  vector<string> value;
 public:
   COptionBase() {};
   virtual  ~COptionBase() = 0;
-  //  virtual string SetValue(string) {SU2MPI::PrintAndFinalize("shouldn't be here"); return "";};
-  virtual string SetValue(vector<string>) = 0;
+
+  virtual string SetValue(vector<string> value){this->value = value; return "";}
+  vector<string> GetValue() {return value;}
   virtual void SetDefault() = 0;
 
   string optionCheckMultipleValues(vector<string> & option_value, string type_id, string option_name) {
@@ -2099,6 +2123,7 @@ public:
 
   ~COptionEnum() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // Check if there is more than one string
     string out = optionCheckMultipleValues(option_value, "enum", this->name);
     if (out.compare("") != 0) {
@@ -2138,6 +2163,7 @@ public:
 
   ~COptionDouble() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // check if there is more than one value
     string out = optionCheckMultipleValues(option_value, "su2double", this->name);
     if (out.compare("") != 0) {
@@ -2169,6 +2195,7 @@ public:
 
   ~COptionString() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // check if there is more than one value
     string out = optionCheckMultipleValues(option_value, "su2double", this->name);
     if (out.compare("") != 0) {
@@ -2195,6 +2222,7 @@ public:
 
   ~COptionInt() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     string out = optionCheckMultipleValues(option_value, "int", this->name);
     if (out.compare("") != 0) {
       return out;
@@ -2225,6 +2253,7 @@ public:
 
   ~COptionULong() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     string out = optionCheckMultipleValues(option_value, "unsigned long", this->name);
     if (out.compare("") != 0) {
       return out;
@@ -2255,6 +2284,7 @@ public:
 
   ~COptionUShort() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     string out = optionCheckMultipleValues(option_value, "unsigned short", this->name);
     if (out.compare("") != 0) {
       return out;
@@ -2285,6 +2315,7 @@ public:
 
   ~COptionLong() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     string out = optionCheckMultipleValues(option_value, "long", this->name);
     if (out.compare("") != 0) {
       return out;
@@ -2316,6 +2347,7 @@ public:
 
   ~COptionBool() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // check if there is more than one value
     string out = optionCheckMultipleValues(option_value, "bool", this->name);
     if (out.compare("") != 0) {
@@ -2352,6 +2384,7 @@ public:
 
   ~COptionEnumList() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     if (option_value.size() == 1 && option_value[0].compare("NONE") == 0) {
       this->size = 0;
       return "";
@@ -2403,6 +2436,7 @@ public:
      if(vals != NULL) delete [] vals; 
   };
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // Check that the size is correct
     if (option_value.size() != (unsigned long)this->size) {
       string newstring;
@@ -2453,6 +2487,7 @@ public:
 
   ~COptionDoubleList() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // The size is the length of option_value
     unsigned short option_size = option_value.size();
     if (option_size == 1 && option_value[0].compare("NONE") == 0) {
@@ -2495,6 +2530,7 @@ public:
   
   ~COptionShortList() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // The size is the length of option_value
     unsigned short option_size = option_value.size();
     if (option_size == 1 && option_value[0].compare("NONE") == 0) {
@@ -2536,6 +2572,7 @@ public:
 
   ~COptionUShortList() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // The size is the length of option_value
     unsigned short option_size = option_value.size();
     if (option_size == 1 && option_value[0].compare("NONE") == 0) {
@@ -2577,6 +2614,7 @@ public:
 
   ~COptionStringList() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // The size is the length of option_value
     unsigned short option_size = option_value.size();
     if (option_size == 1 && option_value[0].compare("NONE") == 0) {
@@ -2612,6 +2650,7 @@ public:
 
   ~COptionConvect() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
 
     string out = optionCheckMultipleValues(option_value, "unsigned short", this->name);
     if (out.compare("") != 0) {
@@ -2657,6 +2696,7 @@ public:
 
   ~COptionFEMConvect() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
 
     string out = optionCheckMultipleValues(option_value, "unsigned short", this->name);
     if (out.compare("") != 0) {
@@ -2699,6 +2739,7 @@ public:
 
   ~COptionMathProblem() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     string out = optionCheckMultipleValues(option_value, "unsigned short", this->name);
     if (out.compare("") != 0) {
       return out;
@@ -2753,6 +2794,7 @@ public:
   ~COptionDVParam() {};
   
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     if ((option_value.size() == 1) && (option_value[0].compare("NONE") == 0)) {
       this->nDV = 0;
       return "";
@@ -2915,6 +2957,7 @@ public:
   ~COptionDVValue() {};
 
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     if ((option_value.size() == 1) && (option_value[0].compare("NONE") == 0)) {
       this->nDV_Value = NULL;
       return "";
@@ -3020,6 +3063,7 @@ public:
   ~COptionFFDDef() {};
   
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     if ((option_value.size() == 1) && (option_value[0].compare("NONE") == 0)) {
       this->nFFD = 0;
       return "";
@@ -3114,6 +3158,7 @@ public:
   ~COptionFFDDegree() {};
   
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     if ((option_value.size() == 1) && (option_value[0].compare("NONE") == 0)) {
       this->nFFD = 0;
       return "";
@@ -3203,6 +3248,7 @@ public:
 
   ~COptionStringDoubleList() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     // There must be an even number of entries (same number of strings and doubles
     unsigned short totalVals = option_value.size();
     if ((totalVals % 2) != 0) {
@@ -3254,7 +3300,7 @@ public:
 
   ~COptionInlet() {};
   string SetValue(vector<string> option_value) {
-
+    COptionBase::SetValue(option_value);
     unsigned short totalVals = option_value.size();
     if ((totalVals == 1) && (option_value[0].compare("NONE") == 0)) {
       this->size = 0;
@@ -3345,7 +3391,7 @@ public:
   ~COptionRiemann() {};
 
   string SetValue(vector<string> option_value) {
-
+    COptionBase::SetValue(option_value);
     unsigned short totalVals = option_value.size();
     if ((totalVals == 1) && (option_value[0].compare("NONE") == 0)) {
       this->size = 0;
@@ -3453,7 +3499,7 @@ public:
   ~COptionGiles() {};
 
   string SetValue(vector<string> option_value) {
-
+    COptionBase::SetValue(option_value);
     unsigned long totalVals = option_value.size();
     if ((totalVals == 1) && (option_value[0].compare("NONE") == 0)) {
       this->size = 0;
@@ -3575,7 +3621,7 @@ public:
   ~COptionExhaust() {};
   
   string SetValue(vector<string> option_value) {
-
+    COptionBase::SetValue(option_value);
     unsigned short totalVals = option_value.size();
     if ((totalVals == 1) && (option_value[0].compare("NONE") == 0)) {
       this->size = 0;
@@ -3642,7 +3688,7 @@ public:
 
   ~COptionPeriodic() {};
   string SetValue(vector<string> option_value) {
-
+    COptionBase::SetValue(option_value);
     const int mod_num = 11;
 
     unsigned short totalVals = option_value.size();
@@ -3807,7 +3853,7 @@ public:
 
   ~COptionTurboPerformance() {};
   string SetValue(vector<string> option_value) {
-
+    COptionBase::SetValue(option_value);
     const int mod_num = 2;
 
     unsigned long totalVals = option_value.size();
@@ -3857,7 +3903,8 @@ public:
   }
   ~COptionPython() {};
   // No checking happens with python options
-  string SetValue(vector<string>) {
+  string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     return "";
   }
   // No defaults with python options
@@ -3889,6 +3936,7 @@ public:
   
   ~COptionActDisk() {};
   string SetValue(vector<string> option_value) {
+    COptionBase::SetValue(option_value);
     const int mod_num = 8;
     unsigned short totalVals = option_value.size();
     if ((totalVals == 1) && (option_value[0].compare("NONE") == 0)) {
@@ -3983,7 +4031,7 @@ public:
   ~COptionWallFunction(){}
 
   string SetValue(vector<string> option_value) {
-
+    COptionBase::SetValue(option_value);
     /*--- First check if NONE is specified. ---*/
     unsigned short totalSize = option_value.size();
     if ((totalSize == 1) && (option_value[0].compare("NONE") == 0)) {

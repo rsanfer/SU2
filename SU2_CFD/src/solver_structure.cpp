@@ -36,6 +36,7 @@
  */
 
 #include "../include/solver_structure.hpp"
+#include "../include/variables/CBaselineVariable.hpp"
 #include "../../Common/include/toolboxes/MMS/CIncTGVSolution.hpp"
 #include "../../Common/include/toolboxes/MMS/CInviscidVortexSolution.hpp"
 #include "../../Common/include/toolboxes/MMS/CMMSIncEulerSolution.hpp"
@@ -119,13 +120,25 @@ CSolver::CSolver(bool mesh_deform_mode) : System(mesh_deform_mode) {
   
   rotate_periodic   = false;
   implicit_periodic = false;
+
+  /*--- Containers to store the markers. ---*/
+  nMarker = 0;
+  nVertex = nullptr;
+
+  /*--- Flags for the dynamic grid (rigid movement or unsteady deformation). ---*/
+  dynamic_grid = false;
+
+  /*--- Container to store the vertex tractions. ---*/
+  VertexTraction = NULL;
+  VertexTractionAdjoint = NULL;
+
   
 }
 
 CSolver::~CSolver(void) {
 
   unsigned short iVar, iDim;
-  unsigned long iPoint;
+  unsigned long iPoint, iMarker, iVertex;
   
   /*--- Public variables, may be accessible outside ---*/
 
@@ -231,6 +244,26 @@ CSolver::~CSolver(void) {
     delete [] Cvector;
   }
 
+  if (VertexTraction != NULL) {
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      for (iVertex = 0; iVertex < nVertex[iMarker]; iVertex++)
+        delete [] VertexTraction[iMarker][iVertex];
+      delete [] VertexTraction[iMarker];
+    }
+    delete [] VertexTraction;
+  }
+
+  if (VertexTractionAdjoint != NULL) {
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      for (iVertex = 0; iVertex < nVertex[iMarker]; iVertex++)
+        delete [] VertexTractionAdjoint[iMarker][iVertex];
+      delete [] VertexTractionAdjoint[iMarker];
+    }
+    delete [] VertexTractionAdjoint;
+  }
+
+  if (nVertex != nullptr) delete [] nVertex;
+
   if (Restart_Vars != NULL) {delete [] Restart_Vars; Restart_Vars = NULL;}
   if (Restart_Data != NULL) {delete [] Restart_Data; Restart_Data = NULL;}
 
@@ -261,7 +294,7 @@ void CSolver::InitiatePeriodicComms(CGeometry *geometry,
   
   int iMessage, iSend, nSend;
 
-  unsigned long iPoint, jPoint, offset, buf_offset, iPeriodic, Neighbor_Point;
+  unsigned long iPoint, jPoint, msg_offset, buf_offset, iPeriodic, Neighbor_Point;
   
   su2double *Diff      = new su2double[nVar];
   su2double *Und_Lapl  = new su2double[nVar];
@@ -385,9 +418,9 @@ void CSolver::InitiatePeriodicComms(CGeometry *geometry,
     
     for (iMessage = 0; iMessage < geometry->nPeriodicSend; iMessage++) {
       
-      /*--- Get our location in the send buffer. ---*/
+      /*--- Get the offset in the buffer for the start of this message. ---*/
       
-      offset = geometry->nPoint_PeriodicSend[iMessage];
+      msg_offset = geometry->nPoint_PeriodicSend[iMessage];
       
       /*--- Get the number of periodic points we need to
        communicate on the current periodic marker. ---*/
@@ -400,8 +433,8 @@ void CSolver::InitiatePeriodicComms(CGeometry *geometry,
         /*--- Get the local index for this communicated data. We need
          both the node and periodic face index (for rotations). ---*/
         
-        iPoint    = geometry->Local_Point_PeriodicSend[offset + iSend];
-        iPeriodic = geometry->Local_Marker_PeriodicSend[offset + iSend];
+        iPoint    = geometry->Local_Point_PeriodicSend[msg_offset  + iSend];
+        iPeriodic = geometry->Local_Marker_PeriodicSend[msg_offset + iSend];
         
         /*--- Retrieve the supplied periodic information. ---*/
         
@@ -439,7 +472,7 @@ void CSolver::InitiatePeriodicComms(CGeometry *geometry,
         
         /*--- Compute the offset in the recv buffer for this point. ---*/
         
-        buf_offset = (offset + iSend)*geometry->countPerPeriodicPoint;
+        buf_offset = (msg_offset + iSend)*geometry->countPerPeriodicPoint;
         
         /*--- Load the send buffers depending on the particular value
          that has been requested for communication. ---*/
@@ -1449,7 +1482,7 @@ void CSolver::CompletePeriodicComms(CGeometry *geometry,
   unsigned short nPeriodic = config->GetnMarker_Periodic();
   unsigned short iDim, jDim, iVar, jVar, iPeriodic, nNeighbor;
   
-  unsigned long iPoint, iRecv, nRecv, offset, buf_offset, total_index;
+  unsigned long iPoint, iRecv, nRecv, msg_offset, buf_offset, total_index;
   
   int source, iMessage, jRecv;
   
@@ -1491,9 +1524,9 @@ void CSolver::CompletePeriodicComms(CGeometry *geometry,
       
       jRecv = geometry->PeriodicRecv2Neighbor[source];
       
-      /*--- Get the point offset for the start of this message. ---*/
+      /*--- Get the offset in the buffer for the start of this message. ---*/
       
-      offset = geometry->nPoint_PeriodicRecv[jRecv];
+      msg_offset = geometry->nPoint_PeriodicRecv[jRecv];
       
       /*--- Get the number of packets to be received in this message. ---*/
       
@@ -1504,8 +1537,8 @@ void CSolver::CompletePeriodicComms(CGeometry *geometry,
         
         /*--- Get the local index for this communicated data. ---*/
         
-        iPoint    = geometry->Local_Point_PeriodicRecv[offset + iRecv];
-        iPeriodic = geometry->Local_Marker_PeriodicRecv[offset + iRecv];
+        iPoint    = geometry->Local_Point_PeriodicRecv[msg_offset  + iRecv];
+        iPeriodic = geometry->Local_Marker_PeriodicRecv[msg_offset + iRecv];
         
         /*--- While all periodic face data was accumulated, we only store
          the values for the current pair of periodic faces. This is slightly
@@ -1517,7 +1550,7 @@ void CSolver::CompletePeriodicComms(CGeometry *geometry,
           
           /*--- Compute the offset in the recv buffer for this point. ---*/
           
-          buf_offset = (offset + iRecv)*geometry->countPerPeriodicPoint;
+          buf_offset = (msg_offset + iRecv)*geometry->countPerPeriodicPoint;
           
           /*--- Store the data correctly depending on the quantity. ---*/
           
@@ -1821,7 +1854,7 @@ void CSolver::InitiateComms(CGeometry *geometry,
   unsigned short COUNT_PER_POINT = 0;
   unsigned short MPI_TYPE        = 0;
   
-  unsigned long iPoint, offset, buf_offset;
+  unsigned long iPoint, msg_offset, buf_offset;
   
   int iMessage, iSend, nSend;
   
@@ -1887,6 +1920,14 @@ void CSolver::InitiateComms(CGeometry *geometry,
       COUNT_PER_POINT  = nDim;
       MPI_TYPE         = COMM_TYPE_DOUBLE;
       break;
+    case SOLUTION_TIME_N:
+      COUNT_PER_POINT  = nVar;
+      MPI_TYPE         = COMM_TYPE_DOUBLE;
+      break;
+    case SOLUTION_TIME_N1:
+      COUNT_PER_POINT  = nVar;
+      MPI_TYPE         = COMM_TYPE_DOUBLE;
+      break;
     default:
       SU2_MPI::Error("Unrecognized quantity for point-to-point MPI comms.",
                      CURRENT_FUNCTION);
@@ -1917,9 +1958,9 @@ void CSolver::InitiateComms(CGeometry *geometry,
     
     for (iMessage = 0; iMessage < geometry->nP2PSend; iMessage++) {
       
-      /*--- Compute our location in the send buffer. ---*/
+      /*--- Get the offset in the buffer for the start of this message. ---*/
       
-      offset = geometry->nPoint_P2PSend[iMessage];
+      msg_offset = geometry->nPoint_P2PSend[iMessage];
       
       /*--- Total count can include multiple pieces of data per element. ---*/
       
@@ -1930,11 +1971,11 @@ void CSolver::InitiateComms(CGeometry *geometry,
         
         /*--- Get the local index for this communicated data. ---*/
         
-        iPoint = geometry->Local_Point_P2PSend[offset + iSend];
+        iPoint = geometry->Local_Point_P2PSend[msg_offset + iSend];
         
         /*--- Compute the offset in the recv buffer for this point. ---*/
         
-        buf_offset = (offset + iSend)*geometry->countPerPoint;
+        buf_offset = (msg_offset + iSend)*geometry->countPerPoint;
         
         switch (commType) {
           case SOLUTION:
@@ -2017,6 +2058,14 @@ void CSolver::InitiateComms(CGeometry *geometry,
             for (iDim = 0; iDim < nDim; iDim++)
               bufDSend[buf_offset+iDim] = node[iPoint]->GetBound_Disp(iDim);
             break;
+          case SOLUTION_TIME_N:
+            for (iVar = 0; iVar < nVar; iVar++)
+              bufDSend[buf_offset+iVar] = node[iPoint]->GetSolution_time_n(iVar);
+            break;
+          case SOLUTION_TIME_N1:
+            for (iVar = 0; iVar < nVar; iVar++)
+              bufDSend[buf_offset+iVar] = node[iPoint]->GetSolution_time_n1(iVar);
+            break;
           default:
             SU2_MPI::Error("Unrecognized quantity for point-to-point MPI comms.",
                            CURRENT_FUNCTION);
@@ -2039,7 +2088,7 @@ void CSolver::CompleteComms(CGeometry *geometry,
   /*--- Local variables ---*/
   
   unsigned short iDim, iVar;
-  unsigned long iPoint, iRecv, nRecv, offset, buf_offset;
+  unsigned long iPoint, iRecv, nRecv, msg_offset, buf_offset;
   
   int ind, source, iMessage, jRecv;
   SU2_MPI::Status status;
@@ -2069,9 +2118,9 @@ void CSolver::CompleteComms(CGeometry *geometry,
       
       jRecv = geometry->P2PRecv2Neighbor[source];
       
-      /*--- Get the point offset for the start of this message. ---*/
+      /*--- Get the offset in the buffer for the start of this message. ---*/
       
-      offset = geometry->nPoint_P2PRecv[jRecv];
+      msg_offset = geometry->nPoint_P2PRecv[jRecv];
       
       /*--- Get the number of packets to be received in this message. ---*/
       
@@ -2082,11 +2131,11 @@ void CSolver::CompleteComms(CGeometry *geometry,
         
         /*--- Get the local index for this communicated data. ---*/
         
-        iPoint = geometry->Local_Point_P2PRecv[offset + iRecv];
+        iPoint = geometry->Local_Point_P2PRecv[msg_offset + iRecv];
         
         /*--- Compute the offset in the recv buffer for this point. ---*/
         
-        buf_offset = (offset + iRecv)*geometry->countPerPoint;
+        buf_offset = (msg_offset + iRecv)*geometry->countPerPoint;
         
         /*--- Store the data correctly depending on the quantity. ---*/
         
@@ -2102,7 +2151,7 @@ void CSolver::CompleteComms(CGeometry *geometry,
           case SOLUTION_EDDY:
             for (iVar = 0; iVar < nVar; iVar++)
               node[iPoint]->SetSolution(iVar, bufDRecv[buf_offset+iVar]);
-            node[iPoint]->SetmuT(bufDRecv[offset+nVar]);
+            node[iPoint]->SetmuT(bufDRecv[buf_offset+nVar]);
             break;
           case UNDIVIDED_LAPLACIAN:
             for (iVar = 0; iVar < nVar; iVar++)
@@ -2147,7 +2196,7 @@ void CSolver::CompleteComms(CGeometry *geometry,
             break;
           case SOLUTION_FEA_OLD:
             for (iVar = 0; iVar < nVar; iVar++) {
-              node[iPoint]->SetSolution_time_n(iVar, bufDRecv[buf_offset+iVar]);
+              node[iPoint]->Set_Solution_time_n(iVar, bufDRecv[buf_offset+iVar]);
               node[iPoint]->SetSolution_Vel_time_n(iVar, bufDRecv[buf_offset+nVar+iVar]);
               node[iPoint]->SetSolution_Accel_time_n(iVar, bufDRecv[buf_offset+nVar*2+iVar]);
             }
@@ -2170,6 +2219,14 @@ void CSolver::CompleteComms(CGeometry *geometry,
           case MESH_DISPLACEMENTS:
             for (iDim = 0; iDim < nDim; iDim++)
               node[iPoint]->SetBound_Disp(iDim, bufDRecv[buf_offset+iDim]);
+            break;
+          case SOLUTION_TIME_N:
+            for (iVar = 0; iVar < nVar; iVar++)
+              node[iPoint]->Set_Solution_time_n(iVar, bufDRecv[buf_offset+iVar]);
+            break;
+          case SOLUTION_TIME_N1:
+            for (iVar = 0; iVar < nVar; iVar++)
+              node[iPoint]->Set_Solution_time_n1(iVar, bufDRecv[buf_offset+iVar]);
             break;
           default:
             SU2_MPI::Error("Unrecognized quantity for point-to-point MPI comms.",
@@ -3663,10 +3720,10 @@ void CSolver::Aeroelastic(CSurfaceMovement *surface_movement, CGeometry *geometr
           /*--- Note that the calculation of the forces and the subsequent displacements ...
            is only correct for the airfoil that starts at the 0 degree position ---*/
           
-          if (config->GetKind_GridMovement(ZONE_0) == AEROELASTIC_RIGID_MOTION) {
+          if (config->GetKind_GridMovement() == AEROELASTIC_RIGID_MOTION) {
             su2double Omega, dt, psi;
             dt = config->GetDelta_UnstTimeND();
-            Omega  = (config->GetRotation_Rate_Z(ZONE_0)/config->GetOmega_Ref());
+            Omega  = (config->GetRotation_Rate(2)/config->GetOmega_Ref());
             psi = Omega*(dt*ExtIter);
             
             /*--- Correct for the airfoil starting position (This is hardcoded in here) ---*/
@@ -5318,6 +5375,183 @@ void CSolver::LoadInletProfile(CGeometry **geometry,
   
 }
 
+void CSolver::ComputeVertexTractions(CGeometry *geometry, CConfig *config){
+
+  /*--- Compute the constant factor to dimensionalize pressure and shear stress. ---*/
+  su2double *Velocity_ND, *Velocity_Real;
+  su2double Density_ND,  Density_Real, Velocity2_Real, Velocity2_ND;
+  su2double factor;
+
+  unsigned short iDim, jDim;
+
+  // Check whether the problem is viscous
+  bool viscous_flow = ((config->GetKind_Solver() == NAVIER_STOKES) ||
+                       (config->GetKind_Solver() == RANS) ||
+                       (config->GetKind_Solver() == DISC_ADJ_NAVIER_STOKES) ||
+                       (config->GetKind_Solver() == DISC_ADJ_RANS));
+
+  // Parameters for the calculations
+  su2double Pn = 0.0, div_vel = 0.0;
+  su2double Viscosity = 0.0;
+  su2double Tau[3][3] = {{0.0, 0.0, 0.0},{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
+  su2double Grad_Vel[3][3] = {{0.0, 0.0, 0.0},{0.0, 0.0, 0.0},{0.0, 0.0, 0.0}};
+  su2double delta[3][3] = {{1.0, 0.0, 0.0},{0.0, 1.0, 0.0},{0.0, 0.0, 1.0}};
+  su2double auxForce[3] = {1.0, 0.0, 0.0};
+
+  unsigned short iMarker;
+  unsigned long iVertex, iPoint;
+  su2double const *iNormal;
+
+  su2double Pressure_Inf = config->GetPressure_FreeStreamND();
+
+  Velocity_Real = config->GetVelocity_FreeStream();
+  Density_Real  = config->GetDensity_FreeStream();
+
+  Velocity_ND = config->GetVelocity_FreeStreamND();
+  Density_ND  = config->GetDensity_FreeStreamND();
+
+  Velocity2_Real = 0.0;
+  Velocity2_ND   = 0.0;
+  for (unsigned short iDim = 0; iDim < nDim; iDim++) {
+    Velocity2_Real += Velocity_Real[iDim]*Velocity_Real[iDim];
+    Velocity2_ND   += Velocity_ND[iDim]*Velocity_ND[iDim];
+  }
+
+  factor = Density_Real * Velocity2_Real / ( Density_ND * Velocity2_ND );
+
+  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+
+    /*--- If this is defined as an interface marker ---*/
+    if (config->GetMarker_All_Fluid_Load(iMarker) == YES) {
+
+      // Loop over the vertices
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+
+        // Recover the point index
+        iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+        // Get the normal at the vertex: this normal goes inside the fluid domain.
+        iNormal = geometry->vertex[iMarker][iVertex]->GetNormal();
+
+        /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+        if (geometry->node[iPoint]->GetDomain()) {
+
+          // Retrieve the values of pressure
+          Pn = node[iPoint]->GetPressure();
+
+          // Calculate tn in the fluid nodes for the inviscid term --> Units of force (non-dimensional).
+          for (iDim = 0; iDim < nDim; iDim++)
+            auxForce[iDim] = -(Pn-Pressure_Inf)*iNormal[iDim];
+
+          // Calculate tn in the fluid nodes for the viscous term
+          if (viscous_flow) {
+
+            Viscosity = node[iPoint]->GetLaminarViscosity();
+
+            for (iDim = 0; iDim < nDim; iDim++) {
+              for (jDim = 0 ; jDim < nDim; jDim++) {
+                Grad_Vel[iDim][jDim] = node[iPoint]->GetGradient_Primitive(iDim+1, jDim);
+              }
+            }
+
+            // Divergence of the velocity
+            div_vel = 0.0; for (iDim = 0; iDim < nDim; iDim++) div_vel += Grad_Vel[iDim][iDim];
+
+            for (iDim = 0; iDim < nDim; iDim++) {
+              for (jDim = 0 ; jDim < nDim; jDim++) {
+
+                // Viscous stress
+                Tau[iDim][jDim] = Viscosity*(Grad_Vel[jDim][iDim] + Grad_Vel[iDim][jDim])
+                                 - TWO3*Viscosity*div_vel*delta[iDim][jDim];
+
+                // Viscous component in the tn vector --> Units of force (non-dimensional).
+                auxForce[iDim] += Tau[iDim][jDim]*iNormal[jDim];
+              }
+            }
+          }
+
+          // Redimensionalize the forces
+          for (iDim = 0; iDim < nDim; iDim++) {
+            VertexTraction[iMarker][iVertex][iDim] = factor * auxForce[iDim];
+          }
+        }
+        else{
+          for (iDim = 0; iDim < nDim; iDim++) {
+            VertexTraction[iMarker][iVertex][iDim] = 0.0;
+          }
+        }
+      }
+    }
+  }
+
+}
+
+void CSolver::RegisterVertexTractions(CGeometry *geometry, CConfig *config){
+
+  unsigned short iMarker, iDim;
+  unsigned long iVertex, iPoint;
+
+  /*--- Loop over all the markers ---*/
+  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+
+    /*--- If this is defined as an interface marker ---*/
+    if (config->GetMarker_All_Fluid_Load(iMarker) == YES) {
+
+      /*--- Loop over the vertices ---*/
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+
+        /*--- Recover the point index ---*/
+        iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+
+        /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+        if (geometry->node[iPoint]->GetDomain()) {
+
+          /*--- Register the vertex traction as output ---*/
+          for (iDim = 0; iDim < nDim; iDim++) {
+            AD::RegisterOutput(VertexTraction[iMarker][iVertex][iDim]);
+          }
+
+        }
+      }
+    }
+  }
+
+}
+
+void CSolver::SetVertexTractionsAdjoint(CGeometry *geometry, CConfig *config){
+
+  unsigned short iMarker, iDim;
+  unsigned long iVertex, iPoint;
+
+  /*--- Loop over all the markers ---*/
+  for (iMarker = 0; iMarker < config->GetnMarker_All(); iMarker++) {
+
+    /*--- If this is defined as an interface marker ---*/
+    if (config->GetMarker_All_Fluid_Load(iMarker) == YES) {
+
+      /*--- Loop over the vertices ---*/
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+
+        /*--- Recover the point index ---*/
+        iPoint = geometry->vertex[iMarker][iVertex]->GetNode();
+
+        /*--- Check if the node belongs to the domain (i.e, not a halo node) ---*/
+        if (geometry->node[iPoint]->GetDomain()) {
+
+          /*--- Set the adjoint of the vertex traction from the value received ---*/
+          for (iDim = 0; iDim < nDim; iDim++) {
+
+            SU2_TYPE::SetDerivative(VertexTraction[iMarker][iVertex][iDim],
+                                    SU2_TYPE::GetValue(VertexTractionAdjoint[iMarker][iVertex][iDim]));
+          }
+
+        }
+      }
+    }
+  }
+
+}
+
+
 void CSolver::SetVerificationSolution(unsigned short nDim,
                                       unsigned short nVar,
                                       CConfig        *config) {
@@ -5383,6 +5617,8 @@ CBaselineSolver::CBaselineSolver(CGeometry *geometry, CConfig *config) {
   for (iPoint = 0; iPoint < geometry->GetnPoint(); iPoint++) {
     node[iPoint] = new CBaselineVariable(Solution, nVar, config);
   }
+
+  dynamic_grid = config->GetDynamic_Grid();
   
 }
 
@@ -5414,6 +5650,8 @@ CBaselineSolver::CBaselineSolver(CGeometry *geometry, CConfig *config, unsigned 
     node[iPoint] = new CBaselineVariable(Solution, nVar, config);
 
   }
+
+  dynamic_grid = config->GetDynamic_Grid();
 
 }
 
@@ -5684,7 +5922,6 @@ void CBaselineSolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CConf
   unsigned short iZone = config->GetiZone();
   unsigned short nZone = config->GetnZone();
   unsigned short iInst = config->GetiInst();
-  bool grid_movement  = config->GetGrid_Movement();
   bool steady_restart = config->GetSteadyRestart();
   unsigned short turb_model = config->GetKind_Turb_Model();
 
@@ -5761,7 +5998,7 @@ void CBaselineSolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CConf
       /*--- For dynamic meshes, read in and store the
        grid coordinates and grid velocities for each node. ---*/
       
-      if (grid_movement && val_update_geo) {
+      if (dynamic_grid && val_update_geo) {
 
         /*--- First, remove any variables for the turbulence model that
          appear in the restart file before the grid velocities. ---*/
@@ -5807,7 +6044,7 @@ void CBaselineSolver::LoadRestart(CGeometry **geometry, CSolver ***solver, CConf
 
   /*--- Update the geometry for flows on dynamic meshes ---*/
   
-  if (grid_movement && val_update_geo) {
+  if (dynamic_grid && val_update_geo) {
     
     /*--- Communicate the new coordinates and grid velocities at the halos ---*/
     

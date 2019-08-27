@@ -56,15 +56,16 @@
 #include "task_definition.hpp"
 #include "numerics_structure.hpp"
 #include "sgs_model.hpp"
-#include "variable_structure.hpp"
+#include "variables/CVariable.hpp"
+#include "variables/CMeshElement.hpp"
 #include "../../Common/include/gauss_structure.hpp"
 #include "../../Common/include/element_structure.hpp"
 #include "../../Common/include/fem_geometry_structure.hpp"
 #include "../../Common/include/geometry_structure.hpp"
 #include "../../Common/include/config_structure.hpp"
-#include "../../Common/include/matrix_structure.hpp"
-#include "../../Common/include/vector_structure.hpp"
-#include "../../Common/include/linear_solvers_structure.hpp"
+#include "../../Common/include/linear_algebra/CSysMatrix.hpp"
+#include "../../Common/include/linear_algebra/CSysVector.hpp"
+#include "../../Common/include/linear_algebra/CSysSolve.hpp"
 #include "../../Common/include/grid_movement_structure.hpp"
 #include "../../Common/include/blas_structure.hpp"
 #include "../../Common/include/graph_coloring_structure.hpp"
@@ -135,6 +136,8 @@ protected:
   passivedouble *Restart_Data; /*!< \brief Auxiliary structure for holding the data values from a restart. */
   unsigned short nOutputVariables;  /*!< \brief Number of variables to write. */
 
+  unsigned long nMarker,        /*!< \brief Total number of markers using the grid information. */
+  *nVertex;       /*!< \brief Store nVertex at each marker for deallocation */
   unsigned long nMarker_InletFile;       /*!< \brief Auxiliary structure for holding the number of markers in an inlet profile file. */
   vector<string> Marker_Tags_InletFile;       /*!< \brief Auxiliary structure for holding the string names of the markers in an inlet profile file. */
   unsigned long *nRow_InletFile;       /*!< \brief Auxiliary structure for holding the number of rows for a particular marker in an inlet profile file. */
@@ -145,7 +148,12 @@ protected:
 
   bool rotate_periodic;    /*!< \brief Flag that controls whether the periodic solution needs to be rotated for the solver. */
   bool implicit_periodic;  /*!< \brief Flag that controls whether the implicit system should be treated by the periodic BC comms. */
-  
+
+  bool dynamic_grid;       /*!< \brief Flag that determines whether the grid is dynamic (moving or deforming + grid velocities). */
+
+  su2double ***VertexTraction;   /*- Temporary, this will be moved to a new postprocessing structure once in place -*/
+  su2double ***VertexTractionAdjoint;   /*- Also temporary -*/
+
 public:
   
   CSysVector<su2double> LinSysSol;    /*!< \brief vector to store iterative solution of implicit linear system. */
@@ -726,13 +734,6 @@ public:
     * \param[in] geometry - Geometrical definition of the problem.
     * \param[in] config - Definition of the particular problem.
     */
-  virtual void Set_MPI_Interface(CGeometry *geometry, CConfig *config);
-  
-  /*!
-   * \brief A virtual member.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
   virtual void SetMax_Eigenvalue(CGeometry *geometry, CConfig *config);
   
   /*!
@@ -864,7 +865,7 @@ public:
    * \param[in] val_marker - Surface marker where the boundary condition is applied.
    */
 
-  virtual void BC_Moving(CGeometry *geometry, CNumerics *numerics, CConfig *config, unsigned short val_marker);
+  virtual void BC_Deforming(CGeometry *geometry, CNumerics *numerics, CConfig *config, unsigned short val_marker);
   
   /*!
    * \brief A virtual member.
@@ -2221,6 +2222,12 @@ public:
    * \return Value of the objective function for the volume fraction.
    */
   virtual su2double GetTotal_OFVolFrac(void);
+  
+  /*!
+   * \brief A virtual member.
+   * \return Value of the objective function for the structural compliance.
+   */
+  virtual su2double GetTotal_OFCompliance(void);
 
   /*!
    * \brief A virtual member.
@@ -3490,6 +3497,14 @@ public:
    * \param[in] config - Definition of the particular problem.
    */
   virtual void Compute_OFVolFrac(CGeometry *geometry, CSolver **solver_container, CConfig *config);
+  
+  /*!
+   * \brief A virtual member.
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] config - Definition of the particular problem.
+   */
+  virtual void Compute_OFCompliance(CGeometry *geometry, CSolver **solver_container, CConfig *config);
 
   /*!
    * \brief A virtual member.
@@ -4336,11 +4351,51 @@ public:
   virtual void ComputeVerificationError(CGeometry *geometry, CConfig *config);
 
   /*!
+   * \brief Initialize the vertex traction containers at the vertices.
+   * \param[in] geometry - Geometrical definition.
+   * \param[in] config   - Definition of the particular problem.
+   */
+
+  inline void InitVertexTractionContainer(CGeometry *geometry, CConfig *config){
+
+    unsigned long iVertex;
+    unsigned short iMarker;
+
+    VertexTraction = new su2double** [nMarker];
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      VertexTraction[iMarker] = new su2double* [geometry->nVertex[iMarker]];
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+        VertexTraction[iMarker][iVertex] = new su2double [nDim]();
+      }
+    }
+  }
+
+  /*!
+   * \brief Initialize the adjoint vertex traction containers at the vertices.
+   * \param[in] geometry - Geometrical definition.
+   * \param[in] config   - Definition of the particular problem.
+   */
+
+  inline void InitVertexTractionAdjointContainer(CGeometry *geometry, CConfig *config){
+
+    unsigned long iVertex;
+    unsigned short iMarker;
+
+    VertexTractionAdjoint = new su2double** [nMarker];
+    for (iMarker = 0; iMarker < nMarker; iMarker++) {
+      VertexTractionAdjoint[iMarker] = new su2double* [geometry->nVertex[iMarker]];
+      for (iVertex = 0; iVertex < geometry->nVertex[iMarker]; iVertex++) {
+        VertexTractionAdjoint[iMarker][iVertex] = new su2double [nDim]();
+      }
+    }
+  }
+
+  /*!
    * \brief Compute the tractions at the vertices.
    * \param[in] geometry - Geometrical definition.
    * \param[in] config   - Definition of the particular problem.
    */
-  virtual void ComputeVertexTractions(CGeometry *geometry, CConfig *config);
+  void ComputeVertexTractions(CGeometry *geometry, CConfig *config);
 
   /*!
    * \brief Set the adjoints of the vertex tractions.
@@ -4348,15 +4403,15 @@ public:
    * \param[in] iVertex  - Index of the relevant vertex
    * \param[in] iDim     - Dimension
    */
-  virtual su2double GetVertexTractions(unsigned short iMarker, unsigned long iVertex,
-                                       unsigned short iDim);
+  inline su2double GetVertexTractions(unsigned short iMarker, unsigned long iVertex,
+                                      unsigned short iDim){ return VertexTraction[iMarker][iVertex][iDim]; }
 
   /*!
    * \brief Register the vertex tractions as output.
    * \param[in] geometry - Geometrical definition.
    * \param[in] config   - Definition of the particular problem.
    */
-  virtual void RegisterVertexTractions(CGeometry *geometry, CConfig *config);
+  void RegisterVertexTractions(CGeometry *geometry, CConfig *config);
 
   /*!
    * \brief Store the adjoints of the vertex tractions.
@@ -4365,15 +4420,17 @@ public:
    * \param[in] iDim     - Dimension
    * \param[in] val_adjoint - Value received for the adjoint (from another solver)
    */
-  virtual void StoreVertexTractionsAdjoint(unsigned short iMarker, unsigned long iVertex,
-                                           unsigned short iDim, su2double val_adjoint);
+  inline void StoreVertexTractionsAdjoint(unsigned short iMarker, unsigned long iVertex,
+                                          unsigned short iDim, su2double val_adjoint){
+    VertexTractionAdjoint[iMarker][iVertex][iDim] = val_adjoint;
+  }
 
   /*!
    * \brief Set the adjoints of the vertex tractions to the AD structure.
    * \param[in] geometry - Geometrical definition.
    * \param[in] config   - Definition of the particular problem.
    */
-  virtual void SetVertexTractionsAdjoint(CGeometry *geometry, CConfig *config);
+  void SetVertexTractionsAdjoint(CGeometry *geometry, CConfig *config);
   
 protected:
   /*!
@@ -4716,8 +4773,6 @@ protected:
   su2double *PrimVar_i,  /*!< \brief Auxiliary vector for storing the solution at point i. */
   *PrimVar_j;      /*!< \brief Auxiliary vector for storing the solution at point j. */
   su2double **LowMach_Precontioner; /*!< \brief Auxiliary vector for storing the inverse of Roe-turkel preconditioner. */
-  unsigned long nMarker,        /*!< \brief Total number of markers using the grid information. */
-  *nVertex;       /*!< \brief Store nVertex at each marker for deallocation */
   bool space_centered,  /*!< \brief True if space centered scheeme used. */
   euler_implicit,      /*!< \brief True if euler implicit scheme used. */
   least_squares;        /*!< \brief True if computing gradients by least squares. */
@@ -4792,9 +4847,6 @@ protected:
 
   su2double ****SlidingState;
   int **SlidingStateNodes;
-
-  su2double ***VertexTraction;   /*- Temporary, this will be moved to a new postprocessing structure once in place -*/
-  su2double ***VertexTractionAdjoint;   /*- Also temporary -*/
 
 public:
   
@@ -5040,13 +5092,6 @@ public:
    */
   void Set_MPI_Nearfield(CGeometry *geometry, CConfig *config);
   
-  /*!
-   * \brief Parallelization of Undivided Laplacian.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void Set_MPI_Interface(CGeometry *geometry, CConfig *config);
-
   /*!
    * \author H. Kline
    * \brief Compute weighted-sum "combo" objective output
@@ -6884,45 +6929,6 @@ public:
    */
   void ComputeVerificationError(CGeometry *geometry, CConfig *config);
 
-  /*!
-   * \brief Compute the tractions at the vertices.
-   * \param[in] geometry - Geometrical definition.
-   * \param[in] config   - Definition of the particular problem.
-   */
-  void ComputeVertexTractions(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Set the adjoints of the vertex tractions.
-   * \param[in] iMarker  - Index of the marker
-   * \param[in] iVertex  - Index of the relevant vertex
-   * \param[in] iDim     - Dimension
-   */
-  su2double GetVertexTractions(unsigned short iMarker, unsigned long iVertex,
-                               unsigned short iDim);
-
-  /*!
-   * \brief Register the vertex tractions as output.
-   * \param[in] geometry - Geometrical definition.
-   * \param[in] config   - Definition of the particular problem.
-   */
-  virtual void RegisterVertexTractions(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Store the adjoints of the vertex tractions.
-   * \param[in] iMarker  - Index of the marker
-   * \param[in] iVertex  - Index of the relevant vertex
-   * \param[in] iDim     - Dimension
-   * \param[in] val_adjoint - Value received for the adjoint (from another solver)
-   */
-   void StoreVertexTractionsAdjoint(unsigned short iMarker, unsigned long iVertex,
-                                    unsigned short iDim, su2double val_adjoint);
-
-  /*!
-   * \brief Set the adjoints of the vertex tractions to the AD structure.
-   * \param[in] geometry - Geometrical definition.
-   * \param[in] config   - Definition of the particular problem.
-   */
-  void SetVertexTractionsAdjoint(CGeometry *geometry, CConfig *config);
 };
 
 /*!
@@ -7092,8 +7098,6 @@ protected:
   *SecondaryVar_j;      /*!< \brief Auxiliary vector for storing the solution at point j. */
   su2double *PrimVar_i,  /*!< \brief Auxiliary vector for storing the solution at point i. */
   *PrimVar_j;      /*!< \brief Auxiliary vector for storing the solution at point j. */
-  unsigned long nMarker,        /*!< \brief Total number of markers using the grid information. */
-  *nVertex;       /*!< \brief Store nVertex at each marker for deallocation */
   bool space_centered,  /*!< \brief True if space centered scheeme used. */
   euler_implicit,      /*!< \brief True if euler implicit scheme used. */
   least_squares;        /*!< \brief True if computing gradients by least squares. */
@@ -7115,9 +7119,6 @@ protected:
   
   CFluidModel  *FluidModel;  /*!< \brief fluid model used in the solver */
   su2double **Preconditioner; /*!< \brief Auxiliary matrix for storing the low speed preconditioner. */
-
-  su2double ***VertexTraction;   /*- Temporary, this will be moved to a new postprocessing structure once in place -*/
-  su2double ***VertexTractionAdjoint;   /*- Also temporary -*/
 
   /* Sliding meshes variables */
 
@@ -8318,45 +8319,6 @@ public:
    */
   void ComputeVerificationError(CGeometry *geometry, CConfig *config);
 
-  /*!
-   * \brief Compute the tractions at the vertices.
-   * \param[in] geometry - Geometrical definition.
-   * \param[in] config   - Definition of the particular problem.
-   */
-  void ComputeVertexTractions(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Set the adjoints of the vertex tractions.
-   * \param[in] iMarker  - Index of the marker
-   * \param[in] iVertex  - Index of the relevant vertex
-   * \param[in] iDim     - Dimension
-   */
-  su2double GetVertexTractions(unsigned short iMarker, unsigned long iVertex,
-                               unsigned short iDim);
-
-  /*!
-   * \brief Register the vertex tractions as output.
-   * \param[in] geometry - Geometrical definition.
-   * \param[in] config   - Definition of the particular problem.
-   */
-  void RegisterVertexTractions(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Store the adjoints of the vertex tractions.
-   * \param[in] iMarker  - Index of the marker
-   * \param[in] iVertex  - Index of the relevant vertex
-   * \param[in] iDim     - Dimension
-   * \param[in] val_adjoint - Value received for the adjoint (from another solver)
-   */
-  void StoreVertexTractionsAdjoint(unsigned short iMarker, unsigned long iVertex,
-                                   unsigned short iDim, su2double val_adjoint);
-
-  /*!
-   * \brief Set the adjoints of the vertex tractions to the AD structure.
-   * \param[in] geometry - Geometrical definition.
-   * \param[in] config   - Definition of the particular problem.
-   */
-  void SetVertexTractionsAdjoint(CGeometry *geometry, CConfig *config);
 };
 
 /*!
@@ -9316,8 +9278,6 @@ protected:
   su2double Gamma;           /*!< \brief Fluid's Gamma constant (ratio of specific heats). */
   su2double Gamma_Minus_One; /*!< \brief Fluids's Gamma - 1.0  . */
   su2double*** Inlet_TurbVars; /*!< \brief Turbulence variables at inlet profiles */
-  unsigned long nMarker, /*!< \brief Total number of markers using the grid information. */
-  *nVertex;              /*!< \brief Store nVertex at each marker for deallocation */
   
   /* Sliding meshes variables */
 
@@ -10263,7 +10223,6 @@ protected:
   su2double Total_Sens_BPress;    /*!< \brief Total sensitivity to back pressure. */
   bool space_centered;  /*!< \brief True if space centered scheeme used. */
   su2double **Jacobian_Axisymmetric; /*!< \brief Storage for axisymmetric Jacobian. */
-  unsigned long nMarker;        /*!< \brief Total number of markers using the grid information. */
   su2double Gamma;                  /*!< \brief Fluid's Gamma constant (ratio of specific heats). */
   su2double Gamma_Minus_One;        /*!< \brief Fluids's Gamma - 1.0  . */
   su2double *FlowPrimVar_i,  /*!< \brief Store the flow solution at point i. */
@@ -10315,13 +10274,6 @@ public:
    */
   void Set_MPI_Nearfield(CGeometry *geometry, CConfig *config);
   
-  /*!
-   * \brief Parallelization of Undivided Laplacian.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void Set_MPI_Interface(CGeometry *geometry, CConfig *config);
-
   /*!
    * \brief Parallelization of Undivided Laplacian.
    * \param[in] geometry - Geometrical definition of the problem.
@@ -11576,8 +11528,8 @@ private:
   su2double  Total_CFEA;        /*!< \brief Total FEA coefficient for all the boundaries. */
   /*!< We maintain the name to avoid defining a new function... */
   
-  unsigned short nMarker;
-  int nFEA_Terms;
+  int nFEA_Terms; 
+  bool topol_filter_applied;      /*!< \brief True if density filtering has been performed. */
 
   su2double *GradN_X,
   *GradN_x;
@@ -11623,6 +11575,7 @@ private:
   su2double Total_OFRefGeom;        /*!< \brief Total Objective Function: Reference Geometry. */
   su2double Total_OFRefNode;        /*!< \brief Total Objective Function: Reference Node. */
   su2double Total_OFVolFrac;        /*!< \brief Total Objective Function: Volume fraction (topology optimization). */
+  su2double Total_OFCompliance;     /*!< \brief Total Objective Function: Compliance (topology optimization). */
 
   su2double Global_OFRefGeom;        /*!< \brief Global Objective Function (added over time steps): Reference Geometry. */
   su2double Global_OFRefNode;        /*!< \brief Global Objective Function (added over time steps): Reference Node. */
@@ -11885,14 +11838,14 @@ public:
   void BC_Damper(CGeometry *geometry, CNumerics *numerics, CConfig *config, unsigned short val_marker);
 
   /*!
-   * \brief Moving boundary condition.
+   * \brief Deformable boundary condition.
    * \param[in] geometry - Geometrical definition of the problem.
    * \param[in] numerics - Description of the numerical method.
    * \param[in] config - Definition of the particular problem.
    * \param[in] val_marker - Surface marker where the boundary condition is applied.
    */
 
-  void BC_Moving(CGeometry *geometry, CNumerics *numerics, CConfig *config, unsigned short val_marker);
+  void BC_Deforming(CGeometry *geometry, CNumerics *numerics, CConfig *config, unsigned short val_marker);
 
   /*!
    * \brief Required step for non conservative interpolation schemes where stresses are transferred instead of forces.
@@ -12013,6 +11966,12 @@ public:
    * \param[out] OFVolFrac - value of the objective function.
    */
   su2double GetTotal_OFVolFrac(void);
+  
+  /*!
+   * \brief Retrieve the value of the structural compliance objective function
+   * \return Value of the objective function.
+   */
+  su2double GetTotal_OFCompliance(void);
 
   /*!
    * \brief Determines whether there is an element-based file or not.
@@ -12142,6 +12101,14 @@ public:
    * \param[in] config - Definition of the particular problem.
    */
   void Compute_OFVolFrac(CGeometry *geometry, CSolver **solver_container, CConfig *config);
+  
+  /*!
+   * \brief Compute the compliance objective function
+   * \param[in] geometry - Geometrical definition of the problem.
+   * \param[in] solver_container - Container vector with all the solutions.
+   * \param[in] config - Definition of the particular problem.
+   */
+  void Compute_OFCompliance(CGeometry *geometry, CSolver **solver_container, CConfig *config);
 
   /*!
    * \brief Compute the penalty due to the stiffness increase
@@ -12512,7 +12479,6 @@ private:
   su2double Total_Sens_ModVel;    /*!< \brief Total sensitivity to inlet velocity (incompressible). */
   su2double ObjFunc_Value;        /*!< \brief Value of the objective function. */
   su2double Mach, Alpha, Beta, Pressure, Temperature, BPressure, ModVel;
-  unsigned long nMarker;        /*!< \brief Total number of markers using the grid information. */
   
   su2double *Solution_Geometry; /*!< \brief Auxiliary vector for the geometry solution (dimension nDim instead of nVar). */
   
@@ -12793,7 +12759,6 @@ private:
 
   su2double ObjFunc_Value;      /*!< \brief Value of the objective function. */
   su2double *normalLoads;       /*!< \brief Values of the normal loads for each marker iMarker_nL. */
-  unsigned long nMarker;        /*!< \brief Total number of markers using the grid information. */
   unsigned long nMarker_nL;     /*!< \brief Total number of markers that have a normal load applied. */
 
   /*!< \brief Definition of element based sensitivities. */
@@ -13131,8 +13096,6 @@ public:
  */
 class CFEM_DG_EulerSolver : public CSolver {
 protected:
-
-  unsigned long nMarker; /*!< \brief Total number of markers using the grid information. */
 
   su2double Gamma;           /*!< \brief Fluid's Gamma constant (ratio of specific heats). */
   su2double Gamma_Minus_One; /*!< \brief Fluids's Gamma - 1.0  . */
@@ -15659,279 +15622,6 @@ private:
                                                   su2double &Viscosity,
                                                   su2double &kOverCv,
                                                   su2double *normalFlux);
-};
-
-/*!
- * \class CMeshSolver
- * \brief Class for moving the volumetric numerical grid using the linear elasticity solver.
- * \author R.Sanchez, based on CVolumetricMovement developments of F. Palacios, A. Bueno, T. Economon, S. Padron
- * \version 6.1.0 "Falcon"
- */
-class CMeshSolver : public CFEASolver {
-protected:
-
-  bool time_domain;        /*!< \brief Number of dimensions. */
-  bool multizone;
-
-  bool stiffness_set;          /*!< \brief Element-based stiffness is set. */
-
-  su2double *Coordinate;       /*!< \brief Auxiliary nDim vector. */
-
-  su2double MinVolume_Ref,     /*!< \brief Minimum volume in  to make zeros and impose boundary conditions. */
-            MinVolume_Curr;
-
-  su2double MaxVolume_Ref,
-            MaxVolume_Curr;
-
-  su2double MinDistance;
-  su2double MaxDistance;
-
-  su2double E;                  /*!< \brief Young's modulus of elasticity. */
-  su2double Nu;                 /*!< \brief Poisson's ratio. */
-
-  su2double Mu;                 /*!< \brief Lame's coeficient. */
-  su2double Lambda;             /*!< \brief Lame's coeficient. */
-
-public:
-
-  CMeshElement* element;         /*!< \brief Vector which stores element information for each problem. */
-
-  /*!
-   * \brief Constructor of the class.
-   */
-  CMeshSolver(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Destructor of the class.
-   */
-  ~CMeshSolver(void);
-
-  /*!
-   * \brief Grid deformation using the linear elasticity equations.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void DeformMesh(CGeometry **geometry, CNumerics **numerics, CConfig *config);
-
-  /*!
-   * \brief Set the stiffness of the mesh.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void SetMesh_Stiffness(CGeometry **geometry, CNumerics **numerics, CConfig *config);
-
-  /*!
-   * \brief Compute the min and max volume of the elements in the domain.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] updated - Boolean, computes the volumes with the updated coordinates.
-   * \return Value of the length of the smallest edge of the grid.
-   */
-  void SetMinMaxVolume(CGeometry *geometry, CConfig *config, bool updated);
-
-  /*!
-   * \brief Compute the min and max volume of the elements in the domain.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void SetWallDistance(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Get the value of the reference coordinate to set on the element structure.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] indexNode - Index of the node.
-   * \param[in] iDim - Dimension required.
-   */
-  su2double Get_ValCoord(CGeometry *geometry, unsigned long indexNode, unsigned short iDim);
-
-  /*!
-   * \brief Update the value of the coordinates after the grid movement.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void UpdateGridCoord(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Update the dual grid after the grid movement (edges and control volumes).
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void UpdateDualGrid(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Compute the grid velocity form the displacements of the mesh.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void ComputeGridVelocity(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Update the coarse multigrid levels after the grid movement.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void UpdateMultiGrid(CGeometry **geometry, CConfig *config);
-
-  /*!
-   * \brief Check the boundary vertex that are going to be moved.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void SetBoundaryDisplacements(CGeometry *geometry, CNumerics *numerics, CConfig *config);
-
-  /*!
-   * \brief Set the value of the max residual and BGS residual.
-   * \param[in] val_iterlinsolver - Number of linear iterations.
-   */
-  void ComputeResidual_Multizone(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Move the mesh in time.
-   */
-  void SetDualTime_Mesh(void);
-
-  /*!
-   * \brief Load a solution from a restart file.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] solver - Container vector with all of the solvers.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] val_iter - Current external iteration number.
-   * \param[in] val_update_geo - Flag for updating coords and grid velocity.
-   */
-  void LoadRestart(CGeometry **geometry, CSolver ***solver, CConfig *config, int val_iter, bool val_update_geo);
-
-  /*!
-   * \brief Load the geometries at the previous time states n and nM1.
-   * \param[in] geometry - Geometrical definition of the problem.
-   */
-  void Restart_OldGeometry(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Store the old displacement before a new deformation is done.
-   */
-  void SetSolution_Old(void);
-
-
-};
-
-/*!
- * \class CDiscAdjMeshSolver
- * \brief Main class for defining the discrete adjoint solver for mesh deformation problems.
- * \ingroup Discrete_Adjoint
- * \author R. Sanchez
- */
-class CDiscAdjMeshSolver : public CSolver {
-private:
-  unsigned short KindDirect_Solver;
-  CSolver *direct_solver;
-
-public:
-
-  /*!
-   * \brief Constructor of the class.
-   */
-  CDiscAdjMeshSolver(void);
-
-  /*!
-   * \overload
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] iMesh - Index of the mesh in multigrid computations.
-   */
-  CDiscAdjMeshSolver(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \overload
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] solver - Initialize the discrete adjoint solver with the corresponding direct solver.
-   * \param[in] Kind_Solver - The kind of direct solver.
-   */
-  CDiscAdjMeshSolver(CGeometry *geometry, CConfig *config, CSolver* solver);
-
-  /*!
-   * \brief Destructor of the class.
-   */
-  ~CDiscAdjMeshSolver(void);
-
-  /*!
-   * \brief Performs the preprocessing of the AD-based mesh adjoint solver.
-   *        Registers all necessary variables on the tape. Called while tape is active.
-   * \param[in] geometry_container - The geometry container holding all grid levels.
-   * \param[in] config_container - The particular config.
-   */
-  void RegisterSolution(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Sets the adjoint values of the input variables of the flow (+turb.) iteration
-   *        after tape has been evaluated.
-   * \param[in] geometry - The geometrical definition of the problem.
-   * \param[in] config - The particular config.
-   */
-  void ExtractAdjoint_Solution(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Extract and set the geometrical sensitivity.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] solver - The solver container holding all terms of the solution.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void SetSensitivity(CGeometry *geometry, CSolver **solver, CConfig *config);
-
-  /*!
-   * \brief Set the value of the max residual and RMS residual.
-   * \param[in] val_iterlinsolver - Number of linear iterations.
-   */
-  void ComputeResidual_Multizone(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Store the BGS solution in the previous subiteration in the corresponding vector.
-   * \param[in] val_iterlinsolver - Number of linear iterations.
-   */
-  void UpdateSolution_BGS(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Prepare the solver for a new recording.
-   * \param[in] kind_recording - Kind of AD recording.
-   */
-  void SetRecording(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief A virtual member.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void RegisterVariables(CGeometry *geometry, CConfig *config, bool reset = false);
-
-  /*!
-   * \brief A virtual member.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void ExtractAdjoint_Variables(CGeometry *geometry, CConfig *config);
-
-  /*!
-   * \brief Update the dual-time derivatives.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] solver_container - Container vector with all the solutions.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] iMesh - Index of the mesh in multigrid computations.
-   * \param[in] iRKStep - Current step of the Runge-Kutta iteration.
-   * \param[in] RunTime_EqSystem - System of equations which is going to be solved.
-   * \param[in] Output - boolean to determine whether to print output.
-   */
-  void Preprocessing(CGeometry *geometry, CSolver **solver_container, CConfig *config, unsigned short iMesh, unsigned short iRKStep, unsigned short RunTime_EqSystem, bool Output);
-
-  /*!
-   * \brief Load a solution from a restart file.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] solver - Container vector with all of the solvers.
-   * \param[in] config - Definition of the particular problem.
-   * \param[in] val_iter - Current external iteration number.
-   * \param[in] val_update_geo - Flag for updating coords and grid velocity.
-   */
-  void LoadRestart(CGeometry **geometry, CSolver ***solver, CConfig *config, int val_iter, bool val_update_geo);
-
 };
 
 #include "solver_structure.inl"
