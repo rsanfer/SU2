@@ -697,6 +697,11 @@ class Interface:
         # --- Set some general variables for the steady computation --- #
         nFSIIter = FSIconfig['NB_FSI_ITER']  # maximum number of FSI iteration (for each time step)
 
+        if myid is 0:
+            self.sens_file = open("history_CD.dat", "w")
+            self.sens_file.write("Drag Coefficient\n")
+            self.sens_file.close()
+
         self.MPIPrint('\n********************************')
         self.MPIPrint('* Begin steady FSI computation *')
         self.MPIPrint('********************************\n')
@@ -747,6 +752,10 @@ class Interface:
                 new_name_surf = "./Output/surface_flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
                 shutil.move("flow.vtk", new_name_flow)
                 shutil.move("surface_flow.vtk", new_name_surf)
+
+                self.sens_file = open("history_CD.dat", "a")
+                self.sens_file.write(str(FluidSolver.Get_DragCoeff()) + "\n")
+                self.sens_file.close()
 
         self.MPIBarrier()
 
