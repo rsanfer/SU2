@@ -44,7 +44,7 @@
 
 #include "solver_structure.hpp"
 #include "integration_structure.hpp"
-#include "output_structure.hpp"
+#include "output/COutput.hpp"
 #include "numerics_structure.hpp"
 #include "transfer/CTransfer.hpp"
 #include "../../Common/include/geometry_structure.hpp"
@@ -99,7 +99,7 @@ public:
    */
   virtual void SetGrid_Movement(CGeometry **geometry, CSurfaceMovement *surface_movement,
                       CVolumetricMovement *grid_movement,
-                      CSolver ***solver, CConfig *config, unsigned long IntIter, unsigned long ExtIter);
+                      CSolver ***solver, CConfig *config, unsigned long IntIter, unsigned long TimeIter);
   /*!
    * \brief Run the mesh deformation algorithms.
    * \author R. Sanchez
@@ -275,7 +275,7 @@ public:
       CGeometry ****geometry,
       CSolver *****solver,
       CConfig **config,
-      unsigned long ExtIter,
+      unsigned long InnerIter,
       bool StopCalc,
       unsigned short val_iZone,
       unsigned short val_iInst);
@@ -385,7 +385,7 @@ public:
    * \brief Preprocessing to prepare for an iteration of the physics.
    * \param[in] ??? - Description here.
    */
-  void Preprocess(COutput *output,
+virtual void Preprocess(COutput *output,
                   CIntegration ****integration,
                   CGeometry ****geometry,
                   CSolver *****solver,
@@ -409,7 +409,7 @@ public:
    * \param[in] grid_movement - Volume grid movement classes of the problem.
    * \param[in] FFDBox - FFD FFDBoxes of the problem.
    */
-  void Iterate(COutput *output,
+virtual void Iterate(COutput *output,
                CIntegration ****integration,
                CGeometry ****geometry,
                CSolver *****solver,
@@ -433,7 +433,7 @@ public:
    * \param[in] grid_movement - Volume grid movement classes of the problem.
    * \param[in] FFDBox - FFD FFDBoxes of the problem.
    */
-  void Solve(COutput *output,
+ virtual void Solve(COutput *output,
                CIntegration ****integration,
                CGeometry ****geometry,
                CSolver *****solver,
@@ -449,7 +449,7 @@ public:
    * \brief Updates the containers for the fluid system.
    * \param[in] ??? - Description here.
    */
-  void Update(COutput *output,
+virtual void Update(COutput *output,
               CIntegration ****integration,
               CGeometry ****geometry,
               CSolver *****solver,
@@ -465,7 +465,7 @@ public:
    * \brief Monitors the convergence and other metrics for the fluid system.
    * \param[in] ??? - Description here.
    */
-  bool Monitor(COutput *output,
+virtual bool Monitor(COutput *output,
       CIntegration ****integration,
       CGeometry ****geometry,
       CSolver *****solver,
@@ -483,7 +483,7 @@ public:
    * \param[in] geometry - Geometrical definition of the problem.
    * \param[in] config - Definition of the particular problem.
    */
-  void Postprocess(COutput *output,
+ virtual void Postprocess(COutput *output,
                    CIntegration ****integration,
                    CGeometry ****geometry,
                    CSolver *****solver,
@@ -581,7 +581,7 @@ public:
  * \author T. Economon, E. van der Weide
  * \version 6.2.0 "Falcon"
  */
-class CFEMFluidIteration : public CIteration {
+class CFEMFluidIteration : public CFluidIteration {
 public:
   
   /*!
@@ -657,22 +657,6 @@ public:
               CFreeFormDefBox*** FFDBox,
               unsigned short val_iZone,
               unsigned short val_iInst);
-  
-  /*!
-   * \brief Monitors the convergence and other metrics for the finite element flow system.
-   * \param[in] ??? - Description here.
-   */
-  bool Monitor(COutput *output,
-               CIntegration ****integration,
-               CGeometry ****geometry,
-               CSolver *****solver,
-               CNumerics ******numerics,
-               CConfig **config,
-               CSurfaceMovement **surface_movement,
-               CVolumetricMovement ***grid_movement,
-               CFreeFormDefBox*** FFDBox,
-               unsigned short val_iZone,
-               unsigned short val_iInst);
   
   /*!
    * \brief Postprocess routine for the finite element flow system.
@@ -1013,7 +997,7 @@ public:
  * \brief Class for driving an iteration of the adjoint fluid system.
  * \author T. Economon
  */
-class CAdjFluidIteration : public CIteration {
+class CAdjFluidIteration : public CFluidIteration {
 public:
   
   /*!
@@ -1083,38 +1067,6 @@ public:
               unsigned short val_iZone,
               unsigned short val_iInst);
   
-  /*!
-   * \brief Monitors the convergence and other metrics for the adjoint fluid system.
-   */
-  bool Monitor(COutput *output,
-      CIntegration ****integration,
-      CGeometry ****geometry,
-      CSolver *****solver,
-      CNumerics ******numerics,
-      CConfig **config,
-      CSurfaceMovement **surface_movement,
-      CVolumetricMovement ***grid_movement,
-      CFreeFormDefBox*** FFDBox,
-      unsigned short val_iZone,
-      unsigned short val_iInst);
-  
-  /*!
-   * \brief Postprocess ???.
-   * \param[in] solver - Container vector with all the solutions.
-   * \param[in] geometry - Geometrical definition of the problem.
-   * \param[in] config - Definition of the particular problem.
-   */
-  void Postprocess(COutput *output,
-                   CIntegration ****integration,
-                   CGeometry ****geometry,
-                   CSolver *****solver,
-                   CNumerics ******numerics,
-                   CConfig **config,
-                   CSurfaceMovement **surface_movement,
-                   CVolumetricMovement ***grid_movement,
-                   CFreeFormDefBox*** FFDBox,
-                   unsigned short val_iZone,
-                   unsigned short val_iInst);
 
   
 };
@@ -1817,7 +1769,7 @@ public:
               CGeometry ****geometry,
               CSolver *****solver,
               CConfig **config,
-              unsigned long ExtIter,
+              unsigned long InnerIter,
               bool StopCalc,
               unsigned short val_iZone,
               unsigned short val_iInst);

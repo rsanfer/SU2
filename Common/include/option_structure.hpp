@@ -165,6 +165,10 @@ const unsigned short N_POINTS_HEXAHEDRON = 8;    /*!< \brief General output & CG
 const unsigned short N_POINTS_PYRAMID = 5;       /*!< \brief General output & CGNS defines. */
 const unsigned short N_POINTS_PRISM = 6;         /*!< \brief General output & CGNS defines. */
 
+const int CGNS_STRING_SIZE = 33; /*!< \brief Length of strings used in the CGNS format. */
+const int CGNS_CONN_SIZE   = 10; /*!< \brief Size of the connectivity array that is allocated for each element that we read from a CGNS file in the format [[globalID vtkType n0 n1 n2 n3 n4 n5 n6 n7 n8]. */
+const int CGNS_SKIP_SIZE   = 2;  /*!< \brief Offset to skip the globalID and VTK type at the start of the element connectivity list for each CGNS element. */
+
 /*!
  * \brief Boolean answers
  */
@@ -203,7 +207,6 @@ enum ENUM_SOLVER {
   ADJ_NAVIER_STOKES = 11,				/*!< \brief Definition of the continuous adjoint Navier-Stokes' solver. */
   ADJ_RANS = 12,						/*!< \brief Definition of the continuous adjoint Reynolds-averaged Navier-Stokes' (RANS) solver. */
   TEMPLATE_SOLVER = 13,                 /*!< \brief Definition of template solver. */
-  ZONE_SPECIFIC = 14,          /*!< \brief Definition of a solver option that will induce a zone-wise definition once the driver is created. Not a reference to an own solver. */
   DISC_ADJ_EULER = 15,
   DISC_ADJ_RANS = 16,
   DISC_ADJ_NAVIER_STOKES = 17,
@@ -252,7 +255,6 @@ static const map<string, ENUM_SOLVER> Solver_Map = CCreateMap<string, ENUM_SOLVE
 ("DISC_ADJ_FEM", DISC_ADJ_FEM)
 ("FLUID_STRUCTURE_INTERACTION", FLUID_STRUCTURE_INTERACTION)
 ("TEMPLATE_SOLVER", TEMPLATE_SOLVER)
-("ZONE_SPECIFIC", ZONE_SPECIFIC)
 ("MULTIPHYSICS", MULTIPHYSICS);
 
 /*!
@@ -1519,14 +1521,16 @@ static const map<string, ENUM_ADAPT> Adapt_Map = CCreateMap<string, ENUM_ADAPT>
  * \brief types of input file formats
  */
 enum ENUM_INPUT {
-  SU2 = 1,                       /*!< \brief SU2 input format. */
-  CGNS = 2                     /*!< \brief CGNS input format for the computational grid. */
+  SU2       = 1,  /*!< \brief SU2 input format. */
+  CGNS      = 2,  /*!< \brief CGNS input format for the computational grid. */
+  RECTANGLE = 3,  /*!< \brief 2D rectangular mesh with N x M points of size Lx x Ly. */
+  BOX       = 4   /*!< \brief 3D box mesh with N x M x L points of size Lx x Ly x Lz. */
 };
 static const map<string, ENUM_INPUT> Input_Map = CCreateMap<string, ENUM_INPUT>
 ("SU2", SU2)
-("CGNS", CGNS);
-
-const int CGNS_STRING_SIZE = 33;/*!< \brief Length of strings used in the CGNS format. */
+("CGNS", CGNS)
+("RECTANGLE", RECTANGLE)
+("BOX", BOX);
 
 /*!
  * \brief type of solution output file formats
@@ -1539,8 +1543,12 @@ enum ENUM_OUTPUT {
   CSV = 5,			         /*!< \brief Comma-separated values format for the solution output. */
   CGNS_SOL = 6,  	     	 /*!< \brief CGNS format for the solution output. */
   PARAVIEW = 7,  		     /*!< \brief Paraview ASCII format for the solution output. */
-  PARAVIEW_BINARY = 8    /*!< \brief Paraview binary format for the solution output. */
+  PARAVIEW_BINARY = 8,    /*!< \brief Paraview binary format for the solution output. */
+  SU2_MESH      = 9,      /*!< \brief SU2 mesh format (only used internally). */
+  SU2_RESTART_BINARY = 10,/*!< \brief SU2 binary restart format (only used internally). */
+  SU2_RESTART_ASCII = 11  /*!< \brief SU2 ASCII restart format (only used internally). */
 };
+
 static const map<string, ENUM_OUTPUT> Output_Map = CCreateMap<string, ENUM_OUTPUT>
 ("TECPLOT", TECPLOT)
 ("TECPLOT_BINARY", TECPLOT_BINARY)
@@ -1831,7 +1839,7 @@ enum ENUM_UNSTEADY {
   HARMONIC_BALANCE = 5    /*!< \brief Use a harmonic balance source term. */
 
 };
-static const map<string, ENUM_UNSTEADY> Unsteady_Map = CCreateMap<string, ENUM_UNSTEADY>
+static const map<string, ENUM_UNSTEADY> TimeMarching_Map = CCreateMap<string, ENUM_UNSTEADY>
 ("NO", STEADY)
 ("TIME_STEPPING", TIME_STEPPING)
 ("DUAL_TIME_STEPPING-1ST_ORDER", DT_STEPPING_1ST)

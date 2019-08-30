@@ -111,17 +111,19 @@ class FSIConfig:
         if case("RESTART_SOL")		      : pass
         if case("MATCHING_MESH")	      : pass
                 if case("MESH_INTERP_METHOD")         : pass
-        if case("DISP_PRED")		      : pass
-        if case("AITKEN_RELAX")               : pass
-            if case("UNSTEADY_SIMULATION")	      : pass
-        if case("INTERNAL_FLOW")	      :
-            # if case("MESH_DEF_METHOD")	      : pass
-            self._ConfigContent[this_param] = this_value
-            break
+		if case("DISP_PRED")		      : pass
+		if case("AITKEN_RELAX")               : pass
+	        if case("TIME_MARCHING")	      : pass
+		if case("INTERNAL_FLOW")	      : 
+	        #if case("MESH_DEF_METHOD")	      : pass
+		    self._ConfigContent[this_param] = this_value
+		    break
 
-            if case():
-            print(this_param + " is an invalid option !")
-            break
-            # end for
+ 	        if case():
+		    print(this_param + " is an invalid option !")
+		    break
+	    #end for
+	
 
-    # def dump()
+
+    #def dump()
