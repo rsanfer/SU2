@@ -109,6 +109,3 @@ class MLSConfig:
                 if case():
                     print(this_param + " is an invalid option !")
                     break
-
-
-

@@ -485,7 +485,6 @@ class Interface:
             localFluidLoadX[localIndex] = loadX
             localFluidLoadY[localIndex] = loadY
             localFluidLoadZ[localIndex] = loadZ
-            #print(iVertex, localFluidLoadX[localIndex], localFluidLoadY[localIndex], localFluidLoadZ[localIndex])
             localIndex += 1
 
         if self.have_MPI:
@@ -531,6 +530,41 @@ class Interface:
             self.globalSolidLoadY = MLSSolver.interpolation_matrix.transpose().dot(self.globalFluidLoadY)
             self.globalSolidLoadZ = MLSSolver.interpolation_matrix.transpose().dot(self.globalFluidLoadZ)
 
+        #     print("Drag force: ", FluidSolver.Get_Drag())
+        #     print("Lift force: ", FluidSolver.Get_Lift())
+        #     print("Drag coefficient: ", FluidSolver.Get_DragCoeff())
+        #     print("Lift coefficient: ", FluidSolver.Get_LiftCoeff())
+        #
+            outF = open("loadsFlow.txt", "w")
+            index = 0
+            for i in self.globalFluidLoadX:
+                outF.write(str(index))
+                outF.write("\t")
+                outF.write(str(self.globalFluidLoadX[index]))
+                outF.write("\t")
+                outF.write(str(self.globalFluidLoadY[index]))
+                outF.write("\t")
+                outF.write(str(self.globalFluidLoadZ[index]))
+                outF.write("\n")
+                index += 1
+            outF.close()
+
+            outF = open("loadsFEA.txt", "w")
+            index = 0
+            for i in self.globalSolidLoadZ:
+                outF.write(str(index))
+                outF.write("\t")
+                outF.write(str(self.globalSolidLoadX[index]))
+                outF.write("\t")
+                outF.write(str(self.globalSolidLoadY[index]))
+                outF.write("\t")
+                outF.write(str(self.globalSolidLoadZ[index]))
+                outF.write("\n")
+                index += 1
+            outF.close()
+        #
+        # exit()
+
         # ---> Output: self.globalSolidLoadX, self.globalSolidLoadY, self.globalSolidLoadZ
 
         ################################################################################################################
@@ -553,6 +587,10 @@ class Interface:
             self.MPIPrint("Checking f/s interface total force...")
             self.MPIPrint('Solid side (Fx, Fy, Fz) = ({}, {}, {})'.format(FX, FY, FZ))
             self.MPIPrint('Fluid side (Fx, Fy, Fz) = ({}, {}, {})'.format(FFX, FFY, FFZ))
+
+            force_file = open("history_forces.dat", "a")
+            force_file.write(str(FFX) + "\t" + str(FFY) + "\t" + str(FFZ) + "\t" + str(FX) + "\t" + str(FY) + "\t" + str(FZ) + "\n")
+            force_file.close()
 
         ################################################################################################################
         # --- STEP 4: Transfer to the structural solver
@@ -698,9 +736,16 @@ class Interface:
         nFSIIter = FSIconfig['NB_FSI_ITER']  # maximum number of FSI iteration (for each time step)
 
         if myid is 0:
-            self.sens_file = open("history_CD.dat", "w")
-            self.sens_file.write("Drag Coefficient\n")
-            self.sens_file.close()
+            cd_file = open("history_CD.dat", "w")
+            cd_file.write("Drag Coefficient\n")
+            cd_file.close()
+            cl_file = open("history_CL.dat", "w")
+            cl_file.write("Lift Coefficient\n")
+            cl_file.close()
+            force_file = open("history_forces.dat", "w")
+            force_file.write("Forces Flow (X, Y, Z) \t Forces FEA (X, Y, Z)\n")
+            force_file.close()
+
 
         self.MPIPrint('\n********************************')
         self.MPIPrint('* Begin steady FSI computation *')
@@ -753,9 +798,13 @@ class Interface:
                 shutil.move("flow.vtk", new_name_flow)
                 shutil.move("surface_flow.vtk", new_name_surf)
 
-                self.sens_file = open("history_CD.dat", "a")
-                self.sens_file.write(str(FluidSolver.Get_DragCoeff()) + "\n")
-                self.sens_file.close()
+                cd_file = open("history_CD.dat", "a")
+                cd_file.write(str(FluidSolver.Get_DragCoeff()) + "\n")
+                cd_file.close()
+                cl_file = open("history_CL.dat", "a")
+                cl_file.write(str(FluidSolver.Get_LiftCoeff()) + "\n")
+                cl_file.close()
+
 
         self.MPIBarrier()
 
