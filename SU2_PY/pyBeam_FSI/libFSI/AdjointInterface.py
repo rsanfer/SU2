@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-## \file Interface.py
-#  \brief Interface class that handles fluid/solid solvers synchronisation and communication.
-#  \author Ruben Sanchez, Rocco Bombardieri based on previous work by David Thomas.
+## \file AdjointInterface.py
+#  \brief Interface class that handles adjoint FSI synchronisation and communication.
+#  \author Ruben Sanchez
 #  \version 7.0.0
 #
 # SU2 Original Developers: Dr. Francisco D. Palacios.
@@ -16,7 +16,7 @@
 #                 Prof. Edwin van der Weide's group at the University of Twente.
 #                 Prof. Vincent Terrapon's group at the University of Liege.
 #
-# Copyright (C) 2012-2017 SU2, the open-source CFD code.
+# Copyright (C) 2012-2019 SU2, the open-source CFD code.
 #
 # SU2 is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -563,6 +563,34 @@ class AdjointInterface:
 
         # ---> Output: self.globalSolidLoadX, self.globalSolidLoadY, self.globalSolidLoadZ
 
+            outF = open("loadsFlowAdjoint.txt", "w")
+            index = 0
+            for i in self.globalFluidLoadX:
+                outF.write(str(index))
+                outF.write("\t")
+                outF.write(str(self.globalFluidLoadX[index]))
+                outF.write("\t")
+                outF.write(str(self.globalFluidLoadY[index]))
+                outF.write("\t")
+                outF.write(str(self.globalFluidLoadZ[index]))
+                outF.write("\n")
+                index += 1
+            outF.close()
+
+            outF = open("loadsFEAAdjoint.txt", "w")
+            index = 0
+            for i in self.globalSolidLoadZ:
+                outF.write(str(index))
+                outF.write("\t")
+                outF.write(str(self.globalSolidLoadX[index]))
+                outF.write("\t")
+                outF.write(str(self.globalSolidLoadY[index]))
+                outF.write("\t")
+                outF.write(str(self.globalSolidLoadZ[index]))
+                outF.write("\n")
+                index += 1
+            outF.close()
+
         ################################################################################################################
         # --- STEP 3: Check conservation
         ################################################################################################################
@@ -690,6 +718,34 @@ class AdjointInterface:
             self.globalDispSolidAdjointX = MLSSolver.interpolation_matrix.transpose().dot(self.globalDispFlowAdjointX)
             self.globalDispSolidAdjointY = MLSSolver.interpolation_matrix.transpose().dot(self.globalDispFlowAdjointY)
             self.globalDispSolidAdjointZ = MLSSolver.interpolation_matrix.transpose().dot(self.globalDispFlowAdjointZ)
+
+            outF = open("dispFlowAdjoint.txt", "w")
+            index = 0
+            for i in self.globalFluidLoadX:
+                outF.write(str(index))
+                outF.write("\t")
+                outF.write(str(self.globalDispFlowAdjointX[index]))
+                outF.write("\t")
+                outF.write(str(self.globalDispFlowAdjointY[index]))
+                outF.write("\t")
+                outF.write(str(self.globalDispFlowAdjointZ[index]))
+                outF.write("\n")
+                index += 1
+            outF.close()
+
+            outF = open("dispFEAAdjoint.txt", "w")
+            index = 0
+            for i in self.globalDispSolidAdjointX:
+                outF.write(str(index))
+                outF.write("\t")
+                outF.write(str(self.globalDispSolidAdjointX[index]))
+                outF.write("\t")
+                outF.write(str(self.globalDispSolidAdjointY[index]))
+                outF.write("\t")
+                outF.write(str(self.globalDispSolidAdjointZ[index]))
+                outF.write("\n")
+                index += 1
+            outF.close()
 
         # ---> Output: self.globalSolidLoadX, self.globalSolidLoadY, self.globalSolidLoadZ
 

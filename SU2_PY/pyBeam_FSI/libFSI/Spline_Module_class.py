@@ -38,7 +38,7 @@ from libFSI import Plot_modes as Plot_modes
 import scipy.io
 import numpy as np
 import sys
-import pyMLS_Cpp as Spline
+import pyMLS as Spline
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -113,7 +113,6 @@ class MLS_Spline:
                 self.interpolation_matrix[j][i] = interpolation_matrix_std[l]
                 l = l + 1
 
-        # Print norm error
         print("Splining: norm of interpolation error over nodes position = {}".format(np.linalg.norm(norm_err_std)))
 
         if MLS_conf['DEBUG'] == "YES":
