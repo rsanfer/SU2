@@ -605,11 +605,11 @@ class Interface:
                                               self.globalSolidLoadY[iVertex],
                                               self.globalSolidLoadZ[iVertex])
 
-            f = open('pyBeam_Loads_Iter' + str(self.FSIIter) + '.dat', "w+")
-            for iVertex in range(0, self.nSolidInterfaceNodes):
-                f.write('beam.SetLoads(' + str(iVertex) +',' + str(self.globalSolidLoadX[iVertex]) +',' + str(self.globalSolidLoadY[iVertex]) +',' + str(self.globalSolidLoadZ[iVertex]) + ')\n' )
-                print(str(iVertex) +',' + str(self.globalSolidLoadX[iVertex]) +',' + str(self.globalSolidLoadY[iVertex]) +',' + str(self.globalSolidLoadZ[iVertex]) )
-            f.close()
+            #f = open('pyBeam_Loads_Iter' + str(self.FSIIter) + '.dat', "w+")
+            #for iVertex in range(0, self.nSolidInterfaceNodes):
+            #    f.write('beam.SetLoads(' + str(iVertex) +',' + str(self.globalSolidLoadX[iVertex]) +',' + str(self.globalSolidLoadY[iVertex]) +',' + str(self.globalSolidLoadZ[iVertex]) + ')\n' )
+            #    print(str(iVertex) +',' + str(self.globalSolidLoadX[iVertex]) +',' + str(self.globalSolidLoadY[iVertex]) +',' + str(self.globalSolidLoadZ[iVertex]) )
+            #f.close()
             #os.rename('surface_flow.vtk', 'surface_flow_' + str(self.FSIIter) + '.vtk')
     def transferStructuralDisplacements(self, FSIConfig, FluidSolver, SolidSolver, MLSSolver):
         """
