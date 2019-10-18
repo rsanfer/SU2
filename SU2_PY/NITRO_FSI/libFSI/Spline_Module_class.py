@@ -33,7 +33,6 @@
 
 
 from libFSI import ReadModes as ReadModes
-from libFSI import MLS_config as MLS_config
 from libFSI import Plot_modes as Plot_modes
 import scipy.io
 import numpy as np
