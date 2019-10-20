@@ -31,13 +31,14 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with SU2. If not, see <http://www.gnu.org/licenses/>.
 
-
-from libFSI import ReadModes as ReadModes
-from libFSI import Plot_modes as Plot_modes
-import scipy.io
+import pyMLS as Spline
+import libFSI.pyMLSConfig as io
+from libFSI.ReadModes import ReadModes
+from libFSI.Plot_modes import Plot_modes
+from libFSI.ReadStructMesh import ReadStructMesh
+#import scipy.io
 import numpy as np
 import sys
-import pyMLS as Spline
 
 np.set_printoptions(threshold=sys.maxsize)
 
@@ -52,7 +53,7 @@ class MLS_Spline:
     MLS_Spline class that handles fluid/solid solver synchronisation and communication
     """
 
-    def __init__(self, MLS_Config_File, nDim, AeroNodes, StructNodes, FSI_config): # NrAeroElem, BoundElem,
+    def __init__(self, MLS_Config_File, nDim, AeroNodes, FSI_config): # NrAeroElem, BoundElem,
         """
          Class constructor. Declare some variables and do some screen outputs.
         """
@@ -60,7 +61,7 @@ class MLS_Spline:
         # BoundElem is an object. here we need the function .GetNodes() or something similar
         # The MLS configurations parameters are stored from the MLS input file
         print("Storing MLS parameters from input file ")
-        MLS_conf = MLS_config.MLSConfig(MLS_Config_File)
+        MLS_conf = io.pyMLSConfig(MLS_Config_File)
 
         # Storing structural modes from relative input file
         print("Storing structural modes from the input file ")
@@ -70,13 +71,20 @@ class MLS_Spline:
         print("Mode_file = {}".format(Mode_file))
         FORMAT_MODES = FSI_config['FORMAT_MODES']
         self.nModes = []
-        readModes(self.Modes, Mode_file, FORMAT_MODES, self.nModes)
+        ReadModes(self.Modes, Mode_file, FORMAT_MODES, self.nModes)
         self.nModes = int(self.nModes[0])
 
         self.nAeroNodes = np.shape(AeroNodes)[0]
-        self.nStructNodes = np.shape(StructNodes)[0]
-
         lenAeroNodes = self.nAeroNodes * 3
+
+
+        print("Storing Structural mesh information from the input file")
+        Mesh_file = MLS_conf['STRUCTURAL_NODES_FILE_NAME']
+        Mesh_format = MLS_conf['FORMAT_SRUCT_NODES']
+        self.nStructNodes = []
+        StructNodes = []
+        ReadStructMesh(Mesh_file, Mesh_format, StructNodes, self.nStructNodes)
+        self.nStructNodes = int(self.nStructNodes[0])
         lenStructNodes = self.nStructNodes * 3
 
         # Performing the meshless method
@@ -87,7 +95,7 @@ class MLS_Spline:
         l = 0
         for i in range(0, 3):
             for j in range(0, self.nStructNodes):
-                str_data_std[l] = float(StructNodes[j][i])  # str_data[j,i]
+                str_data_std[l] = float(StructNodes[j].GetCoord()[i])  # str_data[j,i]
                 l = l + 1
 
         # Arrange aerodynamic nodes in the wrapped standard vector
@@ -169,7 +177,7 @@ class MLS_Spline:
                     str_Matrix[:, 1] + self.Modes[i].GetMode()[:, 1] * MLS_conf['MAGNIF_FACTOR'])  #
                 Z_mode = self.interpolation_matrix.dot(
                     str_Matrix[:, 2] + self.Modes[i].GetMode()[:, 2] * MLS_conf['MAGNIF_FACTOR'])  #
-                plotmodes(X_mode, Y_mode, Z_mode, i)
+                Plot_modes(X_mode, Y_mode, Z_mode, i)
 
             print("PRESS ENTER TO END PROGRAM.")
             wait = input("PROGRAM TERMINATED CORRECTLY.")

@@ -5,7 +5,7 @@ import matplotlib.tri as mtri
 import numpy as np
 
 
-def plotmodes(X_mode, Y_mode, Z_mode,i):
+def Plot_modes(X_mode, Y_mode, Z_mode,i):
     matplotlib.interactive(True)
     fig = plt.figure(i)   
     ax = fig.gca(projection='3d')

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ## \file fsi_computation.py
 #  \brief Python wrapper code for FSI computation by coupling pyBeam and SU2.
@@ -42,7 +42,7 @@ from optparse import OptionParser  # use a parser for configuration
 
 from libFSI import FSI_config as io  # imports FSI python tools
 from libFSI import Interface as FSI # imports FSI python tools
-from libFSI import NITRO_imposed as NITRO_imposed
+from libFSI import NITRO
 from libFSI import Spline_Module_class as Spline_Module
 
 # imports the CFD (SU2) module for FSI computation
@@ -92,8 +92,8 @@ def main():
     confFile = str(options.filename)
 
     FSI_config = io.FSIConfig(confFile)  # FSI configuration file
-    CFD_ConFile = FSI_config['SU2_CONFIG']  # CFD configuration file
-    CSD_ConFile = FSI_config['PYBEAM_CONFIG']  # CSD configuration file
+    CFD_ConFile = FSI_config['CFD_CONFIG_FILE_NAME']  # CFD configuration file
+    CSD_ConFile = FSI_config['CSD_CONFIG_FILE_NAME']  # CSD configuration file
     MLS_confFile = FSI_config['MLS_CONFIG_FILE_NAME']  # MLS configuration file
     CSD_Solver = FSI_config['CSD_SOLVER']  # CSD solver
 
@@ -110,7 +110,7 @@ def main():
     if myid == rootProcess:
         print('\n***************************** Initializing SU2 **************************************')
     try:
-        FluidSolver = pysu2.CSinglezoneDriver(CFD_ConFile, 1, FSI_config['NDIM'], comm)
+        FluidSolver = pysu2.CSinglezoneDriver(CFD_ConFile, 1, comm)
     except TypeError as exception:
         print('A TypeError occured in pysu2.CSingleZoneDriver : ', exception)
         if have_MPI:
@@ -124,9 +124,9 @@ def main():
 
     # --- Initialize the solid solver: pyBeam --- #
     if myid == rootProcess:
-        print('\n***************************** Initializing pyBeam ************************************')
+        print('\n***************************** Initializing Imposed displacement Solver   ************************************')
         try:
-            SolidSolver = NITRO_imposed.NITRO(CSD_ConFile)
+            SolidSolver = NITRO.NITRO(CSD_ConFile)
         except TypeError as exception:
             print('ERROR building the Solid Solver: ', exception)
     else:
@@ -161,7 +161,7 @@ def main():
         print('\n***************************** Initializing MLS Interpolation *************************')
         try:
             MLS = Spline_Module.MLS_Spline(MLS_confFile, FSIInterface.nDim,
-                                          FSIInterface.globalFluidCoordinates, FSIInterface.globalSolidCoordinates,
+                                          FSIInterface.globalFluidCoordinates,
                                           FSI_config)
         except TypeError as exception:
             print('ERROR building the MLS Interpolation: ', exception)
@@ -189,7 +189,7 @@ def main():
 
     if have_MPI == True:
         comm.barrier()
-'''
+    '''
             # Run the solver
     if myid == 0:
         print("\n------------------------------ Begin Solver -----------------------------\n")
@@ -229,7 +229,7 @@ def main():
 
     if FluidSolver is not None:
         del FluidSolver
-'''
+    '''
     return
 
 

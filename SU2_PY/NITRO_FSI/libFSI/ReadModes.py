@@ -20,7 +20,7 @@ class CModes:  # for modes
     a = self.Mode.shape()[0]
     return void
 
-def readModes(Modes, Mode_file, FORMAT_MODES, nModes):
+def ReadModes(Modes, Mode_file, FORMAT_MODES, nModes):
     index = -1
     with open(Mode_file, 'r') as modefile:
         if FORMAT_MODES == "CSHELL":

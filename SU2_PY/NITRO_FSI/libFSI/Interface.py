@@ -171,12 +171,7 @@ class Interface:
 
         # ---Some screen output ---
         self.MPIPrint('Fluid solver : SU2_CFD')
-        self.MPIPrint('Solid solver : pyBeam')
-        self.MPIPrint('Steady coupled simulation')
         self.MPIPrint('Matching fluid-solid interface using Moving Least Squares method')
-        self.MPIPrint('Maximum number of FSI iterations : {}'.format(FSI_config['NB_FSI_ITER']))
-        self.MPIPrint('FSI tolerance : {}'.format(FSI_config['FSI_TOLERANCE']))
-        self.MPIPrint('Static under-relaxation with constant parameter {}'.format(FSI_config['RELAX_PARAM']))
         self.MPIPrint('FSI interface is set')
 
     def MPIPrint(self, message):
@@ -254,11 +249,21 @@ class Interface:
             self.nSolidInterfacePhysicalNodes = SolidSolver.nPoint
             self.nLocalSolidInterfaceNodes = SolidSolver.nPoint
             self.globalSolidCoordinates = np.zeros((SolidSolver.nPoint, 3))
-            for iPoint in range(0, SolidSolver.nPoint):
-                coordX, coordY, coordZ = SolidSolver.GetInitialCoordinates(iPoint)
-                self.globalSolidCoordinates[iPoint, 0] = coordX
-                self.globalSolidCoordinates[iPoint, 1] = coordY
-                self.globalSolidCoordinates[iPoint, 2] = coordZ
+            '''
+            Now, structural 'ghost' points are ordered into a vector following the list of markers[iMarker]
+            so I just need to extract them in order starting from 1 till the end during the cycle for iPoint in vertexList:
+            '''
+            l = 0
+            for iMarker in SolidSolver.markers.keys():
+                vertexList = SolidSolver.markers[iMarker]
+                for iPoint in vertexList:
+                  Coord0 = SolidSolver.node[iPoint].GetCoord0()
+                  self.globalSolidCoordinates[l, 0] = Coord0[0]
+                  self.globalSolidCoordinates[l, 1] = Coord0[1]
+                  self.globalSolidCoordinates[l, 2] = Coord0[2]
+                  l = l+1
+            if l != SolidSolver.nPoint:
+                raise Exception('Structural nodes not coincident in routine connect: check Interface.py ')
         else:
             pass
 

@@ -41,6 +41,18 @@
 
 from .switch import switch
 
+
+def decomp_coeff_read(File_conf, array):
+    f = open(File_conf["MODAL_COEFF_FILE_NAME"], "r+")
+
+    for line in f:
+        line = line.replace('i', 'j')  # .split()
+        if line:
+            # array.append(Point())
+            # array[i].SetCoeff([ float(line[0]) float(line[1])  ])
+            array.append(complex(line))
+
+
 # ----------------------------------------------------------------------
 #  FSI Configuration Class
 # ----------------------------------------------------------------------
@@ -86,44 +98,77 @@ class FSIConfig:
 
             for case in switch(this_param):
                 # integer values
-                if case("RESTART_ITER"): pass
-                if case("NDIM"): pass
-                if case("NB_EXT_ITER"): pass
-                if case("NB_FSI_ITER"):
+                if case("BS_NR")		: pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
+                if case("NMODES")		      : pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
+                if case("MODE_TO_SIMULATE")	      : pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
+                if case("ITER")	                      : pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
+                if case("NDIM")			      : pass
+                if case("TRACKING_NODE")              : pass
+                if case("RESTART_ITER")		      : pass
+                if case("UNST_NR")		      : pass
+                if case("UNST_TOTAL_SIMUL_NUMBER")    : pass
+                if case("NB_EXT_ITER")		      : pass
+                if case("NB_FSI_ITER")		      :
                     self._ConfigContent[this_param] = int(this_value)
                     break
 
                 # float values
-                if case("RBF_RADIUS"): pass
-                if case("AITKEN_PARAM"): pass
-                if case("START_TIME"): pass
-                if case("UNST_TIMESTEP"): pass
-                if case("UNST_TIME"): pass
-                if case("FSI_TOLERANCE"):
-                    self._ConfigContent[this_param] = float(this_value)
-                    break
-                if case("RELAX_PARAM"):
+                if case("FREESTREAM_DENSITY")         : pass
+                if case("FREESTREAM_PRESSURE")        : pass
+                if case("K_MAX")                      : pass
+                if case("L_REF")                      : pass
+                if case("OMEGA")                      : pass
+                if case("V_INF")                      : pass
+                if case("START_MOTION_TIME")          : pass
+                if case("START_TIME")		      : pass
+                if case("UNST_TIMESTEP")	      : pass
+                if case("UNST_TIME")		      : pass
+                if case("BS_TIMESTEP_1")	      : pass
+                if case("BS_TIMESTEP_2")	      : pass
+                if case("FSI_TOLERANCE")	      :
                     self._ConfigContent[this_param] = float(this_value)
                     break
 
-                # string values
-                if case("SU2_CONFIG"): pass
-                if case("PYBEAM_CONFIG"): pass
-                if case("MLS_CONFIG_FILE_NAME"): pass
-                if case("CSD_SOLVER"): pass
-                if case("CSD_CONFIG_FILE_NAME"): pass
-                if case("RESTART_SOL"): pass
-                if case("MATCHING_MESH"): pass
-                if case("MESH_INTERP_METHOD"): pass
-                if case("DISP_PRED"): pass
-                if case("AITKEN_RELAX"): pass
-                if case("UNSTEADY_SIMULATION"): pass
-                if case("INTERNAL_FLOW"):
+                # string values  MEMO_GEN_FORCE_OUTPUT
+                if case("FREESTREAM_OPTION")          : pass
+                # if case("FSI_MARKER")                 : pass
+                if case("OUTPUT_DIRECTORY")           : pass
+                if case("UNSTEADY_SCHEME")            : pass
+                if case("MEMO_GEN_FORCE_OUTPUT")      : pass
+                if case("MEMO_FORCE_OUTPUT")          : pass
+                if case("WRITE_GEN_FORCE_OUTPUT")     : pass
+                if case("GENERALIZED_FORCE_FILE")     : pass
+                if case("MOTION_TYPE")                : pass
+                if case("REAL_TIME_TRACKING")         : pass
+                if case("WRITE_FORCE_OUTPUT")         : pass
+                if case("NODAL_FORCE_FILE")           : pass
+                if case("MODAL_COEFF_FILE_NAME")      : pass
+                if case("MLS_CONFIG_FILE_NAME")       : pass
+                if case("STRUCTURAL_MODES_FILE_NAME") : pass
+                if case("FORMAT_MODES")	              : pass
+                if case("CFD_CONFIG_FILE_NAME")	      : pass
+                if case("CSD_SOLVER")		          : pass
+                if case("CSD_CONFIG_FILE_NAME")	      : pass
+                if case("RESTART_SOL")		          : pass
+                if case("MATCHING_MESH")	          : pass
+                if case("MESH_INTERP_METHOD")         : pass
+                if case("DISP_PRED")		          : pass
+                if case("UNSTEADY_SIMULATION")	      : pass
+                if case("MESH_DEF_METHOD")	      : pass
+                if case("INTERNAL_FLOW")	      :
                     self._ConfigContent[this_param] = this_value
                     break
 
+                if case("MEMO_GEN_FORCE_OUTPUT")      :
+                    print("\nWarning! MEMO_GEN_FORCE_OUTPUT is obsolete and not used any more" )
+
                 if case():
                     print(this_param + " is an invalid option !")
-            # end for
+                    break
+                # end for
 
-    # def dump()
+        if self._ConfigContent["CSD_SOLVER"] == 'NITRO':
+             array = []
+             decomp_coeff_read(self,array)
+             if array:
+                self._ConfigContent["MODAL_COEFF"] = array
