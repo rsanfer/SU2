@@ -44,6 +44,7 @@ from libFSI import FSI_config as io  # imports FSI python tools
 from libFSI import Interface as FSI # imports FSI python tools
 from libFSI import NITRO
 from libFSI import Spline_Module_class as Spline_Module
+from libFSI.Unifying_parameters_framework import UnifyingParameters_framework
 
 # imports the CFD (SU2) module for FSI computation
 import pysu2
@@ -101,8 +102,8 @@ def main():
         comm.barrier()
 
     # Unification of parameters
-    elif CSD_Solver == 'NITRO' or CSD_Solver == 'NITRO_FRAMEWORK':
-        FSI.UnifyingParameters_framework(FSI_config, confFile, myid)
+    if CSD_Solver == 'NITRO' or CSD_Solver == 'NITRO_FRAMEWORK':
+        UnifyingParameters_framework(FSI_config, confFile, myid)
         if have_MPI == True:
             comm.barrier()
 
@@ -139,7 +140,7 @@ def main():
     if myid == rootProcess:
         print('\n***************************** Initializing FSI interface *****************************')
     try:
-        FSIInterface = FSI.Interface(FSI_config, FluidSolver, SolidSolver, None, have_MPI)
+        FSIInterface = FSI.Interface(FSI_config, have_MPI)
     except TypeError as exception:
         print('ERROR building the FSI Interface: ', exception)
 
@@ -152,7 +153,7 @@ def main():
     try:
         FSIInterface.connect(FSI_config, FluidSolver, SolidSolver)
     except TypeError as exception:
-        print('ERROR building the Interpolation Interface: ', exception)
+        print('ERROR building the Interface connection: ', exception)
 
     if have_MPI:
         comm.barrier()
@@ -161,7 +162,7 @@ def main():
         print('\n***************************** Initializing MLS Interpolation *************************')
         try:
             MLS = Spline_Module.MLS_Spline(MLS_confFile, FSIInterface.nDim,
-                                          FSIInterface.globalFluidCoordinates,
+                                          SolidSolver.GlobalCoordinates0,
                                           FSI_config)
         except TypeError as exception:
             print('ERROR building the MLS Interpolation: ', exception)
@@ -189,7 +190,7 @@ def main():
 
     if have_MPI == True:
         comm.barrier()
-    '''
+
             # Run the solver
     if myid == 0:
         print("\n------------------------------ Begin Solver -----------------------------\n")
@@ -200,7 +201,7 @@ def main():
     # --- Launch a steady or unsteady FSI computation --- #
     if FSI_config['UNSTEADY_SIMULATION'] == "YES":
         try:
-           FSIInterface.SteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
+           FSIInterface.UnsteadySteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
         except NameError as exception:
            if myid == rootProcess:
               print('An NameError occured in FSIInterface.UnsteadyFSI : ',exception)
@@ -212,8 +213,8 @@ def main():
               print('A KeyboardInterrupt occured in FSIInterface.UnsteadyFSI : ',exception)
     else:
         try:
-            NbExtIter = FSI_config['NB_EXT_ITER']
             FSIInterface.SteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
+            print()
         except NameError as exception:
             if myid == rootProcess:
                 print('An NameError occured in FSIInterface.SteadyFSI : ', exception)
@@ -229,7 +230,7 @@ def main():
 
     if FluidSolver is not None:
         del FluidSolver
-    '''
+
     return
 
 

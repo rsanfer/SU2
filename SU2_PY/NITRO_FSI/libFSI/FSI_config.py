@@ -107,8 +107,7 @@ class FSIConfig:
                 if case("RESTART_ITER")		      : pass
                 if case("UNST_NR")		      : pass
                 if case("UNST_TOTAL_SIMUL_NUMBER")    : pass
-                if case("NB_EXT_ITER")		      : pass
-                if case("NB_FSI_ITER")		      :
+                if case("NB_EXT_ITER")		      :
                     self._ConfigContent[this_param] = int(this_value)
                     break
 
@@ -124,8 +123,7 @@ class FSIConfig:
                 if case("UNST_TIMESTEP")	      : pass
                 if case("UNST_TIME")		      : pass
                 if case("BS_TIMESTEP_1")	      : pass
-                if case("BS_TIMESTEP_2")	      : pass
-                if case("FSI_TOLERANCE")	      :
+                if case("BS_TIMESTEP_2")	      :
                     self._ConfigContent[this_param] = float(this_value)
                     break
 
