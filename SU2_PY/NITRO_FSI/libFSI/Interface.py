@@ -232,6 +232,7 @@ class Interface:
             else:
                 if allInterfaceMarkersTags[0] in allMarkersID.keys():
                     self.fluidInterfaceIdentifier = allMarkersID[allInterfaceMarkersTags[0]]
+                    print('Debug fluidinterface identifier = {}'.format(self.fluidInterfaceIdentifier))
             if self.fluidInterfaceIdentifier != None:
                 self.nLocalFluidInterfaceNodes = FluidSolver.GetNumberVertices(self.fluidInterfaceIdentifier)
             if self.nLocalFluidInterfaceNodes != 0:
@@ -458,7 +459,7 @@ class Interface:
 
 
 
-    def transferFluidTractions(self, FluidSolver, SolidSolver, MLSSolver):
+    def transferFluidTractions(self, FluidSolver, SolidSolver):
         """
         Transfer fluid tractions.
         Gathers the fluid tractions from the interface into the root process.
@@ -486,7 +487,7 @@ class Interface:
         for iVertex in self.localFluidInterface_vertex_indices:
             # Compute the vertex forces on the fluid solver
             loadX, loadY, loadZ = FluidSolver.GetFlowLoad(self.fluidInterfaceIdentifier, int(iVertex))
-            print("loadX, loadY, loadZ = {} {} {}".format(loadX,loadY,loadZ))
+            #print("loadX, loadY, loadZ = {} {} {}".format(loadX,loadY,loadZ))
             # Store them in the local load array
             localFluidLoadX[localIndex] = loadX
             localFluidLoadY[localIndex] = loadY
@@ -605,7 +606,7 @@ class Interface:
             #    print(str(iVertex) +',' + str(self.globalSolidLoadX[iVertex]) +',' + str(self.globalSolidLoadY[iVertex]) +',' + str(self.globalSolidLoadZ[iVertex]) )
             #f.close()
             #os.rename('surface_flow.vtk', 'surface_flow_' + str(self.FSIIter) + '.vtk')
-    def transferStructuralDisplacements(self, FSIConfig, FluidSolver, SolidSolver, MLSSolver):
+    def transferStructuralDisplacements(self, FluidSolver, SolidSolver ):
         """
         Transfer structural displacements.
         Gathers the structural displacements from the interface.
@@ -624,31 +625,23 @@ class Interface:
         if self.haveSolidSolver:
 
             # Recover the relaxation parameter
-            relaxParam = float(FSIConfig["RELAX_PARAM"])
 
             # Store the old displacements
             self.globalSolidDispXOld = self.globalSolidDispX.copy()
             self.globalSolidDispYOld = self.globalSolidDispY.copy()
             self.globalSolidDispZOld = self.globalSolidDispZ.copy()
 
-            # Initialize local vectors, to store the relaxed displacements
-            relaxedSolidDispX = np.zeros(self.nSolidInterfaceNodes)
-            relaxedSolidDispY = np.zeros(self.nSolidInterfaceNodes)
-            relaxedSolidDispZ = np.zeros(self.nSolidInterfaceNodes)
 
             # For the vertices that belong to the interface
             for iVertex in range(0, self.nSolidInterfaceNodes):
 
                 # Store the new displacements in the global load array directly
-                dispX, dispY, dispZ = SolidSolver.ExtractDisplacements(iVertex)
-                self.globalSolidDispX[iVertex] = dispX
-                self.globalSolidDispY[iVertex] = dispY
-                self.globalSolidDispZ[iVertex] = dispZ
+                #dispX, dispY, dispZ = SolidSolver.ExtractDisplacements(iVertex)
+                self.globalSolidDispX[iVertex] = 0
+                self.globalSolidDispY[iVertex] = 0
+                self.globalSolidDispZ[iVertex] = 0
 
-                # Compute the relaxed, interface displacements
-                relaxedSolidDispX[iVertex] = relaxParam * dispX + (1.0 - relaxParam) * self.globalSolidDispXOld[iVertex]
-                relaxedSolidDispY[iVertex] = relaxParam * dispY + (1.0 - relaxParam) * self.globalSolidDispYOld[iVertex]
-                relaxedSolidDispZ[iVertex] = relaxParam * dispZ + (1.0 - relaxParam) * self.globalSolidDispZOld[iVertex]
+
 
         ################################################################################################################
         # --- STEP 2: Interpolate
@@ -658,9 +651,9 @@ class Interface:
 
         if myid == self.rootProcess:
 
-            self.globalFluidDispX = MLSSolver.interpolation_matrix.dot(relaxedSolidDispX)
-            self.globalFluidDispY = MLSSolver.interpolation_matrix.dot(relaxedSolidDispY)
-            self.globalFluidDispZ = MLSSolver.interpolation_matrix.dot(relaxedSolidDispZ)
+            self.globalFluidDispX = self.globalSolidDispX
+            self.globalFluidDispY = self.globalSolidDispY
+            self.globalFluidDispZ = self.globalSolidDispZ
 
         # ---> Output: self.globalFluidDispX, self.globalFluidDispY, self.globalFluidDispZ
 
@@ -672,9 +665,9 @@ class Interface:
 
         if myid == self.rootProcess:
 
-            WSX = self.globalSolidLoadX.dot(relaxedSolidDispX)
-            WSY = self.globalSolidLoadY.dot(relaxedSolidDispY)
-            WSZ = self.globalSolidLoadZ.dot(relaxedSolidDispZ)
+            WSX = self.globalSolidLoadX.dot(self.globalSolidDispX)
+            WSY = self.globalSolidLoadY.dot(self.globalSolidDispY)
+            WSZ = self.globalSolidLoadZ.dot(self.globalSolidDispZ)
 
             WFX = self.globalFluidLoadX.dot(self.globalFluidDispX)
             WFY = self.globalFluidLoadY.dot(self.globalFluidDispY)
@@ -719,8 +712,6 @@ class Interface:
 
         # Delete local variables
         del localFluidDispX, localFluidDispY, localFluidDispZ
-        if myid == self.rootProcess:
-            del relaxedSolidDispX, relaxedSolidDispY, relaxedSolidDispZ
 
     def getSolidInterfaceDisplacement(self, SolidSolver):
         """
@@ -763,7 +754,7 @@ class Interface:
         NbIter = FSI_config['NB_EXT_ITER']  # number of fluid iteration at each FSI step
 
 
-        if myid is self.rootProcess:
+        if myid is 0:
             cd_file = open("history_CD.dat", "w")
             cd_file.write("Drag Coefficient\n")
             cd_file.close()
@@ -784,69 +775,34 @@ class Interface:
         self.MPIPrint('* Begin steady FSI computation *')
         self.MPIPrint('********************************\n')
 
+        self.MPIBarrier()
         #self.getSolidInterfaceDisplacement(SolidSolver)
         self.MPIPrint('\nLaunching fluid solver for a steady computation...')
         # --- Fluid solver call for FSI subiteration ---#
         FluidSolver.ResetConvergence()  # Make sure the solver starts convergence from 0
         FluidSolver.Preprocess(0)  # Time iteration pre-processing
         FluidSolver.Run()  # Run one time-step (static: one simulation)
-        FluidSolver.Postprocess()  # Run one time-step (static: one simulation)
+        FluidSolver.Postprocess()
         FluidSolver.Update()  # Update the solver for the next time iteration
         FluidSolver.Monitor(0)  # Monitor the solver and output solution to file if required
         FluidSolver.Output(0)  # Output the solution to file
-        '''
-        Iter = 0
-        FluidSolver.ResetConvergence()  # Make sure the solver starts convergence from 0
-        while Iter < NbIter:
-                FluidSolver.Preprocess(Iter)  # Time iteration pre-processing
-                FluidSolver.Run()             # Run one time-step (static: one simulation)
-                FluidSolver.Postprocess()  # Run one time-step (static: one simulation)
-                StopIntegration = FluidSolver.Monitor(Iter) # Monitor the solver and output solution to file if required
-                FluidSolver.Output(Iter)
-                if StopIntegration:
-                    break;
-                Iter += 1
-        
 
         # uncomment
         # --- Surface fluid loads interpolation and communication ---#
         self.MPIPrint('\nProcessing interface fluid loads...\n')
         self.MPIBarrier()
-        self.transferFluidTractions(FluidSolver, SolidSolver, MLSSolver)
+        self.transferFluidTractions(FluidSolver, SolidSolver)
+
         # --- Solid solver call for FSI subiteration --- #
         self.MPIPrint('\nLaunching solid solver for a static computation and Generalized force evaluation...\n')
         if myid == self.rootProcess:
                 #SolidSolver.run(0.0, FSI_config, MLS_Spline)      # not needed (Check)
-                print("Interface check")
                 SolidSolver.writeSolution(0, 0, FSI_config)
 
-
-        # the location is only in memory of the structural CPU node!!
-        if myid == self.rootProcess:
-                command_remove = "rm -r " + FSI_config['SURFACE_FILENAME'] + "*"
-                os.system(command_remove)
-        '''
-
-
-
-
-        # --- Relaxe the solid displacement and update the solid solution --- #
-        #if myid in self.solidSolverProcessors:
-                #SolidSolver.updateSolution()  # not needed (Check)
-
-        # --- Mesh morphing step (displacement interpolation, displacements communication, and mesh morpher call) --- #
-        #self.interpolateSolidPositionOnFluidMesh(FSI_config)                # not needed (Check)
-        #self.MPIPrint('\nPerforming static mesh deformation...\n')
-        #self.setFluidInterfaceVarCoord(FluidSolver)                        # not needed (Check)
-        #FluidSolver.StaticMeshUpdate()
-
-
-        #self.MPIBarrier()
-        '''
         # Move the restart file to a solution file
         if myid is 0:
-                new_name_flow = "./Output/flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
-                new_name_surf = "./Output/surface_flow_" + str("{:02d}".format(self.FSIIter)) + ".vtk"
+                new_name_flow = "./Output/flow_"  + ".vtk"
+                new_name_surf = "./Output/surface_flow_" + ".vtk"
                 shutil.move("flow.vtk", new_name_flow)
                 shutil.move("surface_flow.vtk", new_name_surf)
 
@@ -856,7 +812,7 @@ class Interface:
                 cl_file = open("history_CL.dat", "a")
                 cl_file.write(str(FluidSolver.Get_LiftCoeff()) + "\n")
                 cl_file.close()
-        '''
+
 
         self.MPIBarrier()
         self.MPIPrint(' ')

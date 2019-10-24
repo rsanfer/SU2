@@ -426,11 +426,8 @@ class NITRO:
     #print("HD: NbTimeIter = {}".format(NbTimeIter))
     #print("HD: FSI_config['RESTART_ITER'] = {}".format(FSI_config['RESTART_ITER']))
     MovingVertex = 0
-    for iMarker in self.markers.keys():
-        vertexList = self.markers[iMarker]
-        MovingVertex = MovingVertex + len(vertexList)      
-    if FSI_config['MEMO_FORCE_OUTPUT'] == 'YES':     
-       self.NodalForces = np.zeros((MovingVertex,5,NbTimeIter))
+    if FSI_config['MEMO_FORCE_OUTPUT'] == 'YES':
+       self.NodalForces = np.zeros((self.nPoint,5,NbTimeIter))
     #if FSI_config['MEMO_GEN_FORCE_OUTPUT'] == 'YES': 
     #   self.GenForces = np.zeros((NbTimeIter,2))
 
@@ -471,7 +468,6 @@ class NITRO:
     #wait = input("PRESS ENTER TO CONTINUE.")
     
     cont_time_iter = time_iter - FSI_config['RESTART_ITER']
-    
     if FSI_config['CSD_SOLVER']	== 'IMPOSED': # at the moment can't be used (towards unification: IMPOSED works for airfoil pitching and  plunging)
      a=0
      #if time == 0:
@@ -486,11 +482,7 @@ class NITRO:
         # Opens the force file and writes the header 
         histFile = open(FSI_config['NODAL_FORCE_FILE'] + '_' + str(time_iter) + '.dat' , "w")   
         histFile.write("Node\tTime\tForce x\tForce y\tForce z\n")
-
-
-     for iMarker in self.markers.keys():
-        vertexList = self.markers[iMarker]
-        for iPoint in vertexList:
+     for iPoint in range(0, self.nPoint):
             Force = self.node[iPoint].GetForce()  #FX += float(Force[0])  #FY += float(Force[1])  #FZ += float(Force[2])
             # Writes in the force file the current line for the node
             if FSI_config['WRITE_FORCE_OUTPUT'] == 'YES':
@@ -506,18 +498,15 @@ class NITRO:
                self.tracking_force_z.append(float(Force[2])); 
      # Close the file force if open       
      if FSI_config['WRITE_FORCE_OUTPUT'] == 'YES':       
-        histFile.close()   
-        
+        histFile.close()
     elif ((FSI_config['CSD_SOLVER'] == 'NITRO' or FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK') and FSI_config['UNSTEADY_SIMULATION'] == 'NO'  ):
      if FSI_config['WRITE_FORCE_OUTPUT'] == 'YES':
         # Opens the force file and writes the header 
         histFile = open(FSI_config['NODAL_FORCE_FILE'] + '_Steady' + '.dat', "w")   
         histFile.write("Node\tTime\tForce x\tForce y\tForce z\n")
 
-    
-     for iMarker in self.markers.keys():
-        vertexList = self.markers[iMarker]
-        for iPoint in vertexList:
+
+     for iPoint in range(0, self.nPoint):
             Force = self.node[iPoint].GetForce()  #FX += float(Force[0])  #FY += float(Force[1])  #FZ += float(Force[2])
             # Writes in the force file the current line for the node
             if FSI_config['WRITE_FORCE_OUTPUT'] == 'YES':
@@ -531,12 +520,10 @@ class NITRO:
 
     if FSI_config['WRITE_GEN_FORCE_OUTPUT'] == 'YES':
       for mode in range(self.nModes):
-         print("Write solution check")
          self.writeGenForceFile( time_iter, time, FSI_config, mode)    
          
 
   def writeGenForceFile(self, time_iter, time, FSI_config, mode):
-
     if FSI_config['CSD_SOLVER']	== 'IMPOSED': # at the moment can't be used (towards unification: IMPOSED works for airfoil pitching and  plunging)
      a=0
     elif ((FSI_config['CSD_SOLVER'] == 'NITRO' or FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK') and FSI_config['UNSTEADY_SIMULATION'] == 'YES'  ):
@@ -551,15 +538,14 @@ class NITRO:
            genForceHistFile.write(str(float(FSI_config['UNST_TIMESTEP'])) +'\t' + str(  float(  Generalized_force_i) ) + '\n' ) # we extend the force on the first timestep and we start the movement here  
      else:
            genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat' , "a")     
-     a = 0
-     Generalized_force_i=0;
-     for iMarker in self.markers.keys():
-        vertexList = self.markers[iMarker]
-        for iPoint in vertexList:
+
+     Generalized_force_i=0
+
+     for iPoint in range(0, self.nPoint):
             Force = self.node[iPoint].GetForce()  #FX += float(Force[0])  #FY += float(Force[1])  #FZ += float(Force[2])            
-            # Generalized forces   
-            Generalized_force_i =  Generalized_force_i + (1/self.Aq)*Force[0]*self.mode_fluid_x[a,mode] + (1/self.Aq)*Force[1]*self.mode_fluid_y[a,mode] + (1/self.Aq)*Force[2]*self.mode_fluid_z[a,mode]
-            a = a+1
+            # Generalized forces
+            Generalized_force_i =  Generalized_force_i + (1/self.Aq)*Force[0]*self.mode_fluid_x[iPoint,mode] + (1/self.Aq)*Force[1]*self.mode_fluid_y[iPoint,mode] + (1/self.Aq)*Force[2]*self.mode_fluid_z[iPoint,mode]
+
      # appends to the generalized force file the value relative to the current timestep       
     
      genForceHistFile.write( str(float(time) ) +'\t' + str( float( Generalized_force_i)  ) + '\n' )  
@@ -572,15 +558,14 @@ class NITRO:
            genForceHistFile.write("Time\tGeneralized Force\n")
      else:    # not really used
            genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat' , "a")        # not really used
-     a=0
-     Generalized_force_i=0;     
-     for iMarker in self.markers.keys():
-        vertexList = self.markers[iMarker]
-        for iPoint in vertexList:
+
+     Generalized_force_i=0
+
+     for iPoint in range(0, self.nPoint):
             Force = self.node[iPoint].GetForce()  #FX += float(Force[0])  #FY += float(Force[1])  #FZ += float(Force[2]) 
             # Generalized forces   
-            Generalized_force_i =  Generalized_force_i + (1/self.Aq)*Force[0]*self.mode_fluid_x[a,mode] + (1/self.Aq)*Force[1]*self.mode_fluid_y[a,mode] + (1/self.Aq)*Force[2]*self.mode_fluid_z[a,mode]
-            a = a+1
+            Generalized_force_i =  Generalized_force_i + (1/self.Aq)*Force[0]*self.mode_fluid_x[iPoint,mode] + (1/self.Aq)*Force[1]*self.mode_fluid_y[iPoint,mode] + (1/self.Aq)*Force[2]*self.mode_fluid_z[iPoint,mode]
+
      # appends to the generalized force file the value relative to the current timestep       
      #if FSI_config['WRITE_GEN_FORCE_OUTPUT'] == 'YES':        
      genForceHistFile.write(str(float(time)) +'\t' + str(  float(Generalized_force_i))  + '\n' )  

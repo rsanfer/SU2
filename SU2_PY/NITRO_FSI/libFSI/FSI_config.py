@@ -39,7 +39,7 @@
 #  Imports
 # ----------------------------------------------------------------------
 
-from .switch import switch
+from util.switch import switch
 
 
 def decomp_coeff_read(File_conf, array):
