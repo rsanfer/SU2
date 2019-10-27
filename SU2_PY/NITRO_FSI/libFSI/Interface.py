@@ -390,6 +390,8 @@ class Interface:
             self.globalFluidInterfaceYcoor = localFluidInterface_array_Y_init.copy()
             self.globalFluidInterfaceZcoor = localFluidInterface_array_Z_init.copy()
 
+        self.MPIBarrier()
+
         # Store the global fluid coordinates
         if myid == self.rootProcess:
             self.globalFluidCoordinates = np.zeros((self.nFluidInterfacePhysicalNodes, 3))
@@ -525,6 +527,8 @@ class Interface:
 
         # Delete local variables
         del localFluidLoadX, localFluidLoadY, localFluidLoadZ
+
+        self.MPIBarrier()
 
         ################################################################################################################
         # --- STEP 2: Send it to the corresponding "ghost" nodes in the structural solver
