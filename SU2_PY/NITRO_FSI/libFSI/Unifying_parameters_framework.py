@@ -103,6 +103,10 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
          if this_param == "MACH_NUMBER":
                     stringalt = 'MACH_NUMBER = '+ str(MACH_NUMBER) + '   \r\n'
                     configfile2.write(stringalt)                            
+         elif this_param == "MACH_MOTION":
+             if str(FSI_config['UNSTEADY_SIMULATION']) == 'YES':
+                 stringalt = 'MACH_MOTION = ' + str(MACH_NUMBER) + '   \r\n'
+                 configfile2.write(stringalt)
          elif this_param == "FREESTREAM_TEMPERATURE":
                     stringalt = 'FREESTREAM_TEMPERATURE = '+ str(FREESTREAM_TEMPERATURE_default_SU2) + '   \r\n'
                     configfile2.write(stringalt)
@@ -166,7 +170,7 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
                     stringalt = 'VOLUME_FILENAME = '  + 'flow'     + '   \n'
                     configfile2.write(stringalt)
          elif this_param == "RESTART_FLOW_FILENAME":                    
-                    stringalt = 'RESTART_FLOW_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow.dat'  + '   \n'                    
+                    stringalt = 'RESTART_FLOW_FILENAME = '  + 'restart_flow.dat'  + '   \n'
                     configfile2.write(stringalt)           
          elif this_param == "BREAKDOWN_FILENAME":                    
                     stringalt = 'BREAKDOWN_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/forces_breakdown.dat'   + '   \n'                   
@@ -175,7 +179,7 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
                     stringalt = 'CONV_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/history'           + '   \n'           
                     configfile2.write(stringalt)        
          elif this_param == "SOLUTION_FILENAME":
-                    stringalt = 'SOLUTION_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow.dat'    + '   \n'
+                    stringalt = 'SOLUTION_FILENAME = '  + 'restart_flow.dat'    + '   \n'
                     configfile2.write(stringalt)         
          elif this_param == "MESH_OUT_FILENAME":                    
                     stringalt = 'MESH_OUT_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/mesh_out.su2'        + '   \n'              

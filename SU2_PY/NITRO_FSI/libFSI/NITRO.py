@@ -139,6 +139,14 @@ class NITRO:
           self.node[iPoint].SetCoord((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1], self.GlobalCoordinates0[iPoint][2]))
           self.node[iPoint].SetCoord0((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1], self.GlobalCoordinates0[iPoint][2]))
 
+  def ExtractDisplacements(self, iVertex):
+      Coord0 = self.node[iVertex].GetCoord0()
+      Coord  = self.node[iVertex].GetCoord()
+      diff = Coord - Coord0
+      dispX = diff[0]; dispY = diff[1]; dispZ = diff[2]
+
+      return dispX, dispY, dispZ
+
   def __readConfig(self):
     """ Read structural tester config file. """
 
@@ -184,103 +192,6 @@ class NITRO:
             print(this_param + " is an invalid option !")
             break
 
-  def __readSU2Mesh(self):
-    """ Read SU2 mesh file to create a ghost surface mesh of the moving boundary. """
-
-    with open(self.Mesh_file, 'r') as meshfile:
-      print('Opened mesh file ' + self.Mesh_file + '.')
-      while 1:
-        line = meshfile.readline()
-        if not line:
-          break
-
-        pos = line.find('NDIM')
-        if pos != -1:
-          line = line.strip('\r\n')
-          line = line.split("=",1)
-          self.nDim = int(line[1])
-          continue
-
-        pos = line.find('NELEM')
-        if pos != -1:
-          line = line.strip('\r\n')
-          line = line.split("=",1)
-          self.nElem = int(line[1])
-          continue
-
-        pos = line.find('NPOIN')
-        if pos != -1:
-          line = line.strip('\r\n')
-          line = line.split("=",1)
-          self.nVolumeFluidPoint = int(line[1])
-          for iPoint in range(self.nVolumeFluidPoint):
-            self.node.append(Point())
-            line = meshfile.readline()
-            line = line.strip('\r\n')
-            line = line.split()
-            x = float(line[0])
-            y = float(line[1])
-            z = 0.0
-            if self.nDim == 3:
-              z = float(line[2])
-            self.node[iPoint].SetCoord((x,y,z))
-            self.node[iPoint].SetCoord0((x,y,z)) # this position (oroginal) will stay the same
-            #self.node[iPoint].SetCoord_n((x,y,z))
-          continue
-
-        pos = line.find('NMARK')
-        if pos != -1:
-          line = line.strip('\r\n')
-          line = line.split("=",1)
-          self.nMarker = int(line[1])
-          continue
-
-        pos = line.find('MARKER_TAG')
-        if pos != -1:
-          line = line.strip('\r\n')
-          line = line.replace(" ", "")
-          line = line.split("=",1)
-          markerTag = line[1]
-          if markerTag == self.FSI_marker:
-            self.markers[markerTag] = []
-            line = meshfile.readline()
-            line = line.strip('\r\n')
-            line = line.split("=",1)
-            nElem = int(line[1])
-            for iElem in range(nElem):
-              line = meshfile.readline()
-              line = line.strip('\r\n')
-              line = line.split()
-              elemType = int(line[0])
-              if elemType == 3:
-                nodes = line[1:3]#.split()  ## important modification in case the formatting includes tabs
-                if not int(nodes[0]) in self.markers[markerTag]:
-                   self.markers[markerTag].append(int(nodes[0]))
-                if not int(nodes[1]) in self.markers[markerTag]:
-                   self.markers[markerTag].append(int(nodes[1]))
-              elif elemType == 5:
-                nodes = line[1:4]#.split()   ## important modification in case the formatting includes tabs
-                if not int(nodes[0]) in self.markers[markerTag]:
-                   self.markers[markerTag].append(int(nodes[0]))
-                if not int(nodes[1]) in self.markers[markerTag]:
-                   self.markers[markerTag].append(int(nodes[1]))
-                if not int(nodes[2]) in self.markers[markerTag]:
-                   self.markers[markerTag].append(int(nodes[2]))
-              else:
-                print("Element type {} is not recognized !!".format(elemType) )
-            self.nPoint = self.nPoint + len(self.markers[markerTag])
-            continue
-          else:
-            continue
-
-    print ("Number of dimensions: {}".format(self.nDim))
-    print ("Number of elements: {}".format(self.nElem))
-    print ("Number of point: {}".format(self.nPoint))
-    print ("Number of markers: {}".format(self.nMarker))
-    if len(self.markers) > 0:
-      print ("Moving marker(s):")
-      for mark in self.markers.keys():
-        print(mark)
 
   def __computeInterfacePosVel(self,time,FSI_config, MLS_Spline):
     """ Description. """
@@ -297,9 +208,7 @@ class NITRO:
     if (time < FSI_config['START_MOTION_TIME'] or MLS_Spline == None):  #self.startTime:
       if FSI_config['RESTART_SOL'] == 'NO': 
         #print(self.markers.keys())
-        for iMarker in self.markers.keys():
-            vertexList = self.markers[iMarker]
-            for iPoint in vertexList:
+        for iPoint in range(0, self.nPoint):
                 Coord0 = self.node[iPoint].GetCoord0()
                 newCoord = Coord0
                 
@@ -333,9 +242,7 @@ class NITRO:
         so I just need to extract them in order starting from 1 till the end during the cycle for iPoint in vertexList:
         '''
         i = 0
-        for iMarker in self.markers.keys():
-            vertexList = self.markers[iMarker]
-            for iPoint in vertexList:
+        for iPoint in range(0, self.nPoint):
                 Coord0 = self.node[iPoint].GetCoord0()
                 newCoord[0] = Coord0[0]  + scaling_coeff*abs(self.Flutter_mode_fluid_x[i])*sin(FSI_config["OMEGA"]*time + phase(self.Flutter_mode_fluid_x[i]))
                 newCoord[1] = Coord0[1]  + scaling_coeff*abs(self.Flutter_mode_fluid_y[i])*sin(FSI_config["OMEGA"]*time + phase(self.Flutter_mode_fluid_y[i]))
@@ -374,7 +281,7 @@ class NITRO:
         tau_q = pi*2/FSI_config["K_MAX"]
         
         if tau < tau_q:
-            q = self.Aq/2*(1-cos(FSI_config["K_MAX"]/2*tau))                        
+            q = self.Aq/2*(1-cos(FSI_config["K_MAX"]/2*tau))
             q_dot = self.Aq*FSI_config["K_MAX"]/4 * sin(FSI_config["K_MAX"]/2*tau)  
         else:    
             q = self.Aq
@@ -385,14 +292,15 @@ class NITRO:
         so I just need to extract them in order starting from 1 till the end during the cycle for iPoint in vertexList:
         '''
         i = 0
-        for iMarker in self.markers.keys():
-            vertexList = self.markers[iMarker]
-            for iPoint in vertexList:
+
+        for iPoint in range(0, self.nPoint):
                 Coord0 = self.node[iPoint].GetCoord0()         
                 newCoord[0] = Coord0[0]  + q * self.Flutter_mode_fluid_x[i];
                 newCoord[1] = Coord0[1]  + q * self.Flutter_mode_fluid_y[i];
                 newCoord[2] = Coord0[2]  + q * self.Flutter_mode_fluid_z[i];
-                
+
+                #print("Debug NITRO.__computeInterfacePosVel. Node {}, disp: {},{},{}.".format(iPoint,q * self.Flutter_mode_fluid_x[i],q * self.Flutter_mode_fluid_y[i], q * self.Flutter_mode_fluid_z[i] ))
+
                 newVel[0] = q_dot * self.Flutter_mode_fluid_x[i];
                 newVel[1] = q_dot * self.Flutter_mode_fluid_y[i];
                 newVel[2] = q_dot * self.Flutter_mode_fluid_z[i];
@@ -574,7 +482,7 @@ class NITRO:
   def EvaluateIntefaceFluidDisplacements(self, FSI_config, MLS_Spline):  #TimeIter, NbTimeIter):
     """ Description. """
     Interf_matrix = MLS_Spline.interpolation_matrix;
-    
+
     if FSI_config['CSD_SOLVER'] == 'NITRO':
        self.gen_coord_arr = FSI_config["MODAL_COEFF"]; 
        self.nModes = len(self.gen_coord_arr)
@@ -638,7 +546,7 @@ class NITRO:
          self.Aq = 0
      else:            
          self.Aq = tan(radians(1))*(4*FSI_config["L_REF"]/FSI_config["K_MAX"])/maxl
-    
+     print("Aq = {}".format(self.Aq))
     
   def updateSolution(self):
     """ Description. """
@@ -716,3 +624,46 @@ class NITRO:
     return float(Coord[2]-Coord0[2])
 
 
+
+  def printForceDispl(self):
+       print("Printing")
+       outC = open("Coord.txt", "w")
+       outF = open("Forces.txt", "w")
+       outD = open("Disp.txt", "w")
+       outG = open("Gen_forces.txt", "w")
+       for iPoint in range(0, self.nPoint):
+           Force = self.node[iPoint].GetForce()
+           outF.write(str(iPoint))
+           outF.write("\t")
+           outF.write(str(float(Force[0])))
+           outF.write("\t")
+           outF.write(str(float(Force[1])))
+           outF.write("\t")
+           outF.write(str(float(Force[2])))
+           outF.write("\n")
+
+           POS = self.node[iPoint].GetCoord()
+           outC.write(str(iPoint))
+           outC.write("\t")
+           outC.write(str(float(POS[0])))
+           outC.write("\t")
+           outC.write(str(float(POS[1])))
+           outC.write("\t")
+           outC.write(str(float(POS[2] )))
+           outC.write("\n")
+
+           outD.write(str(iPoint))
+           outD.write("\t")
+           outD.write(str(float(self.mode_fluid_x[iPoint,0] )))
+           outD.write("\t")
+           outD.write(str(float(self.mode_fluid_y[iPoint,0] )))
+           outD.write("\t")
+           outD.write(str(float(self.mode_fluid_z[iPoint,0]) ))
+           outD.write("\n")
+
+           outG.write(str(float((1/self.Aq)*Force[0]*self.mode_fluid_x[iPoint,0] + (1/self.Aq)*Force[1]*self.mode_fluid_y[iPoint,0] + (1/self.Aq)*Force[2]*self.mode_fluid_z[iPoint,0])))
+           outG.write("\n")
+
+       outC.close()
+       outF.close()
+       outD.close()

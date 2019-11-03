@@ -174,15 +174,14 @@ def main():
 
         # This allows the calculation of the solid node position in the position occupied at restart which will be used in interfaceMapping
     if FSI_config['RESTART_SOL'] == 'YES' and myid == rootProcess:
+        # calculation of the modes on the CFD crid
         SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,
                                                        MLS)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
         # the restart iter insterted here has to be -1 for the dual_time 1st order and -2 for dual time stepping 2nd order
         if FSI_config['UNSTEADY_SCHEME'] == 'DUAL_TIME_STEPPING-1ST_ORDER':
+            # Update the SOlidSolver position of the structural nodes given the current position and the prescribed motion
             SolidSolver.run_restart(FSI_config['UNST_TIMESTEP'] * (FSI_config['RESTART_ITER'] - 1), FSI_config,
                                     MLS)  # FSI_config['START_TIME']    FSI_config['UNST_TIMESTEP']*(FSI_config['RESTART_ITER']-1
-        elif FSI_config['UNSTEADY_SCHEME'] == 'DUAL_TIME_STEPPING-2ND_ORDER':
-            SolidSolver.run_restart(FSI_config['UNST_TIMESTEP'] * (FSI_config['RESTART_ITER'] - 2), FSI_config,
-                                    MLS)  # FSI_config['START_TIME']
         else:
             string2 = '';
             print('ERROR: Chosen time Advancing technique not implemented yet')
@@ -201,7 +200,7 @@ def main():
     # --- Launch a steady or unsteady FSI computation --- #
     if FSI_config['UNSTEADY_SIMULATION'] == "YES":
         try:
-           FSIInterface.UnsteadySteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
+           FSIInterface.UnsteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
         except NameError as exception:
            if myid == rootProcess:
               print('An NameError occured in FSIInterface.UnsteadyFSI : ',exception)
@@ -226,7 +225,7 @@ def main():
                 print('A KeyboardInterrupt occured in FSIInterface.SteadyFSI : ', exception)
 
     # Postprocess the solver and exit cleanly
-    FluidSolver.Postprocessing()
+    #FluidSolver.Postprocessing()
 
     if FluidSolver is not None:
         del FluidSolver
