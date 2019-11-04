@@ -625,12 +625,12 @@ class NITRO:
 
 
 
-  def printForceDispl(self):
+  def printForceDispl(self,TimeIter):
        print("Printing")
-       outC = open("Coord.txt", "w")
-       outF = open("Forces.txt", "w")
-       outD = open("Disp.txt", "w")
-       outG = open("Gen_forces.txt", "w")
+       outC = open("./Output/Coord.txt" + str(TimeIter), "w")
+       outF = open("./Output/Forces.txt" + str(TimeIter), "w")
+       outD = open("./Output/Disp.txt"+ str(TimeIter), "w")
+       outG = open("./Output/Gen_forces.txt"+ str(TimeIter), "w")
        for iPoint in range(0, self.nPoint):
            Force = self.node[iPoint].GetForce()
            outF.write(str(iPoint))

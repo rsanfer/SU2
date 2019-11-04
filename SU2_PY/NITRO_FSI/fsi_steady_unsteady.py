@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ## \file fsi_computation.py
 #  \brief Python wrapper code for NITRO_FSI. It launches SU2 for a steady and 2 unsteady simulations in series.
@@ -39,7 +39,8 @@ import os, sys, shutil, copy
 import time as timer
 from math import *	# use mathematical expressions
 from optparse import OptionParser	# use a parser for configuration
-
+from libFSI import FSI_config as io  # imports FSI python tools
+from libFSI import Interface as FSI # imports FSI python tools
 
 # -------------------------------------------------------------------
 #  Main
@@ -69,7 +70,7 @@ def main():
    filename_steady = options.conf_file[0:pos] + '_steady' + options.conf_file[pos:]
   
    # I get something from the unsteady conf file (ONLY!!!!) like the time scheme and the output directory where to operate
-   FSI_config = FSI.io.FSIConfig(filename_unsteady)
+   FSI_config = io.FSIConfig(filename_unsteady)  # FSI configuration file
   
    # I create the output folder in which all the results are going to be saved
    try:
@@ -87,19 +88,16 @@ def main():
    temp = open(Command_file , "w")
   
    # Command From steady simulation
-   string1 = 'mpirun -np ' +  str(options.partitions) + ' fsi_computation_imposed.py -f ' + filename_steady + ' --parallel ... | tee ' + FSI_config['OUTPUT_DIRECTORY']  + '/' + options.echo   # ' ../fsi_computation_imposed.py -f '
+   string1 = 'mpirun -np ' +  str(options.partitions) + ' run_fsi.py -f ' + filename_steady + ' --parallel ... | tee ' + FSI_config['OUTPUT_DIRECTORY']  + '/' + options.echo   # ' ../fsi_computation_imposed.py -f '
    temp.write(string1 + '\n')
   
-  
+
    # Rename the restart file in case of following unsteady
    # I need to know if the dual time method is single step or dual
    # FSI configuration file
    if FSI_config['UNSTEADY_SCHEME'] == 'DUAL_TIME_STEPPING-1ST_ORDER':
      #string2 = 'mv ./' + options.output_folder + '/restart_flow.dat   '  + './' + options.output_folder + '/restart_flow_00000.dat' # this is for my local
-     string2 = 'mv ' + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow.dat   '  + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow_00000.dat' 
-   elif FSI_config['UNSTEADY_SCHEME'] == 'DUAL_TIME_STEPPING-2ND_ORDER':
-     #string2 = 'cp ./' + options.output_folder + '/restart_flow.dat   '  + './' + options.output_folder + '/restart_flow_00000.dat' + '\n' + 'mv ./' + options.output_folder + '/restart_flow.dat   '  + './' + options.output_folder + '/restart_flow_00001.dat'
-     string2 = 'cp ' +FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow.dat   '  + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow_00000.dat' + '\n' + 'mv ' + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow.dat   '  + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow_00001.dat'
+     string2 = 'mv ' +  'zrestart_flow.dat   '   + 'zrestart_flow_00000.dat'
    else:
      string2 = '';
      print('ERROR: Chosen time Advancing scheme not implemented yet')
@@ -115,13 +113,13 @@ def main():
      else:
          index = str(i)
      string3 = 'mpirun -np ' +  str(options.partitions) + ' run_fsi.py -f ' + filename_unsteady[0:-4] + index + '.cfg' + ' --parallel ... | tee ' + FSI_config['OUTPUT_DIRECTORY'] + '/' + options.echo + '_unsteady' + str(i)
-     string3_bis= 'mv ' + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow_' +str(tq_mult*int(FSI_config['BS_TIMESTEP_1'])-1).zfill(5) + '.dat   '  + FSI_config['OUTPUT_DIRECTORY'] + '/restart_flow_' + str(tq_mult*int(FSI_config['BS_TIMESTEP_2'])-1).zfill(5) + '.dat' 
+     string3_bis= 'mv ' + 'zrestart_flow_' +str(tq_mult*int(FSI_config['BS_TIMESTEP_1'])-1).zfill(5) + '.dat   '  + 'zrestart_flow_' + str(tq_mult*int(FSI_config['BS_TIMESTEP_2'])-1).zfill(5) + '.dat'
      temp.write(string3 + '\n')
      if i != FSI_config['UNST_TOTAL_SIMUL_NUMBER']:
         temp.write(string3_bis + '\n')
   
    temp.close()
-  
+
    command = 'bash   ' + Command_file
   
    #command_del = 'rm ' + Command_file

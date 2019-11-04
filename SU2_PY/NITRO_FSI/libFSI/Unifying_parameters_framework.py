@@ -22,7 +22,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
     # Restart options
     
     if FSI_config['UNSTEADY_SIMULATION'] == 'NO':
-       FSI_config['RESTART_SOL'] == 'NO'
+       FSI_config['RESTART_SOL'] = 'NO'
        if myid == rootProcess:
           print("Simulation {}, FSI conf file {}, SU2 conf file {}, CSD conf file {}, MLS conf file {}\n".format('STEADY', confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['CSD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] )) 
 
@@ -170,7 +170,7 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
                     stringalt = 'VOLUME_FILENAME = '  + 'flow'     + '   \n'
                     configfile2.write(stringalt)
          elif this_param == "RESTART_FLOW_FILENAME":                    
-                    stringalt = 'RESTART_FLOW_FILENAME = '  + 'restart_flow.dat'  + '   \n'
+                    stringalt = 'RESTART_FLOW_FILENAME = '  + 'zrestart_flow.dat'  + '   \n'
                     configfile2.write(stringalt)           
          elif this_param == "BREAKDOWN_FILENAME":                    
                     stringalt = 'BREAKDOWN_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/forces_breakdown.dat'   + '   \n'                   
@@ -179,7 +179,7 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
                     stringalt = 'CONV_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/history'           + '   \n'           
                     configfile2.write(stringalt)        
          elif this_param == "SOLUTION_FILENAME":
-                    stringalt = 'SOLUTION_FILENAME = '  + 'restart_flow.dat'    + '   \n'
+                    stringalt = 'SOLUTION_FILENAME = '  + 'zrestart_flow.dat'    + '   \n'
                     configfile2.write(stringalt)         
          elif this_param == "MESH_OUT_FILENAME":                    
                     stringalt = 'MESH_OUT_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/mesh_out.su2'        + '   \n'              
