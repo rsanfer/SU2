@@ -54,6 +54,7 @@ class Point:
   def __init__(self):
     self.Coord0 = np.zeros((3,1)) # marks the initial position of the nodes: to this we superimpose the mode shape      
     self.Coord = np.zeros((3,1))
+    self.Coord_prec = np.zeros((3,1))
     self.Vel = np.zeros((3,1))
     self.Force = np.zeros((3,1))
     
@@ -62,6 +63,9 @@ class Point:
 
   def GetCoord(self):
     return self.Coord
+
+  def GetCoord_prec(self):
+    return self.Coord_prec
 
   def GetVel(self):
     return self.Vel
@@ -80,6 +84,12 @@ class Point:
     self.Coord[0] = x
     self.Coord[1] = y
     self.Coord[2] = z
+
+  def SetCoord_prec(self, val_Coord):
+    x, y, z = val_Coord
+    self.Coord_prec[0] = x
+    self.Coord_prec[1] = y
+    self.Coord_prec[2] = z
 
   def SetVel(self, val_Vel):
     vx, vy, vz = val_Vel
@@ -137,14 +147,20 @@ class NITRO:
         for iPoint in range(0, self.nPoint):
           self.node.append(Point())
           self.node[iPoint].SetCoord((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1], self.GlobalCoordinates0[iPoint][2]))
-          self.node[iPoint].SetCoord0((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1], self.GlobalCoordinates0[iPoint][2]))
+          self.node[iPoint].SetCoord0((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1],self.GlobalCoordinates0[iPoint][2]))
+          self.node[iPoint].SetCoord_prec((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1],self.GlobalCoordinates0[iPoint][2]))
+
+          #self.node[iPoint].SetCoord((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1], self.GlobalCoordinates0[iPoint][2]))
+          #self.node[iPoint].SetCoord0((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1], self.GlobalCoordinates0[iPoint][2]))
+          #self.node[iPoint].SetCoord_prec((self.GlobalCoordinates0[iPoint][0],self.GlobalCoordinates0[iPoint][1], self.GlobalCoordinates0[iPoint][2]))
 
   def ExtractDisplacements(self, iVertex):
       Coord0 = self.node[iVertex].GetCoord0()
+      Coord_prec = self.node[iVertex].GetCoord_prec()
       Coord  = self.node[iVertex].GetCoord()
       diff = Coord - Coord0
       dispX = diff[0]; dispY = diff[1]; dispZ = diff[2]
-
+      #print("{} {} {}".format(dispX, dispY, dispZ))
       return dispX, dispY, dispZ
 
   def __readConfig(self):
@@ -220,6 +236,7 @@ class NITRO:
                        self.tracking_vel.append(float(newVel[2]));
                        self.time.append(float(time));
 
+                self.node[iPoint].SetCoord_prec((newCoord[0], newCoord[1], newCoord[2]))
                 self.node[iPoint].SetCoord((newCoord[0], newCoord[1], newCoord[2]))
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
 
@@ -244,6 +261,7 @@ class NITRO:
         i = 0
         for iPoint in range(0, self.nPoint):
                 Coord0 = self.node[iPoint].GetCoord0()
+                Coord = self.node[iPoint].GetCoord()
                 newCoord[0] = Coord0[0]  + scaling_coeff*abs(self.Flutter_mode_fluid_x[i])*sin(FSI_config["OMEGA"]*time + phase(self.Flutter_mode_fluid_x[i]))
                 newCoord[1] = Coord0[1]  + scaling_coeff*abs(self.Flutter_mode_fluid_y[i])*sin(FSI_config["OMEGA"]*time + phase(self.Flutter_mode_fluid_y[i]))
                 newCoord[2] = Coord0[2]  + scaling_coeff*abs(self.Flutter_mode_fluid_z[i])*sin(FSI_config["OMEGA"]*time + phase(self.Flutter_mode_fluid_z[i]))
@@ -260,6 +278,7 @@ class NITRO:
                        self.tracking_vel.append(float(newVel[2]));
                        self.time.append(float(time + FSI_config['START_MOTION_TIME']));
 
+                self.node[iPoint].SetCoord_prec((Coord[0], Coord[1], Coord[2]))
                 self.node[iPoint].SetCoord((newCoord[0], newCoord[1], newCoord[2]))
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
                 i = i+1
@@ -281,12 +300,22 @@ class NITRO:
         tau_q = pi*2/FSI_config["K_MAX"]
         
         if tau < tau_q:
+
             q = self.Aq/2*(1-cos(FSI_config["K_MAX"]/2*tau))
             q_dot = self.Aq*FSI_config["K_MAX"]/4 * sin(FSI_config["K_MAX"]/2*tau)  
         else:    
             q = self.Aq
             q_dot = 0
          
+        print("DEBUG: q = {0:1.20f}".format(q))
+        print("DEBUG: FSI_config[K_MAX] = {0:1.20f}".format(FSI_config["K_MAX"]))
+        print("DEBUG: VINF = {0:1.20f}".format(FSI_config["V_INF"]))
+        print("DEBUG: L_REF = {0:1.20f}".format(FSI_config["L_REF"]))
+        print("DEBUG: tau = {0:1.20f}".format(tau))
+        print("DEBUG: self.Flutter_mode_fluid_x[i] = {0:1.20f}".format(self.Flutter_mode_fluid_x[15114]))
+        print("DEBUG: self.Flutter_mode_fluid_y[i] = {0:1.20f}".format(self.Flutter_mode_fluid_y[15114]))
+        print("DEBUG: self.Flutter_mode_fluid_z[i] = {0:1.20f}".format(self.Flutter_mode_fluid_z[15114]))
+
         '''
         Now, aeropoints to generate the interpolation matrix (query points) are ordered into a vector follwing the list of markers[iMarker]
         so I just need to extract them in order starting from 1 till the end during the cycle for iPoint in vertexList:
@@ -294,7 +323,8 @@ class NITRO:
         i = 0
 
         for iPoint in range(0, self.nPoint):
-                Coord0 = self.node[iPoint].GetCoord0()         
+                Coord0 = self.node[iPoint].GetCoord0()
+                Coord = self.node[iPoint].GetCoord()
                 newCoord[0] = Coord0[0]  + q * self.Flutter_mode_fluid_x[i];
                 newCoord[1] = Coord0[1]  + q * self.Flutter_mode_fluid_y[i];
                 newCoord[2] = Coord0[2]  + q * self.Flutter_mode_fluid_z[i];
@@ -319,6 +349,7 @@ class NITRO:
                    self.tracking_vel.append(float(newVel[2]));
                    self.time.append(float(time + FSI_config['START_MOTION_TIME']));
 
+                self.node[iPoint].SetCoord_prec((Coord[0], Coord[1], Coord[2]))
                 self.node[iPoint].SetCoord((newCoord[0], newCoord[1], newCoord[2]))
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
                 i = i+1                
@@ -544,8 +575,9 @@ class NITRO:
      # Amplitude of the blended step
      if maxl < 1.e-16:
          self.Aq = 0
-     else:            
+     else:
          self.Aq = tan(radians(1))*(4*FSI_config["L_REF"]/FSI_config["K_MAX"])/maxl
+         #self.Aq = round(self.Aq,5)
      print("Aq = {}".format(self.Aq))
     
   def updateSolution(self):
@@ -626,7 +658,7 @@ class NITRO:
 
 
   def printForceDispl(self,TimeIter):
-       print("Printing")
+
        outC = open("./Output/Coord.txt" + str(TimeIter), "w")
        outF = open("./Output/Forces.txt" + str(TimeIter), "w")
        outD = open("./Output/Disp.txt"+ str(TimeIter), "w")
@@ -667,3 +699,56 @@ class NITRO:
        outC.close()
        outF.close()
        outD.close()
+
+  def printNode(self, TimeIter,steady_unsteady):
+
+      iPoint = 15114
+      if steady_unsteady == 0:
+         outC = open("./Output/Resume"  + ".txt", "w")
+
+         outC.write(str(self.Aq))
+         outC.write("\t")
+         outC.write(str(iPoint))
+         outC.write("\n")
+
+      else:
+         outC = open("./Output/Resume"  + ".txt", "a")
+
+      POS = self.node[iPoint].GetCoord()
+      POS0 = self.node[iPoint].GetCoord0()
+      POS_prec = self.node[iPoint].GetCoord_prec()
+
+      outC.write(str(float(TimeIter)))
+      outC.write("\n")
+
+      outC.write(str(float(POS0[0])))
+      outC.write("\t")
+      outC.write(str(float(POS0[1])))
+      outC.write("\t")
+      outC.write(str(float(POS0[2])))
+      outC.write("\n")
+
+      outC.write(str(float(POS_prec[0])))
+      outC.write("\t")
+      outC.write(str(float(POS_prec[1])))
+      outC.write("\t")
+      outC.write(str(float(POS_prec[2])))
+      outC.write("\n")
+
+      outC.write(str(float(POS[0])))
+      outC.write("\t")
+      outC.write(str(float(POS[1])))
+      outC.write("\t")
+      outC.write(str(float(POS[2])))
+      outC.write("\n")
+
+
+      outC.write(str(float(self.mode_fluid_x[iPoint, 0])))
+      outC.write("\t")
+      outC.write(str(float(self.mode_fluid_y[iPoint, 0])))
+      outC.write("\t")
+      outC.write(str(float(self.mode_fluid_z[iPoint, 0])))
+      outC.write("\n")
+
+
+      outC.close()
