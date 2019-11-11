@@ -128,9 +128,10 @@ class FSIConfig:
                     break
 
                 # string values  MEMO_GEN_FORCE_OUTPUT
-                if case("DYNRESP_CONFIG")          : pass
+                if case("DYNRESP_CONFIG")             : pass
+                if case("MODAL_DISPLACEMENT")         : pass
+                if case("MODAL_DISPLACEMENT_FORMAT")  : pass
                 if case("FREESTREAM_OPTION")          : pass
-                # if case("FSI_MARKER")                 : pass
                 if case("OUTPUT_DIRECTORY")           : pass
                 if case("UNSTEADY_SCHEME")            : pass
                 if case("MEMO_GEN_FORCE_OUTPUT")      : pass
