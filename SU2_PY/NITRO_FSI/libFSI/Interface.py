@@ -31,9 +31,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with SU2. If not, see <http://www.gnu.org/licenses/>.
 
-# ----------------------------------------------------------------------
-#  Imports
-# ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
 #  Imports
@@ -1109,57 +1106,6 @@ class Interface:
         return globalIndex
 
 
-    def printMeshCoord(self,FluidSolver,TimeIter):
-
-        if self.have_MPI == True:
-            myid = self.comm.Get_rank()
-            numberPart = self.comm.Get_size()
-        else:
-            myid = 0
-            numberPart = 1
-
-        if myid == self.rootProcess:
-           outC = open("./Output/FluidBoundCoord_" +str(TimeIter)+ ".dat", "w")
-        else:
-           outC = open("./Output/FluidBoundCoord_" + str(TimeIter) + ".dat", "a")
-        self.MPIBarrier()
-
-        print("DEBUG")
-        if myid == self.rootProcess:
-          # For the vertices that belong to the interface
-          for iVertex in self.localFluidInterface_vertex_indices:
-
-
-            outC.write(str(int(iVertex)))
-            outC.write("\t")
-            outC.write(str(float(FluidSolver.GetVertexCoordX(self.fluidInterfaceIdentifier,int(iVertex)) )))
-            outC.write("\t")
-            outC.write(str(float(FluidSolver.GetVertexCoordY(self.fluidInterfaceIdentifier,int(iVertex)) )))
-            outC.write("\t")
-            outC.write(str(float(FluidSolver.GetVertexCoordZ(self.fluidInterfaceIdentifier,int(iVertex)) )))
-            outC.write("\n")
-
-
-        self.MPIBarrier()
-
-        if myid != self.rootProcess:
-          # For the vertices that belong to the interface
-          for iVertex in self.localFluidInterface_vertex_indices:
-
-
-            outC.write(str(int(iVertex)))
-            outC.write("\t")
-            outC.write(str(float(FluidSolver.GetVertexCoordX(self.fluidInterfaceIdentifier,int(iVertex)) )))
-            outC.write("\t")
-            outC.write(str(float(FluidSolver.GetVertexCoordY(self.fluidInterfaceIdentifier,int(iVertex)) )))
-            outC.write("\t")
-            outC.write(str(float(FluidSolver.GetVertexCoordZ(self.fluidInterfaceIdentifier,int(iVertex)) )))
-            outC.write("\n")
-
-
-        self.MPIBarrier()
-        outC.close()
-
     def printMeshCoord_bis(self, FluidSolver, TimeIter):
 
         if self.have_MPI == True:
@@ -1206,3 +1152,89 @@ class Interface:
 
                 os.remove(fname)
         self.MPIBarrier()
+
+
+    def SteadyFSI_dyn(self, FSI_config, FluidSolver, SolidSolver, MLSSolver):
+        """
+        Runs the steady FSI computation from dynresp
+        Synchronizes the fluid and solid solver with data exchange at the f/s interface.
+        """
+
+        # first it is necessary to read the modal displacement file
+
+
+
+        # Recover the process and the size of the parallelization
+        myid, MPIsize = self.checkMPI()
+
+        # --- Set some general variables for the steady computation --- #
+        NbIter = FSI_config['NB_EXT_ITER']  # number of fluid iteration at each FSI step
+
+
+        # --- Initialize matrix of boundary nodal forces  --- #
+        if myid == self.rootProcess:
+            # first it is necessary to read the modal displacement file
+            SolidSolver.mod_displ = ReadModalDisplacements(FSIConfig)
+            # all modes are evaluated on the fluid boundary: PHI_CFD
+            SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
+            SolidSolver.initialize_OutputForces(1,FSI_config)
+
+
+        self.MPIPrint('\n********************************')
+        self.MPIPrint('* Begin steady FSI computation *')
+        self.MPIPrint('********************************\n')
+
+        self.MPIBarrier()
+        self.MPIPrint('\nLaunching fluid solver for a steady computation...')
+        # --- Fluid solver call for FSI subiteration ---#
+
+
+        if myid == self.rootProcess:
+            # first it is necessary to read the modal displacement file
+            SolidSolver.mod_displ = ReadModalDisplacements(FSIConfig)
+            # Generalized displacement at T=0 give the form of the mesh
+            SolidSolver.run(time, FSI_config, MLS_Spline)
+
+
+        FluidSolver.ResetConvergence()  # Make sure the solver starts convergence from 0
+        FluidSolver.Preprocess(0)  # Time iteration pre-processing
+        FluidSolver.Run()  # Run one time-step (static: one simulation)
+        FluidSolver.Postprocess()
+        FluidSolver.Update()  # Update the solver for the next time iteration
+        FluidSolver.Monitor(0)  # Monitor the solver and output solution to file if required
+        FluidSolver.Output(0)  # Output the solution to file
+
+        # uncomment
+        # --- Surface fluid loads interpolation and communication ---#
+        self.MPIPrint('\nProcessing interface fluid loads...\n')
+        self.MPIBarrier()
+        self.transferFluidTractions(FluidSolver, SolidSolver)
+
+        # --- Solid solver call for FSI subiteration --- #
+        self.MPIPrint('\nLaunching solid solver for a static computation and Generalized force evaluation...\n')
+        if myid == self.rootProcess:
+                #SolidSolver.printForceDispl(0)
+                SolidSolver.printNode(0, 0)
+                SolidSolver.writeSolution(0, 0, FSI_config)
+
+        # Move the restart file to a solution file
+        if myid == self.rootProcess:
+                new_name_flow = "./Output/flow_00000"  + ".vtk"
+                new_name_surf = "./Output/surface_flow_00000" + ".vtk"
+                shutil.move("flow.vtk", new_name_flow)
+                shutil.move("surface_flow.vtk", new_name_surf)
+
+                cd_file = open("history_CD.dat", "a")
+                cd_file.write(str(FluidSolver.Get_DragCoeff()) + "\n")
+                cd_file.close()
+                cl_file = open("history_CL.dat", "a")
+                cl_file.write(str(FluidSolver.Get_LiftCoeff()) + "\n")
+                cl_file.close()
+
+        self.printMeshCoord_bis(FluidSolver, 0)
+        self.MPIBarrier()
+        self.MPIPrint(' ')
+        self.MPIPrint('*************************')
+        self.MPIPrint('*  End FSI computation  *')
+        self.MPIPrint('*************************')
+        self.MPIPrint(' ')
