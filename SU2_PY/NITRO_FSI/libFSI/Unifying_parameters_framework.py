@@ -24,7 +24,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
     if FSI_config['UNSTEADY_SIMULATION'] == 'NO':
        FSI_config['RESTART_SOL'] = 'NO'
        if myid == rootProcess:
-          print("Simulation {}, FSI conf file {}, SU2 conf file {}, CSD conf file {}, MLS conf file {}\n".format('STEADY', confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['CSD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] )) 
+          print("Simulation {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format('STEADY', confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
 
           
     if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP' and FSI_config['UNSTEADY_SIMULATION'] == 'YES':                                

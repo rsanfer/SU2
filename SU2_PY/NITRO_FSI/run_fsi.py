@@ -94,7 +94,7 @@ def main():
 
     FSI_config = io.FSIConfig(confFile)  # FSI configuration file
     CFD_ConFile = FSI_config['CFD_CONFIG_FILE_NAME']  # CFD configuration file
-    CSD_ConFile = FSI_config['CSD_CONFIG_FILE_NAME']  # CSD configuration file
+    #CSD_ConFile = FSI_config['CSD_CONFIG_FILE_NAME']  # CSD configuration file
     MLS_confFile = FSI_config['MLS_CONFIG_FILE_NAME']  # MLS configuration file
     CSD_Solver = FSI_config['CSD_SOLVER']  # CSD solver
 
@@ -127,7 +127,7 @@ def main():
     if myid == rootProcess:
         print('\n***************************** Initializing Imposed displacement Solver   ************************************')
         try:
-            SolidSolver = NITRO.NITRO(CSD_ConFile)
+            SolidSolver = NITRO.NITRO()
         except TypeError as exception:
             print('ERROR building the Solid Solver: ', exception)
     else:

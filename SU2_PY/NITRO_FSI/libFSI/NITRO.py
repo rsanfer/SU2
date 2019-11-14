@@ -106,17 +106,18 @@ class Point:
 class NITRO:
   """Description"""
 
-  def __init__(self, config_fileName):
+  def __init__(self, config_fileName = None):
     """ Description. """
 
     self.Config_file = config_fileName
     self.Config = {}
 
     print("\n------------------------------ Configuring the structural tester solver for FSI simulation ------------------------------")
-    self.__readConfig()
+    if config_fileName !=None:
+       self.__readConfig()
 
-    self.Mesh_file = self.Config['MESH_FILE']
-    self.FSI_marker = self.Config['MOVING_MARKER']
+    #self.Mesh_file = self.Config['MESH_FILE']
+    #self.FSI_marker = self.Config['MOVING_MARKER']
     self.nDof = 3
     print("Structural model : wing for NITRO framework.")
 
@@ -162,7 +163,7 @@ class NITRO:
       dispX = diff[0]; dispY = diff[1]; dispZ = diff[2]
       #print("{} {} {}".format(dispX, dispY, dispZ))
       return dispX, dispY, dispZ
-
+  '''
   def __readConfig(self):
     """ Read structural tester config file. """
 
@@ -207,7 +208,7 @@ class NITRO:
           if case():
             print(this_param + " is an invalid option !")
             break
-
+   '''
 
   def __computeInterfacePosVel(self,time,FSI_config, MLS_Spline):
     """ Description. """
