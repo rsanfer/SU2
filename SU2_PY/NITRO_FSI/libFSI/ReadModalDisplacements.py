@@ -62,7 +62,7 @@ def ReadModalDisplacements(FSIConfig):
     T0 = FSIConfig['START_TIME']
     TF = FSIConfig['UNST_TIME']
     TW = TF - T0
-    DT = FSIConfig['UNST_TIMESTEP']
+    #DT = FSIConfig['UNST_TIMESTEP']
     NT = TW / DT + 1
 
     op4_filename = FSIConfig['MODAL_DISPLACEMENT']
