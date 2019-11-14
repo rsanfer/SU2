@@ -1171,15 +1171,6 @@ class Interface:
         NbIter = FSI_config['NB_EXT_ITER']  # number of fluid iteration at each FSI step
 
 
-        # --- Initialize matrix of boundary nodal forces  --- #
-        if myid == self.rootProcess:
-            # first it is necessary to read the modal displacement file
-            SolidSolver.mod_displ = ReadModalDisplacements(FSIConfig)
-            # all modes are evaluated on the fluid boundary: PHI_CFD
-            SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
-            SolidSolver.initialize_OutputForces(1,FSI_config)
-
-
         self.MPIPrint('\n********************************')
         self.MPIPrint('* Begin steady FSI computation *')
         self.MPIPrint('********************************\n')
@@ -1192,8 +1183,10 @@ class Interface:
         if myid == self.rootProcess:
             # first it is necessary to read the modal displacement file
             SolidSolver.mod_displ = ReadModalDisplacements(FSIConfig)
+            # all modes are evaluated on the fluid boundary: PHI_CFD
+            SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
             # Generalized displacement at T=0 give the form of the mesh
-            SolidSolver.run(time, FSI_config, MLS_Spline)
+            SolidSolver.run(0, FSI_config, MLS_Spline,0)
 
 
         FluidSolver.ResetConvergence()  # Make sure the solver starts convergence from 0
