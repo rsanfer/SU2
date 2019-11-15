@@ -143,6 +143,7 @@ class NITRO:
     #print("\n------------------------------ Reading the SU2 mesh ------------------------------")
     #self.__readSU2Mesh()
     self.GlobalCoordinates0 =[]
+    self.mod_displ = None # if dynresp
 
   def SetNodesProperties(self):
         for iPoint in range(0, self.nPoint):
@@ -284,7 +285,7 @@ class NITRO:
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
                 i = i+1
                 
-     elif FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
+     elif (CSD_Solver == 'NITRO' or CSD_Solver == 'NITRO_FRAMEWORK') and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
          
         time = time - FSI_config['START_MOTION_TIME'] #self.startTime # this trick should allow the current formulation for  which at t=0 the movement starts from the initial conditions
 
@@ -353,9 +354,9 @@ class NITRO:
                 self.node[iPoint].SetCoord_prec((Coord[0], Coord[1], Coord[2]))
                 self.node[iPoint].SetCoord((newCoord[0], newCoord[1], newCoord[2]))
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
-                i = i+1                
-         
-    #print('DEBUGGING: node 20 position *new*  : {} [m]'.format(self.node[10].GetCoord()))
+                i = i+1
+
+    elif (CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL' or CSD_Solver == 'DYNRESP_CFD_COUPLED') and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
 
 
   def initialize_OutputForces(self, NbTimeIter,FSI_config):
@@ -542,9 +543,9 @@ class NITRO:
        for i in range(self.nModes):
           self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,0] )   
           self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,1] ) 
-          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,2] ) 
-       
-    else: # int this case I mean NITRO_FRAMEWORK   
+          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,2] )
+
+    elif FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK':
        
        self.nModes = FSI_config["NMODES"]
        #Modes[i].GetMode()[:,0]
@@ -565,11 +566,26 @@ class NITRO:
        for i in range(self.nModes):
           self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,0] )   
           self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,1] ) 
-          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,2] ) 
-          
-          
-    if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':    
-    
+          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,2] )
+
+    elif (FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_SEQUENTIAL' or FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_COUPLED'):  # int this case I mean NITRO_FRAMEWORK
+
+       self.nModes = MLS_Spline.nStructNodes
+       # Modes[i].GetMode()[:,0]
+
+       # Need to memorize also all the other modes in order to calculate the relativ egeneralized forces
+       self.mode_fluid_x = np.zeros((self.nPoint, self.nModes))
+       self.mode_fluid_y = np.zeros((self.nPoint, self.nModes))
+       self.mode_fluid_z = np.zeros((self.nPoint, self.nModes))
+
+       for i in range(self.nModes):
+           self.mode_fluid_x[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, 0])
+           self.mode_fluid_y[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, 1])
+           self.mode_fluid_z[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, 2])
+
+
+  if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
+
      # the amplitude of the modal shape displacements is scaled in order to reduced the appearent velocity given by the mode (Romanelli)
      conc = np.concatenate((np.absolute(self.Flutter_mode_fluid_x),np.absolute(self.Flutter_mode_fluid_y),np.absolute(self.Flutter_mode_fluid_z)) , axis=0)
      maxl = np.amax(conc, axis=0)

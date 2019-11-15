@@ -2,6 +2,57 @@ from math import *	# use mathematical expressions
 import os, sys, shutil, copy
 import fileinput
 
+
+def UnifyFSIConfig(DYN_config,confFile):
+    '''This routine reads some info from the dynresp input file and unifies cards in SU2 and FSICoupler files'''
+
+    configfile2 = open(confFile + '_temp',"w")
+    with open(confFile, 'r') as configfile:
+      while 1:
+        line = configfile.readline()
+        string = line
+        if not line:
+          break
+
+        # remove line returns
+        line = line.strip('\r\n')
+        # make sure it has useful data
+        if (not "=" in line) or (line[0] == '%'):
+         configfile2.write(string)
+        else:
+         # split across equal sign
+         line = line.split("=",1)
+         this_param = line[0].strip()
+         this_value = line[1].strip()
+
+         #float values
+         if this_param == "V_INF":
+                    stringalt = 'V_INF = '+ str(DYN_config['V']) + '   \r\n'
+                    configfile2.write(stringalt)
+         if this_param == "FREESTREAM_DENSITY":
+                    stringalt = 'FREESTREAM_DENSITY = '+ str(DYN_config['RHO']) + '   \r\n'
+                    configfile2.write(stringalt)
+
+         #float values
+         if this_param == "START_TIME":
+                    stringalt = 'START_TIME = '+ str(DYN_config['TW0']) + '   \r\n'
+                    configfile2.write(stringalt)
+         if this_param == "UNST_TIME":
+                    stringalt = 'UNST_TIME = '+ str(DYN_config['TWF']) + '   \r\n'
+                    configfile2.write(stringalt)
+         if this_param == "UNST_TIMESTEP":
+                    stringalt = 'UNST_TIMESTEP = '+ str(DYN_config['DT']) + '   \r\n'
+                    configfile2.write(stringalt)
+
+         else:
+             configfile2.write(string)
+
+    configfile.close()
+    configfile2.close()
+    # the file is now replaced
+    os.remove(confFile)
+    os.rename(confFile + '_temp', confFile)
+
 def UnifyingParameters_framework(FSI_config,confFile,myid ):
           
     rootProcess = 0
