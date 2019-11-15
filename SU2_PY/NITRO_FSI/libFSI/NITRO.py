@@ -116,8 +116,8 @@ class NITRO:
     if config_fileName !=None:
        self.__readConfig()
 
-    self.Mesh_file = self.Config['MESH_FILE']
-    self.FSI_marker = self.Config['MOVING_MARKER']
+    #self.Mesh_file = self.Config['MESH_FILE']
+    #self.FSI_marker = self.Config['MOVING_MARKER']
     self.nDof = 3
     print("Structural model : wing for NITRO framework.")
 
@@ -210,8 +210,7 @@ class NITRO:
             print(this_param + " is an invalid option !")
             break
 
-
-  def __computeInterfacePosVel(self,time,FSI_config, MLS_Spline):
+  def __computeInterfacePosVel(self,time,FSI_config, MLS_Spline, TimeStep = None):
     """ Description. """
 
     newCoord = np.zeros((3,1))
@@ -246,7 +245,7 @@ class NITRO:
     
     else:
         
-     if FSI_config['MOTION_TYPE'] == 'HARMONIC': 
+     if (CSD_Solver == 'NITRO' or CSD_Solver == 'NITRO_FRAMEWORK') and FSI_config['MOTION_TYPE'] == 'HARMONIC':
         time = time - FSI_config['START_MOTION_TIME'] #self.startTime # this trick should allow the current formulation for  which at t=0 the movement starts from the initial conditions
 
         # the amplitude of the modal shape displacements is scaled in torder to reduced the appearent velocity given by the mode (Romanelli)
@@ -356,8 +355,25 @@ class NITRO:
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
                 i = i+1
 
-    elif (CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL' or CSD_Solver == 'DYNRESP_CFD_COUPLED') and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
+     elif (CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL' or CSD_Solver == 'DYNRESP_CFD_COUPLED'):
 
+        # First dynresp mode needs to be calculated for the given time
+        Simulated_mode_x = np.zeros(self.nPoint)
+        Simulated_mode_y = np.zeros(self.nPoint)
+        Simulated_mode_z = np.zeros(self.nPoint)
+
+        for i in range(self.nModes):
+            Simulated_mode_x += self.mode_fluid_x[:, i] * self.mod_displ[i,TimeStep]
+            Simulated_mode_y += self.mode_fluid_y[:, i] * self.mod_displ[i, TimeStep]
+            Simulated_mode_z += self.mode_fluid_z[:, i] * self.mod_displ[i, TimeStep]
+
+
+        for iPoint in range(0, self.nPoint):
+           Coord0 = self.node[iPoint].GetCoord0()
+           Coord = self.node[iPoint].GetCoord()
+           newCoord[0] = Coord0[0] + Simulated_mode_x[iPoint];
+           newCoord[1] = Coord0[1] + Simulated_mode_y[iPoint];
+           newCoord[2] = Coord0[2] + Simulated_mode_z[iPoint];
 
   def initialize_OutputForces(self, NbTimeIter,FSI_config):
     """ Description. """
@@ -377,7 +393,7 @@ class NITRO:
 
     print("\n**************** Exiting the structural tester solver ****************")
 
-  def run(self,time,FSI_config, MLS_Spline):
+  def run(self,time,FSI_config, MLS_Spline, TimeStep = None):
     """ Description. """
 
     #self.__temporalIteration()  NOT NEEDED ANYMORE AS THE DISPLACEMENT IS IMPOSED
@@ -385,7 +401,7 @@ class NITRO:
     print("Time")#\tDisp 1\tDisp2\tVel 1\tVel2\tAcc 1\tAcc 2")
     print(str(time))# + '\t' + str(float(self.q[0])) + '\t' + str(float(self.q[1])) + '\t' + str(float(self.qdot[0])) + '\t' + str(float(self.qdot[1])) + '\t' + str(float(self.qddot[0])) + '\t' + str(float(self.qddot[1])))
 
-    self.__computeInterfacePosVel(time,FSI_config, MLS_Spline)
+    self.__computeInterfacePosVel(time,FSI_config, MLS_Spline, TimeStep)
 
   def run_restart(self,restart_time,FSI_config, MLS_Spline):
     """ Description. """
