@@ -51,7 +51,7 @@ class DYNData:
     def __init__(self, FileName):
         self.ConfigFileName = FileName
         self._ConfigContent = {}
-        self.Neliminated = None
+        self.Meliminated = None
         self.readConfig()
 
 
@@ -171,7 +171,7 @@ class DYNData:
                else:
                    continue
         print(modes)
-        self.Neliminated = modes
+        self.Meliminated = modes
 
 if __name__ == "__main__":
 
@@ -187,4 +187,4 @@ if __name__ == "__main__":
       print("Dyn_config[RHO] = {}".format(Dyn_config['RHO']))
       print("Dyn_config[NMODE] = {}".format(Dyn_config['NMODE']))
       print("Dyn_config[MLIST1] = {}".format(Dyn_config['MLIST1']))
-      print("Dyn_config[.Neliminated = {}".format(Dyn_config.Neliminated))
+      print("Dyn_config[.Neliminated = {}".format(Dyn_config.Meliminated))

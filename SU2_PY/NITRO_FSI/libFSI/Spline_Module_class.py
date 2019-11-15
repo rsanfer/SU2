@@ -53,7 +53,7 @@ class MLS_Spline:
     MLS_Spline class that handles fluid/solid solver synchronisation and communication
     """
 
-    def __init__(self, MLS_Config_File, nDim, AeroNodes, FSI_config): # NrAeroElem, BoundElem,
+    def __init__(self, MLS_Config_File, nDim, AeroNodes, FSI_config, DYN_config = None): # NrAeroElem, BoundElem,
         """
          Class constructor. Declare some variables and do some screen outputs.
         """
@@ -65,7 +65,7 @@ class MLS_Spline:
 
         # Storing structural modes from relative input file
         print("Storing structural modes from the input file ")
-        print("NB: Remember we want structural modes to be mass normalized!")
+        #print("NB: Remember we want structural modes to be mass normalized!")
         self.Modes = []; # It's an object and further elements will be "appended"
         Mode_file = FSI_config['STRUCTURAL_MODES_FILE_NAME']
         print("Mode_file = {}".format(Mode_file))
@@ -74,6 +74,25 @@ class MLS_Spline:
         ReadModes(self.Modes, Mode_file, FORMAT_MODES, self.nModes)
         self.nModes = int(self.nModes[0])
 
+        # If dynresp
+        if DYN_config != None:
+           # First select the max number of modes to be used
+           if DYN_config['NMODE'] != int(0):
+              nModes =  DYN_config['NMODE']
+              list = [i for i in range(nModes ,self.nModes)]
+              for index in sorted(list, reverse=True):
+                  del self.Modes[index]
+              self.nModes = nModes
+              print(" Max number of modes before elimination by MLIST1 is: {}".format(int(self.nModes)))
+           # Then, elimination of selected modes in SMODES card
+           if DYN_config.Meliminated != None:
+              nModes = self.nModes - len(DYN_config.Meliminated)
+              for index in sorted(DYN_config.Meliminated, reverse=True):
+                  del self.Modes[index - 1]
+              self.nModes = nModes
+              print(" Further elimination of modes: {}".format(DYN_config.Meliminated))
+
+        # aerodynamic boundary nodes
         self.nAeroNodes = np.shape(AeroNodes)[0]
         lenAeroNodes = self.nAeroNodes * 3
 
