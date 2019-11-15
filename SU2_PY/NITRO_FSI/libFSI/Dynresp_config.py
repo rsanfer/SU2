@@ -2,7 +2,7 @@
 
 ## \file Dynresp_config.py
 #  \brief Python class for handling Dynresp configuration file for FSI computation.
-#  \author David Thomas
+#  \author Rocco Bombardieri
 #  \version 6.2.0 "Falcon"
 #
 # The current SU2 release has been coordinated by the
