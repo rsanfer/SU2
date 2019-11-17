@@ -114,6 +114,12 @@ class MLS_Spline:
         self.nStructNodes = int(self.nStructNodes[0])
         lenStructNodes = self.nStructNodes * 3
 
+        # if structural mesh comes from Nastran, nodes need to be reordered in ascending order given their Id. (to match with modes displacements)
+        if (MLS_conf['FORMAT_SRUCT_NODES'] == 'NASTRAN' and FSI_config['FORMAT_MODES'] == 'NASTRANF06' ):
+           idList = [StructNodes[i].GetId() for i in range(0,self.nStructNodes)]
+           Order = np.argsort(np.argsort(idList))
+           reorder(StructNodes, Order, self.nStructNodes)
+
         # Performing the meshless method
         print("Performing the Meshless Method")
         # Arrange structural nodes in the wrapped standard vector
@@ -208,3 +214,17 @@ class MLS_Spline:
 
             print("PRESS ENTER TO END PROGRAM.")
             wait = input("PROGRAM TERMINATED CORRECTLY.")
+
+
+def reorder(arr, index, n):
+    temp = [0] * n;
+
+    # arr[i] should be
+    # present at index[i] index
+    for i in range(0, n):
+        temp[index[i]] = arr[i]
+
+        # Copy temp[] to arr[]
+    for i in range(0, n):
+        arr[i] = temp[i]
+        index[i] = i

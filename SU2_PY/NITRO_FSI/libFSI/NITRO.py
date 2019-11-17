@@ -536,6 +536,15 @@ class NITRO:
     """ Description. """
     Interf_matrix = MLS_Spline.interpolation_matrix;
 
+    # format modes
+    if FSI_config['FORMAT_MODES'] == 'CSHELL':
+       idx = 0; idy = 1; idz = 2;
+    elif FSI_config['FORMAT_MODES'] == 'NASTRANF06':
+       idx = 1;  idy = 2; idz = 3;
+    else:
+       print("Format {} not known !!".format(FORMAT_MODES))
+       sys.exit("Goodbye!")
+
     if FSI_config['CSD_SOLVER'] == 'NITRO':
        self.gen_coord_arr = FSI_config["MODAL_COEFF"]; 
        self.nModes = len(self.gen_coord_arr)
@@ -561,9 +570,9 @@ class NITRO:
        self.mode_fluid_z = np.zeros((self.nPoint,self.nModes))
     
        for i in range(self.nModes):   # for dynresp the first index of the mode is the node ID according to nastran
-          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,1] )
-          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,2] )
-          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,3] )
+          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idx] )
+          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idy] )
+          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idz] )
 
     elif FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK':
        
@@ -584,9 +593,9 @@ class NITRO:
        self.mode_fluid_z = np.zeros((self.nPoint,self.nModes))
 
        for i in range(self.nModes):
-          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,0] )   
-          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,1] ) 
-          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,2] )
+          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idx] )
+          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idy] )
+          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idz] )
 
     elif (FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_SEQUENTIAL' or FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_COUPLED'):  # int this case I mean NITRO_FRAMEWORK
 
@@ -599,9 +608,9 @@ class NITRO:
        self.mode_fluid_z = np.zeros((self.nPoint, self.nModes))
 
        for i in range(self.nModes):
-           self.mode_fluid_x[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, 0])
-           self.mode_fluid_y[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, 1])
-           self.mode_fluid_z[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, 2])
+           self.mode_fluid_x[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, idx])
+           self.mode_fluid_y[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, idy])
+           self.mode_fluid_z[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, idz])
 
 
   if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':

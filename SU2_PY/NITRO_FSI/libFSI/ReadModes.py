@@ -50,10 +50,10 @@ from math import *
 class CModes:  # for modes
 
   def __init__(self):    
-    self.Mode = np.empty((0,6),float)# one row only... to add more lines with vstack
+    self.Mode = np.empty((0,6),float)# one row only... to add more lines
     
   def SetModeLine(self,node_l):
-    self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)   # es. A = numpy.vstack([A, newrow]) 
+    self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)
     
   def GetMode(self):
     return self.Mode  
@@ -66,10 +66,10 @@ class CModes:  # for modes
 class CModes_f06:  # for modes
 
     def __init__(self):
-        self.Mode = np.empty((0, 7), float)  # one row only... to add more lines with vstack
+        self.Mode = np.empty((0, 7), float)  # one row only... to add more lines
 
     def SetModeLine(self, node_l):
-        self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)  # es. A = numpy.vstack([A, newrow])
+        self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)
 
     def GetMode(self):
         return self.Mode
@@ -77,6 +77,10 @@ class CModes_f06:  # for modes
     def GetL(self):
         a = self.Mode.shape()[0]
         return a
+
+    def OrderMode(self):
+        # order the modes in ascending order with respect of the node grid
+      self.Mode = self.Mode[self.Mode[:,0].argsort()]
 
 def ReadModes(Modes, Mode_file, FORMAT_MODES, nModes):
     index = -1
@@ -136,9 +140,14 @@ def ReadModes(Modes, Mode_file, FORMAT_MODES, nModes):
                     line = modefile.readline()
                line = modefile.readline()
         else:
-           print("Format not known !!".format(FORMAT_MODES))
+           print("Format {} not known !!".format(FORMAT_MODES))
            sys.exit("Goodbye!")
     nModes.append(int(index))
+    if FORMAT_MODES == 'NASTRANF06':
+        # order modes in asxcending node order (to ensure compatibility with structural grid independently of the reading order)
+        for i in range(0, nModes[0]):
+            Modes[i].OrderMode()
+
     print("Total number of available structural modes from input file is: {}".format(int(nModes[0])))
 
 
