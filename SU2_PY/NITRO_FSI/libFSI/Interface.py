@@ -858,9 +858,9 @@ class Interface:
             force_file.close()
 
         # --- Initialize matrix of boundary nodal forces  --- #
-        if myid == self.rootProcess:
-            SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
-            SolidSolver.initialize_OutputForces(1,FSI_config)
+        #if myid == self.rootProcess:
+        #    SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
+        #    SolidSolver.initialize_OutputForces(1,FSI_config)
 
 
         self.MPIPrint('\n********************************')
@@ -967,8 +967,8 @@ class Interface:
         self.MPIPrint('**********************************\n')
 
         # --- Initialize matrix of boundary nodal forces  --- #
-        if myid == self.rootProcess:
-            SolidSolver.initialize_OutputForces(NbTimeIter, FSI_config)  ## NEEDS TO BE REBUILD IN CASE OF RESTART!!!!!
+        #if myid == self.rootProcess:
+        #    SolidSolver.initialize_OutputForces(NbTimeIter, FSI_config)  ## NEEDS TO BE REBUILD IN CASE OF RESTART!!!!!
         # --- Initialize the coupled solution --- #
         if FSI_config['RESTART_SOL'] == 'YES':
             TimeIterTreshold = -1
@@ -986,13 +986,12 @@ class Interface:
         else:
             self.MPIPrint('Setting FSI initial conditions')
             if myid in self.solidSolverProcessors:
-                SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,
-                                                               MLS_Spline)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
+                #SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,MLS_Spline)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
                 SolidSolver.setInitialDisplacements(FSI_config, MLS_Spline)
             self.transferStructuralDisplacements(FluidSolver, SolidSolver)
             #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
             #self.setFluidInterfaceVarCoord(FluidSolver)
-            FluidSolver.Preprocess(0)  # if there is an initial deformation in the solid, it has to be communicated to the fluid solver
+            FluidSolver.SetInitialMesh()  # if there is an initial deformation in the solid, it has to be communicated to the fluid solver
             self.MPIPrint('\nFSI initial conditions are set')
             self.MPIPrint('Beginning time integration\n')
 
