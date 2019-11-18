@@ -855,9 +855,9 @@ class Interface:
             force_file.close()
 
         # --- Initialize matrix of boundary nodal forces  --- #
-        if myid == self.rootProcess:
-            SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
-            SolidSolver.initialize_OutputForces(1,FSI_config)
+        #if myid == self.rootProcess:
+        #    SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
+        #    SolidSolver.initialize_OutputForces(1,FSI_config)
 
 
         self.MPIPrint('\n********************************')
@@ -964,8 +964,8 @@ class Interface:
         self.MPIPrint('**********************************\n')
 
         # --- Initialize matrix of boundary nodal forces  --- #
-        if myid == self.rootProcess:
-            SolidSolver.initialize_OutputForces(NbTimeIter, FSI_config)  ## NEEDS TO BE REBUILD IN CASE OF RESTART!!!!!
+        #if myid == self.rootProcess:
+        #    SolidSolver.initialize_OutputForces(NbTimeIter, FSI_config)  ## NEEDS TO BE REBUILD IN CASE OF RESTART!!!!!
         # --- Initialize the coupled solution --- #
         if FSI_config['RESTART_SOL'] == 'YES':
             TimeIterTreshold = -1
@@ -975,17 +975,14 @@ class Interface:
                 self.comm.barrier()
             #self.transferStructuralDisplacements( FluidSolver, SolidSolver)
             #self.getSolidInterfaceDisplacement(SolidSolver)
-            if self.have_MPI == True:
-                self.comm.barrier()
-                # if myid == self.rootProcess:
-                # SolidSolver.updateSolution()
         # If no restart
         else:
             self.MPIPrint('Setting FSI initial conditions')
             if myid in self.solidSolverProcessors:
-                SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,
-                                                               MLS_Spline)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
+                #SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,MLS_Spline)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
                 SolidSolver.setInitialDisplacements(FSI_config, MLS_Spline)
+            if self.have_MPI == True:
+                self.comm.barrier()
             self.transferStructuralDisplacements(FluidSolver, SolidSolver)
             #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
             #self.setFluidInterfaceVarCoord(FluidSolver)
@@ -1184,8 +1181,7 @@ class Interface:
             # first it is necessary to read the modal displacement file
             SolidSolver.mod_displ = ReadModalDisplacements(FSIConfig)
             # all modes are evaluated on the fluid boundary: PHI_CFD
-            SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
-            # Generalized displacement at T=0 give the form of the mesh
+            #SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
             SolidSolver.run(0, FSI_config, MLS_Spline,0)
 
 
@@ -1232,7 +1228,7 @@ class Interface:
         self.MPIPrint('*************************')
         self.MPIPrint(' ')
 
-   def UnsteadyFSI_dyn(self, FSI_config, FluidSolver, SolidSolver, MLS_Spline):
+    def UnsteadyFSI_dyn_sequential(self, FSI_config, FluidSolver, SolidSolver, MLS_Spline):
         """
 	Run the unsteady FSI computation by synchronizing the fluid and solid solvers.
 	F/s interface data are exchanged through interface mapping and interpolation (if non mathcing meshes).
@@ -1281,27 +1277,29 @@ class Interface:
         self.MPIPrint('* Begin unsteady FSI computation *')
         self.MPIPrint('**********************************\n')
 
+        # Read modal displacement file (for sequential approach has to be done only once (beginning) as it is not changing every timestep)
+        if myid == self.rootProcess:
+           SolidSolver.mod_displ = ReadModalDisplacements(FSIConfig)
+
+        if self.have_MPI == True:
+            self.comm.barrier()
 
         # --- Initialize the coupled solution --- #
         if FSI_config['RESTART_SOL'] == 'YES':
             TimeIterTreshold = -1
             if myid == self.rootProcess:  # HARD CODE
-                SolidSolver.run(FSI_config['UNST_TIMESTEP'] * (FSI_config['RESTART_ITER']), FSI_config, MLS_Spline)
+                SolidSolver.run(FSI_config['UNST_TIMESTEP'] * (FSI_config['RESTART_ITER']), FSI_config, MLS_Spline, FSI_config['RESTART_ITER'])
             if self.have_MPI == True:
                 self.comm.barrier()
             #self.transferStructuralDisplacements( FluidSolver, SolidSolver)
             #self.getSolidInterfaceDisplacement(SolidSolver)
-            if self.have_MPI == True:
-                self.comm.barrier()
-                # if myid == self.rootProcess:
-                # SolidSolver.updateSolution()
         # If no restart
         else:
             self.MPIPrint('Setting FSI initial conditions')
             if myid in self.solidSolverProcessors:
-                SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,
-                                                               MLS_Spline)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
                 SolidSolver.setInitialDisplacements(FSI_config, MLS_Spline)
+            if self.have_MPI == True:
+                self.comm.barrier()
             self.transferStructuralDisplacements(FluidSolver, SolidSolver)
             #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
             #self.setFluidInterfaceVarCoord(FluidSolver)
@@ -1393,7 +1391,7 @@ class Interface:
             ## --- Solid solver call for FSI subiteration --- #
             self.MPIPrint('\nEvaluating the solid displacement for the considerd time-step')
             if myid == self.rootProcess:
-                SolidSolver.run(time, FSI_config, MLS_Spline)
+                SolidSolver.run(time, FSI_config, MLS_Spline,TimeIter)
             #self.transferStructuralDisplacements(FluidSolver, SolidSolver)
             #self.getSolidInterfaceDisplacement(
             #    SolidSolver)  # this has to be done for every processor (not only the one of the SolidSolver!!)

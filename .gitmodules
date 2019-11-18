@@ -12,6 +12,3 @@
 [submodule "externals/meson"]
 	path = externals/meson
 	url = https://github.com/mesonbuild/meson
-[submodule "externals/pyNastran"]
-	path = externals/pyNastran
-	url = https://github.com/SteveDoyle2/pyNastran.git

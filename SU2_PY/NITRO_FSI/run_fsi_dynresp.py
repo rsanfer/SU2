@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-## \file fsi_computation.py
-#  \brief Python wrapper code for FSI computation by coupling pyBeam and SU2.
+## \file run_fsi.py
+#  \brief Python wrapper code for FSI computation by coupling NITRO and SU2.
 #  \author Rocco Bombardieri, David Thomas, Ruben Sanchez
 #  \version 7.0.0
 #
@@ -41,11 +41,12 @@ import time as timer
 from optparse import OptionParser  # use a parser for configuration
 
 from libFSI import FSI_config as io  # imports FSI python tools
+from libFSI import Dynresp_config as dyn_io  # imports FSI python tools
 from libFSI import Interface as FSI # imports FSI python tools
 from libFSI import NITRO
 from libFSI import Spline_Module_class as Spline_Module
 from libFSI.Unifying_parameters_framework import UnifyingParameters_framework
-
+from libFSI.Unifying_parameters_framework import UnifyingParameters_dynresp
 # imports the CFD (SU2) module for FSI computation
 import pysu2
 
@@ -59,6 +60,8 @@ def main():
     # --- Get the FSI config file name form the command line options --- #
     parser = OptionParser()
     parser.add_option("-f", "--file", dest="filename",
+                      help="read config from FILE", metavar="FILE")
+    parser.add_option("-d", "--dynresp", dest="dyn_filename",
                       help="read config from FILE", metavar="FILE")
     parser.add_option("--parallel", action="store_true",
                       help="Specify if we need to initialize MPI", dest="with_MPI", default=False)
@@ -92,9 +95,21 @@ def main():
 
     confFile = str(options.filename)
 
+
+    # Make separate file for dynresp
+    dynconfFile = str(options.filename)
+    # setting up FSIConfig file with some dynresp general parameters
+    if myid == rootProcess:
+       DYN_config = dyn_io.DYNData(dynconfFile)
+       UnifyingParameters_dynresp(DYN_config, confFile)
+
+
+    if have_MPI:
+        comm.barrier()
+
     FSI_config = io.FSIConfig(confFile)  # FSI configuration file
     CFD_ConFile = FSI_config['CFD_CONFIG_FILE_NAME']  # CFD configuration file
-    #CSD_ConFile = FSI_config['CSD_CONFIG_FILE_NAME']  # CSD configuration file
+    CSD_ConFile = FSI_config['CSD_CONFIG_FILE_NAME']  # CSD configuration file
     MLS_confFile = FSI_config['MLS_CONFIG_FILE_NAME']  # MLS configuration file
     CSD_Solver = FSI_config['CSD_SOLVER']  # CSD solver
 
@@ -102,9 +117,8 @@ def main():
         comm.barrier()
 
     # Unification of parameters
-    if CSD_Solver == 'NITRO' or CSD_Solver == 'NITRO_FRAMEWORK':
-        UnifyingParameters_framework(FSI_config, confFile, myid)
-        if have_MPI == True:
+    UnifyingParameters_framework(FSI_config, confFile, myid)
+    if have_MPI == True:
             comm.barrier()
 
             # --- Initialize the fluid solver: SU2 --- #
@@ -127,7 +141,7 @@ def main():
     if myid == rootProcess:
         print('\n***************************** Initializing Imposed displacement Solver   ************************************')
         try:
-            SolidSolver = NITRO.NITRO()
+            SolidSolver = NITRO.NITRO(CSD_ConFile)
         except TypeError as exception:
             print('ERROR building the Solid Solver: ', exception)
     else:
@@ -163,7 +177,7 @@ def main():
         try:
             MLS = Spline_Module.MLS_Spline(MLS_confFile, FSIInterface.nDim,
                                           SolidSolver.GlobalCoordinates0,
-                                          FSI_config)
+                                          FSI_config,DYN_config)
         except TypeError as exception:
             print('ERROR building the MLS Interpolation: ', exception)
     else:
@@ -172,23 +186,20 @@ def main():
     if have_MPI:
         comm.barrier()
 
+        # calculation of the modes on the CFD crid
+        if myid == rootProcess:
+            SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,MLS)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
 
-    # calculation of the modes on the CFD crid
-    if myid == rootProcess:
-        SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,
-                                                       MLS)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
-
-    # This allows the calculation of the solid node position in the position occupied at restart (may be redundant)
-    if FSI_config['RESTART_SOL'] == 'YES' and myid == rootProcess:
-        # the restart iter insterted here has to be -1 for the dual_time 1st order and -2 for dual time stepping 2nd order
-        if FSI_config['UNSTEADY_SCHEME'] == 'DUAL_TIME_STEPPING-1ST_ORDER':
-            # Update the SOlidSolver position of the structural nodes given the current position and the prescribed motion
-            SolidSolver.run_restart(FSI_config['UNST_TIMESTEP'] * (FSI_config['RESTART_ITER'] - 1), FSI_config,
-                                    MLS)  # FSI_config['START_TIME']    FSI_config['UNST_TIMESTEP']*(FSI_config['RESTART_ITER']-1
-        else:
-            string2 = '';
-            print('ERROR: Chosen time Advancing technique not implemented yet')
-            sys.exit("Goodbye!")
+        # This allows the calculation of the solid node position in the position occupied at restart (may be redundant)
+        #if FSI_config['RESTART_SOL'] == 'YES' and myid == rootProcess:
+        #   # the restart iter insterted here has to be -1 for the dual_time 1st order and -2 for dual time stepping 2nd order
+        #   if FSI_config['UNSTEADY_SCHEME'] == 'DUAL_TIME_STEPPING-1ST_ORDER':
+        #       # Update the SOlidSolver position of the structural nodes given the current position and the prescribed motion
+        #       SolidSolver.run_restart(FSI_config['UNST_TIMESTEP'] * (FSI_config['RESTART_ITER'] - 1), FSI_config,MLS)  # FSI_config['START_TIME']    FSI_config['UNST_TIMESTEP']*(FSI_config['RESTART_ITER']-1
+        #else:
+        #    string2 = '';
+        #    print('ERROR: Chosen time Advancing technique not implemented yet')
+        #    sys.exit("Goodbye!")
 
     if have_MPI == True:
         comm.barrier()
@@ -201,9 +212,9 @@ def main():
         comm.Barrier()
 
     # --- Launch a steady or unsteady FSI computation --- #
-    if FSI_config['UNSTEADY_SIMULATION'] == "YES":
+    if FSI_config['UNSTEADY_SIMULATION'] == "YES" and (CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL'):
         try:
-           FSIInterface.UnsteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
+           FSIInterface.UnsteadyFSI_dyn_sequential(FSI_config, FluidSolver, SolidSolver, MLS)
         except NameError as exception:
            if myid == rootProcess:
               print('An NameError occured in FSIInterface.UnsteadyFSI : ',exception)
@@ -213,9 +224,25 @@ def main():
         except KeyboardInterrupt as exception :
            if myid == rootProcess:
               print('A KeyboardInterrupt occured in FSIInterface.UnsteadyFSI : ',exception)
-    else:
+
+    # --- Launch a steady or unsteady FSI computation --- #
+    elif FSI_config['UNSTEADY_SIMULATION'] == "YES" and (CSD_Solver == 'DYNRESP_CFD_COUPLED'):
         try:
-            FSIInterface.SteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
+           FSIInterface.UnsteadyFSI_dyn_coupled(FSI_config, FluidSolver, SolidSolver, MLS)
+        except NameError as exception:
+           if myid == rootProcess:
+              print('An NameError occured in FSIInterface.UnsteadyFSI : ',exception)
+        except TypeError as exception:
+           if myid == rootProcess:
+              print('A TypeError occured in FSIInterface.UnsteadyFSI : ',exception)
+        except KeyboardInterrupt as exception :
+           if myid == rootProcess:
+              print('A KeyboardInterrupt occured in FSIInterface.UnsteadyFSI : ',exception)
+
+
+    elif FSI_config['UNSTEADY_SIMULATION'] == "NO" and (CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL' or CSD_Solver == 'DYNRESP_CFD_COUPLED'):
+        try:
+            FSIInterface.SteadyFSI_dyn(FSI_config, FluidSolver, SolidSolver, MLS)
             print()
         except NameError as exception:
             if myid == rootProcess:
@@ -226,6 +253,9 @@ def main():
         except KeyboardInterrupt as exception:
             if myid == rootProcess:
                 print('A KeyboardInterrupt occured in FSIInterface.SteadyFSI : ', exception)
+    else:
+        print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
+        sys.exit("Goodbye!")
 
     # Postprocess the solver and exit cleanly
     #FluidSolver.Postprocessing()

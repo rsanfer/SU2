@@ -325,7 +325,7 @@ class NITRO:
         Now, aeropoints to generate the interpolation matrix (query points) are ordered into a vector follwing the list of markers[iMarker]
         so I just need to extract them in order starting from 1 till the end during the cycle for iPoint in vertexList:
         '''
-        i = 0
+
 
         for iPoint in range(0, self.nPoint):
                 Coord0 = self.node[iPoint].GetCoord0()
@@ -357,7 +357,7 @@ class NITRO:
                 self.node[iPoint].SetCoord_prec((Coord[0], Coord[1], Coord[2]))
                 self.node[iPoint].SetCoord((newCoord[0], newCoord[1], newCoord[2]))
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
-                i = i+1
+
 
      elif (CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL' or CSD_Solver == 'DYNRESP_CFD_COUPLED'):
 
@@ -378,6 +378,10 @@ class NITRO:
            newCoord[0] = Coord0[0] + Simulated_mode_x[iPoint];
            newCoord[1] = Coord0[1] + Simulated_mode_y[iPoint];
            newCoord[2] = Coord0[2] + Simulated_mode_z[iPoint];
+
+           self.node[iPoint].SetCoord_prec((Coord[0], Coord[1], Coord[2]))
+           self.node[iPoint].SetCoord((newCoord[0], newCoord[1], newCoord[2]))
+
 
   def initialize_OutputForces(self, NbTimeIter,FSI_config):
     """ Description. """
@@ -422,7 +426,7 @@ class NITRO:
     """ Description. """
     time = 0;
     print("Set Initial Displacements")
-    self.__computeInterfacePosVel(time,FSI_config, MLS_Spline)
+    self.__computeInterfacePosVel(time,FSI_config, MLS_Spline,0)
 
   def writeSolution(self, time_iter, time, FSI_config):  #TimeIter, NbTimeIter):
     """ Description. """
@@ -481,7 +485,10 @@ class NITRO:
 
     if FSI_config['WRITE_GEN_FORCE_OUTPUT'] == 'YES':
       for mode in range(self.nModes):
-         self.writeGenForceFile( time_iter, time, FSI_config, mode)    
+        if (FSI_config['CSD_SOLVER'] == 'NITRO' or FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK'):
+           self.writeGenForceFile( time_iter, time, FSI_config, mode)
+        elif FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_SEQUENTIAL' :
+           self.writeGenForceFileDynresp( time_iter, time, FSI_config, mode)
          
 
   def writeGenForceFile(self, time_iter, time, FSI_config, mode):
