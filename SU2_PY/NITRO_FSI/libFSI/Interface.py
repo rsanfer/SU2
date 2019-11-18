@@ -989,7 +989,7 @@ class Interface:
             self.transferStructuralDisplacements(FluidSolver, SolidSolver)
             #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
             #self.setFluidInterfaceVarCoord(FluidSolver)
-            FluidSolver.SetInitialMesh()  # if there is an initial deformation in the solid, it has to be communicated to the fluid solver
+            FluidSolver.Preprocess(0)  # if there is an initial deformation in the solid, it has to be communicated to the fluid solver
             self.MPIPrint('\nFSI initial conditions are set')
             self.MPIPrint('Beginning time integration\n')
 
@@ -1231,3 +1231,178 @@ class Interface:
         self.MPIPrint('*  End FSI computation  *')
         self.MPIPrint('*************************')
         self.MPIPrint(' ')
+
+   def UnsteadyFSI_dyn(self, FSI_config, FluidSolver, SolidSolver, MLS_Spline):
+        """
+	Run the unsteady FSI computation by synchronizing the fluid and solid solvers.
+	F/s interface data are exchanged through interface mapping and interpolation (if non mathcing meshes).
+	"""
+        print('Not Ready yet!')
+        if self.have_MPI == True:
+            myid = self.comm.Get_rank()
+            numberPart = self.comm.Get_size()
+        else:
+            myid = 0
+            numberPart = 1
+
+        # write some data
+        if myid == self.rootProcess:
+            cd_file = open("history_CD.dat", "w")
+            cd_file.write("Drag Coefficient\n")
+            cd_file.close()
+            cl_file = open("history_CL.dat", "w")
+            cl_file.write("Lift Coefficient\n")
+            cl_file.close()
+            force_file = open("history_forces.dat", "w")
+            force_file.write("Forces Flow (X, Y, Z) \t Forces FEA (X, Y, Z)\n")
+            force_file.close()
+
+
+        # --- Set some general variables for the unsteady computation --- #
+        deltaT = FSI_config['UNST_TIMESTEP']  # physical time step
+        totTime = FSI_config['UNST_TIME']  # physical simulation time
+        TimeIterTreshold = 0  # time iteration from which we allow the solid to deform
+        if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
+            blended_step_lenght = FSI_config['BLE_STEP_LENGTH']  # time required to perform the blended step
+
+        if FSI_config['RESTART_SOL'] == 'YES':
+            startTime = FSI_config['START_TIME']
+            NbTimeIter = ((totTime) / deltaT) + 1
+            time = startTime
+            TimeIter = FSI_config['RESTART_ITER']
+        else:
+            NbTimeIter = (totTime / deltaT) + 1  # number of time iterations
+            time = 0.0  # initial time
+            TimeIter = 0  # initial time iteration
+
+        #NbTimeIter = 15 ; print("NbTimeIter = 15 forced")
+
+        self.MPIPrint('\n**********************************')
+        self.MPIPrint('* Begin unsteady FSI computation *')
+        self.MPIPrint('**********************************\n')
+
+
+        # --- Initialize the coupled solution --- #
+        if FSI_config['RESTART_SOL'] == 'YES':
+            TimeIterTreshold = -1
+            if myid == self.rootProcess:  # HARD CODE
+                SolidSolver.run(FSI_config['UNST_TIMESTEP'] * (FSI_config['RESTART_ITER']), FSI_config, MLS_Spline)
+            if self.have_MPI == True:
+                self.comm.barrier()
+            #self.transferStructuralDisplacements( FluidSolver, SolidSolver)
+            #self.getSolidInterfaceDisplacement(SolidSolver)
+            if self.have_MPI == True:
+                self.comm.barrier()
+                # if myid == self.rootProcess:
+                # SolidSolver.updateSolution()
+        # If no restart
+        else:
+            self.MPIPrint('Setting FSI initial conditions')
+            if myid in self.solidSolverProcessors:
+                SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,
+                                                               MLS_Spline)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
+                SolidSolver.setInitialDisplacements(FSI_config, MLS_Spline)
+            self.transferStructuralDisplacements(FluidSolver, SolidSolver)
+            #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
+            #self.setFluidInterfaceVarCoord(FluidSolver)
+            FluidSolver.Preprocess(0)  # if there is an initial deformation in the solid, it has to be communicated to the fluid solver
+            self.MPIPrint('\nFSI initial conditions are set')
+            self.MPIPrint('Beginning time integration\n')
+
+
+        # --- External temporal loop --- #
+        while TimeIter <= NbTimeIter:
+
+            self.FSIIter = 0
+            FSIConv = False
+            self.MPIPrint("Timeiter = {}".format(TimeIter))
+
+            #self.MPIPrint("\n>>>> Time iteration {} / FSI iteration {} <<<<".format(TimeIter, self.FSIIter))
+
+            if TimeIter != 0:
+                if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
+                    if time <= FSI_config['START_MOTION_TIME'] + blended_step_lenght and time >= FSI_config[
+                        'START_MOTION_TIME']:
+                        # --- Mesh morphing step (displacements interpolation, displacements communication, and mesh morpher call) --- #
+                        self.transferStructuralDisplacements( FluidSolver, SolidSolver)
+                        #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
+                        self.MPIPrint('\nPerforming dynamic mesh deformation (ALE)...\n')
+                        #self.setFluidInterfaceVarCoord(FluidSolver)
+                        #FluidSolver.DynamicMeshUpdate(TimeIter)
+                        FluidSolver.Preprocess(TimeIter)
+                else:
+                    # --- Mesh morphing step (displacements interpolation, displacements communication, and mesh morpher call) --- #
+                    self.transferStructuralDisplacements(FluidSolver, SolidSolver)
+                    #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
+                    self.MPIPrint('\nPerforming dynamic mesh deformation (ALE)...\n')
+                    #self.setFluidInterfaceVarCoord(FluidSolver)
+                    #FluidSolver.DynamicMeshUpdate(TimeIter)
+                    FluidSolver.Preprocess(TimeIter)
+
+            self.printMeshCoord_bis(FluidSolver, TimeIter)
+            # --- Fluid solver call for FSI subiteration --- #
+            self.MPIPrint('\nLaunching fluid solver for one single dual-time iteration...')
+            self.MPIPrint("Time Iter = {}".format(FluidSolver.GetTime_Iter()))
+            self.MPIBarrier()
+
+            FluidSolver.ResetConvergence()
+            FluidSolver.Run()
+            FluidSolver.Postprocess()
+            # --- Update, monitor and output the fluid solution before the next time step  ---#
+            FluidSolver.Update()
+            FluidSolver.Monitor(TimeIter)
+            FluidSolver.Output(TimeIter)
+            self.MPIBarrier()
+
+            # --- Surface fluid loads interpolation and communication --- #
+            self.MPIPrint('\nProcessing interface fluid loads...\n')
+            self.MPIBarrier()
+            self.transferFluidTractions(FluidSolver, SolidSolver)
+            self.MPIBarrier()
+
+
+            if myid == self.rootProcess:
+                    # --- Output the solid solution before thr next time step --- #
+                    #SolidSolver.printForceDispl(TimeIter)
+                    SolidSolver.printNode(TimeIter, 1)
+                    SolidSolver.writeSolution(TimeIter, time, FSI_config)
+
+            if myid == self.rootProcess and FSI_config['REAL_TIME_TRACKING'] == 'YES':
+                monitor(FSI_config, SolidSolver)
+
+            # Move the restart file to a solution file
+            if myid == self.rootProcess:
+
+
+                new_name_flow = "./Output/flow_"  + str(TimeIter).zfill(5) + ".vtk"
+                new_name_surf = "./Output/surface_flow_" + str(TimeIter).zfill(5) + ".vtk"
+                #shutil.move("flow_" + str(0).zfill(5) + ".vtk", new_name_flow)
+                #shutil.move("surface_flow_" + str(0).zfill(5) + ".vtk", new_name_surf)
+                os.remove("surface_flow_" + str(TimeIter).zfill(5) + ".vtk")
+                os.remove("flow_" + str(TimeIter).zfill(5) + ".vtk")
+                cd_file = open("history_CD.dat", "a")
+                cd_file.write(str(FluidSolver.Get_DragCoeff()) + "\n")
+                cd_file.close()
+                cl_file = open("history_CL.dat", "a")
+                cl_file.write(str(FluidSolver.Get_LiftCoeff()) + "\n")
+                cl_file.close()
+
+            TimeIter += 1
+            time += deltaT
+
+            ## --- Solid solver call for FSI subiteration --- #
+            self.MPIPrint('\nEvaluating the solid displacement for the considerd time-step')
+            if myid == self.rootProcess:
+                SolidSolver.run(time, FSI_config, MLS_Spline)
+            #self.transferStructuralDisplacements(FluidSolver, SolidSolver)
+            #self.getSolidInterfaceDisplacement(
+            #    SolidSolver)  # this has to be done for every processor (not only the one of the SolidSolver!!)
+
+            # --- End of the temporal loop --- #
+
+            self.MPIBarrier()
+
+
+        self.MPIPrint('\n*************************')
+        self.MPIPrint('*  End FSI computation  *')
+        self.MPIPrint('*************************\n')

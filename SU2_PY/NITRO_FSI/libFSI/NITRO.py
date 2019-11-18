@@ -531,7 +531,53 @@ class NITRO:
      #if FSI_config['WRITE_GEN_FORCE_OUTPUT'] == 'YES':        
      genForceHistFile.write(str(float(time)) +'\t' + str(  float(Generalized_force_i))  + '\n' )  
      genForceHistFile.close()         
-         
+
+  def writeGenForceFileDynresp(self, time_iter, time, FSI_config, mode):
+
+      # Evaluation of the generalized force for the current iter
+      Generalized_force_i = 0
+      for iPoint in range(0, self.nPoint):
+          Force = self.node[iPoint].GetForce()  # FX += float(Force[0])  #FY += float(Force[1])  #FZ += float(Force[2])
+          # Generalized forces
+          Generalized_force_i = Generalized_force_i + Force[0] * self.mode_fluid_x[iPoint, mode] + Force[1] * self.mode_fluid_y[iPoint, mode] + Force[2] * self.mode_fluid_z[iPoint, mode]
+
+      if FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_SEQUENTIAL':
+
+        if FSI_config['UNSTEADY_SIMULATION'] == 'NO':
+          # ==== Writing
+          genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat', "w")
+          # Write the introduction to the file
+          genForceHistFile.write("$--1---><--2---><--3---><--4---><--5---><--6---><--7---><--8---><--9---><--10-->\n")
+          genForceHistFile.write("TABLED1 {0:8d}                                                        {1}\n".format(4000 + mode, '   +GenF'))
+          # write generalized force
+          genForceHistFile.write("   +GenF{0:8f}".format(Generalized_force_i))
+          genForceHistFile.close()
+
+        else: # FSI_config['UNSTEADY_SIMULATION'] == 'YES'
+          # Opens the generalized force file and writes the header
+          if time_iter == 0:
+              genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat', "w")
+              # Write the introduction to the file
+              genForceHistFile.write(
+                  "$--1---><--2---><--3---><--4---><--5---><--6---><--7---><--8---><--9---><--10-->\n")
+              genForceHistFile.write(
+                  "TABLED1 {0:8d}                                                        {1}\n".format(4000 + mode,
+                                                                                                       '   +GenF'))
+              # write generalized force
+              genForceHistFile.write("   +GenF{0:8f}".format(float(Generalized_force_i)))
+              genForceHistFile.close()
+          else:
+              genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat', "a")
+              if ((time_iter+1) % 8 == 0):
+                  genForceHistFile.write("{0:8f}".format(floatGeneralized_force_i))
+                  genForceHistFile.write("{}".format('   +GenF\n'))
+                  genForceHistFile.write("{}".format('   +GenF'))
+              else:
+                  genForceHistFile.write("{0:8f}".format(float(Generalized_force_i)))
+              genForceHistFile.close()
+
+
+
   def EvaluateIntefaceFluidDisplacements(self, FSI_config, MLS_Spline):  #TimeIter, NbTimeIter):
     """ Description. """
     Interf_matrix = MLS_Spline.interpolation_matrix;
@@ -599,7 +645,7 @@ class NITRO:
 
     elif (FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_SEQUENTIAL' or FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_COUPLED'):  # int this case I mean NITRO_FRAMEWORK
 
-       self.nModes = MLS_Spline.nStructNodes
+       self.nModes = MLS_Spline.nModes # only the modes elected by dynresp through the input file
        # Modes[i].GetMode()[:,0]
 
        # Need to memorize also all the other modes in order to calculate the relativ egeneralized forces
