@@ -110,7 +110,7 @@ class Point:
 class NITRO:
   """Description"""
 
-  def __init__(self, config_fileName):
+  def __init__(self, config_fileName = None):
     """ Description. """
 
     self.Config_file = config_fileName
@@ -763,6 +763,5 @@ class NITRO:
       outC.write("\t")
       outC.write(str(float(self.mode_fluid_z[iPoint, 0])))
       outC.write("\n")
-
-
+      
       outC.close()

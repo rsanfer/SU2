@@ -992,7 +992,7 @@ class Interface:
             self.transferStructuralDisplacements(FluidSolver, SolidSolver)
             #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
             #self.setFluidInterfaceVarCoord(FluidSolver)
-            FluidSolver.SetInitialMesh()  # if there is an initial deformation in the solid, it has to be communicated to the fluid solver
+            FluidSolver.Preprocess(0)  # if there is an initial deformation in the solid, it has to be communicated to the fluid solver
             self.MPIPrint('\nFSI initial conditions are set')
             self.MPIPrint('Beginning time integration\n')
 
