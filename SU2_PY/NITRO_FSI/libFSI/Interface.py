@@ -39,6 +39,8 @@
 import numpy as np
 import shutil
 import os
+from libFSI.ReadModalDisplacements import ReadModalDisplacements_Sequential
+from libFSI.ReadModalDisplacements import ReadModalDisplacements_Coupled
 # ----------------------------------------------------------------------
 #  FSI Interface Class
 # ----------------------------------------------------------------------
@@ -1157,7 +1159,7 @@ class Interface:
         Synchronizes the fluid and solid solver with data exchange at the f/s interface.
         """
 
-        # first it is necessary to read the modal displacement file
+        CSD_Solver = FSI_config['CSD_SOLVER']
 
 
 
@@ -1179,12 +1181,18 @@ class Interface:
 
         if myid == self.rootProcess:
             # first it is necessary to read the modal displacement file
-            SolidSolver.mod_displ = ReadModalDisplacements(FSIConfig)
+            if CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL':
+               ReadModalDisplacements_Sequential(FSIConfig,SolidSolver)
+            elif CSD_Solver == 'DYNRESP_CFD_COUPLED':
+               ReadModalDisplacements_Coupled(FSIConfig,SolidSolver)
+            else:
+                print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
+                sys.exit("Goodbye!")
             # all modes are evaluated on the fluid boundary: PHI_CFD
             #SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config, MLSSolver) # Flutter_mode_fluid_x/y/z are stored (root) once and for all
             SolidSolver.run(0, FSI_config, MLS_Spline,0)
 
-
+        self.MPIBarrier()
         FluidSolver.ResetConvergence()  # Make sure the solver starts convergence from 0
         FluidSolver.Preprocess(0)  # Time iteration pre-processing
         FluidSolver.Run()  # Run one time-step (static: one simulation)
@@ -1279,7 +1287,14 @@ class Interface:
 
         # Read modal displacement file (for sequential approach has to be done only once (beginning) as it is not changing every timestep)
         if myid == self.rootProcess:
-           SolidSolver.mod_displ = ReadModalDisplacements(FSIConfig)
+            # first it is necessary to read the modal displacement file
+            if CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL':
+                ReadModalDisplacements_Sequential(FSIConfig, SolidSolver)
+            elif CSD_Solver == 'DYNRESP_CFD_COUPLED':
+                ReadModalDisplacements_Coupled(FSIConfig, SolidSolver)
+            else:
+                print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
+                sys.exit("Goodbye!")
 
         if self.have_MPI == True:
             self.comm.barrier()
@@ -1385,12 +1400,25 @@ class Interface:
                 cl_file.write(str(FluidSolver.Get_LiftCoeff()) + "\n")
                 cl_file.close()
 
+            # Forced condition
+            if TimeIter == (FSI_config['RESTART_ITER'] - 1): # in this case iter 1 corresponds to 0
+                break
+
             TimeIter += 1
             time += deltaT
 
             ## --- Solid solver call for FSI subiteration --- #
             self.MPIPrint('\nEvaluating the solid displacement for the considerd time-step')
             if myid == self.rootProcess:
+                # It is necessary to read the modal displacement file
+                if CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL':
+                    ReadModalDisplacements_Sequential(FSIConfig, SolidSolver)
+                elif CSD_Solver == 'DYNRESP_CFD_COUPLED':
+                    ReadModalDisplacements_Coupled(FSIConfig, SolidSolver)
+                else:
+                    print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
+                    sys.exit("Goodbye!")
+
                 SolidSolver.run(time, FSI_config, MLS_Spline,TimeIter)
             #self.transferStructuralDisplacements(FluidSolver, SolidSolver)
             #self.getSolidInterfaceDisplacement(

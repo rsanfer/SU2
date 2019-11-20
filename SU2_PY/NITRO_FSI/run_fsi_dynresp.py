@@ -188,6 +188,7 @@ def main():
 
         # calculation of the modes on the CFD crid
         if myid == rootProcess:
+            # all modes are evaluated on the fluid boundary: PHI_CFD
             SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,MLS)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
 
         # This allows the calculation of the solid node position in the position occupied at restart (may be redundant)

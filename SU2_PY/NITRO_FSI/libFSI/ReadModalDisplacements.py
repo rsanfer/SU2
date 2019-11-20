@@ -33,7 +33,8 @@
 
 
 import pdb
-import os, sys, shutil, copy
+import os, os.path, sys, shutil, copy
+import time
 import math
 import numpy as np
 from numpy import float32, float64, int32, int64, product
@@ -43,22 +44,38 @@ import matplotlib.pyplot as plt
 np.set_printoptions(precision=3, threshold=20)
 
 
-class CModalDisp:  # for modes
+def ReadModalDisplacements_Coupled(SolidSolver):
 
-    def __init__(self):
-        self.Mode = np.empty((0, 7), float)  # one row only... to add more lines with vstack
+    SolidSolver.mod_displ = np.zeros((SolidSolver.nModes,1))
+    file_path = "MODES.TXT"
 
-    def SetModeLine(self, node_l):
-        self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)  # es. A = numpy.vstack([A, newrow])
+    # Wait for the file to be found
+    try:
+       while not os.path.exists(file_path):
+           time.sleep(1)
+    except KeyboardInterrupt as exception:
+           print('A KeyboardInterrupt occured in ReadModalDisplacements_Coupled : ', exception)
 
-    def GetMode(self):
-        return self.Mode
+    # When file is found just read it
+    # Make sure the file is completed
+    time.sleep(1)
+    # reading the file
+    fid = open(fileName, 'r')
+    line = fid.readline()
+    # crtLine has the modal displacements for every mode at the considered timestep
+    if not line:
+       print('Error, file MODES.TXT empty')
+       sys.exit("Goodbye!")
+    else:
+        line = line.split()
+        for i in range (0,SolidSolver.nModes):
+            SolidSolver.mod_displ[i][0] = line[i]
 
-    def GetL(self):
-        a = self.Mode.shape()[0]
-        return a
+    # after reading it's time to delete the file
+    os.remove("MODES.TXT")
 
-def ReadModalDisplacements(FSIConfig):
+
+def ReadModalDisplacements_Sequential(FSIConfig,SolidSolver):
     T0 = FSIConfig['START_TIME']
     TF = FSIConfig['UNST_TIME']
     TW = TF - T0
@@ -68,14 +85,13 @@ def ReadModalDisplacements(FSIConfig):
     op4_filename = FSIConfig['MODAL_DISPLACEMENT']
     # Reading op4 file with time domain response
     matrices = readOutput4File(op4_filename)
-    print(matrices[0][5])
-    print(matrices[0][5].shape)
+    #print(matrices[0][5])
+    #print(matrices[0][5].shape)
     # extract the modal values
-    nModes = matrices[0][1]  # Total number of modes provided by dynresp
-    mod_displ = np.zeros((nModes,int(NT)))
-    mod_displ = matrices[0][5][:,::3]  # matrix nModes x NT
+    #nModes = matrices[0][1]  # Total number of modes provided by dynresp
+    SolidSolver.mod_displ = np.zeros((SolidSolver.nModes,int(NT)))
+    SolidSolver.mod_displ = matrices[0][5][:,::3]  # matrix nModes x NT
 
-    return mod_displ
 
 def readOutput4File(fileName):
     Out = []

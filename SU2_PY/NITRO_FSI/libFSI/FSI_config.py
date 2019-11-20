@@ -98,6 +98,7 @@ class FSIConfig:
 
             for case in switch(this_param):
                 # integer values
+                if case("DYN_COUPLED_TIMESTEP_NR")	: pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
                 if case("BS_NR")		: pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
                 if case("NMODES")		      : pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
                 if case("MODE_TO_SIMULATE")	      : pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
