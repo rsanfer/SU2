@@ -31,9 +31,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with SU2. If not, see <http://www.gnu.org/licenses/>.
 
-# ----------------------------------------------------------------------
-#  Imports
-# ----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
 #  Imports
@@ -988,6 +985,8 @@ class Interface:
             if myid in self.solidSolverProcessors:
                 #SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,MLS_Spline)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
                 SolidSolver.setInitialDisplacements(FSI_config, MLS_Spline)
+            if self.have_MPI == True:
+                self.comm.barrier()
             self.transferStructuralDisplacements(FluidSolver, SolidSolver)
             #self.interpolateSolidPositionOnFluidMesh(FSI_config) #OLD VERSION
             #self.setFluidInterfaceVarCoord(FluidSolver)

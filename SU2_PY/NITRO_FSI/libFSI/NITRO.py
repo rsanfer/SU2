@@ -167,7 +167,7 @@ class NITRO:
       dispX = diff[0]; dispY = diff[1]; dispZ = diff[2]
       #print("{} {} {}".format(dispX, dispY, dispZ))
       return dispX, dispY, dispZ
-  '''
+
   def __readConfig(self):
     """ Read structural tester config file. """
 
@@ -212,7 +212,6 @@ class NITRO:
           if case():
             print(this_param + " is an invalid option !")
             break
-   '''
 
   def __computeInterfacePosVel(self,time,FSI_config, MLS_Spline):
     """ Description. """
@@ -325,14 +324,14 @@ class NITRO:
         Now, aeropoints to generate the interpolation matrix (query points) are ordered into a vector follwing the list of markers[iMarker]
         so I just need to extract them in order starting from 1 till the end during the cycle for iPoint in vertexList:
         '''
-        i = 0
+
 
         for iPoint in range(0, self.nPoint):
                 Coord0 = self.node[iPoint].GetCoord0()
                 Coord = self.node[iPoint].GetCoord()
-                newCoord[0] = Coord0[0]  + q * self.Flutter_mode_fluid_x[i];
-                newCoord[1] = Coord0[1]  + q * self.Flutter_mode_fluid_y[i];
-                newCoord[2] = Coord0[2]  + q * self.Flutter_mode_fluid_z[i];
+                newCoord[0] = Coord0[0]  + q * self.Flutter_mode_fluid_x[iPoint];
+                newCoord[1] = Coord0[1]  + q * self.Flutter_mode_fluid_y[iPoint];
+                newCoord[2] = Coord0[2]  + q * self.Flutter_mode_fluid_z[iPoint];
 
                 #print("Debug NITRO.__computeInterfacePosVel. Node {}, disp: {},{},{}.".format(iPoint,q * self.Flutter_mode_fluid_x[i],q * self.Flutter_mode_fluid_y[i], q * self.Flutter_mode_fluid_z[i] ))
 
@@ -357,9 +356,6 @@ class NITRO:
                 self.node[iPoint].SetCoord_prec((Coord[0], Coord[1], Coord[2]))
                 self.node[iPoint].SetCoord((newCoord[0], newCoord[1], newCoord[2]))
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
-                i = i+1                
-         
-    #print('DEBUGGING: node 20 position *new*  : {} [m]'.format(self.node[10].GetCoord()))
 
 
   def initialize_OutputForces(self, NbTimeIter,FSI_config):
@@ -555,8 +551,8 @@ class NITRO:
        for i in range(self.nModes):
           self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idx] )
           self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idy] )
-          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idz] ) 
-       
+          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idz] )
+
     else: # int this case I mean NITRO_FRAMEWORK   
        
        self.nModes = FSI_config["NMODES"]
@@ -576,9 +572,9 @@ class NITRO:
        self.mode_fluid_z = np.zeros((self.nPoint,self.nModes))
 
        for i in range(self.nModes):
-          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idx] )   
-          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idy] ) 
-          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idz] ) 
+          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idx] )
+          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idy] )
+          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idz] )
           
           
     if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':    

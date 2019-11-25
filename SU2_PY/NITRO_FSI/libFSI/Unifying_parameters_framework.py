@@ -1,3 +1,44 @@
+#!/usr/bin/env python3
+
+## \file UnifyingParameters_framework.py
+#  \brief Function that unifies parameters for the input files FSI and SU2
+#  \author Rocco Bombardieri
+#  \version 7.0.0
+#
+# The current SU2 release has been coordinated by the
+# SU2 International Developers Society <www.su2devsociety.org>
+# with selected contributions from the open-source community.
+#
+# The main research teams contributing to the current release are:
+#  - Prof. Juan J. Alonso's group at Stanford University.
+#  - Prof. Piero Colonna's group at Delft University of Technology.
+#  - Prof. Nicolas R. Gauger's group at Kaiserslautern University of Technology.
+#  - Prof. Alberto Guardone's group at Polytechnic University of Milan.
+#  - Prof. Rafael Palacios' group at Imperial College London.
+#  - Prof. Vincent Terrapon's group at the University of Liege.
+#  - Prof. Edwin van der Weide's group at the University of Twente.
+#  - Lab. of New Concepts in Aeronautics at Tech. Institute of Aeronautics.
+#
+# Copyright 2012-2019, Francisco D. Palacios, Thomas D. Economon,
+#                      Tim Albring, and the SU2 contributors.
+#
+# SU2 is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2.1 of the License, or (at your option) any later version.
+#
+# SU2 is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with SU2. If not, see <http://www.gnu.org/licenses/>.
+
+# ----------------------------------------------------------------------
+#  Imports
+# ----------------------------------------------------------------------
+
 from math import *	# use mathematical expressions
 import os, sys, shutil, copy
 import fileinput
@@ -27,7 +68,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
           print("Simulation {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format('STEADY', confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
 
           
-    if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP' and FSI_config['UNSTEADY_SIMULATION'] == 'YES':                                
+    if (FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK' or FSI_config['CSD_SOLVER'] == 'NITRO') and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP' and FSI_config['UNSTEADY_SIMULATION'] == 'YES':
        # Unsteady timestep suggestion (BLENDED_STEP type)    
        t_q = 3.14*FSI_config['L_REF']/ FSI_config['V_INF']/(FSI_config['K_MAX']/2)
        FSI_config['BLE_STEP_LENGTH'] = t_q
@@ -51,7 +92,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
           FSI_config['START_TIME'] = FSI_config['UNST_TIMESTEP']*(FSI_config['RESTART_ITER']); # restart iter is chosen manually 
           FSI_config['UNST_TIME'] = tq_mult*FSI_config['BLE_STEP_LENGTH'] - FSI_config['START_TIME']
           if myid == rootProcess:
-             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] )) 
+             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
              print("HC: FSI_config['START_TIME'] = {}".format(FSI_config['START_TIME']))
              print("HC: FSI_config['UNST_TIME'] = {}".format(FSI_config['UNST_TIME']))
           
@@ -59,7 +100,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
           FSI_config['START_TIME'] = tq_mult*FSI_config['BLE_STEP_LENGTH'] + FSI_config['UNST_TIMESTEP'] ; 
           FSI_config['RESTART_ITER'] = int(tq_mult*FSI_config['BS_TIMESTEP_2'] )  #(the total number of the old simulation is tq_mult*FSI_config['BS_TIMESTEP_2'] (the first timetep is always 0))
           if myid == rootProcess:
-             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))               
+             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
              print("HC: FSI_config['START_TIME'] = {}".format(FSI_config['START_TIME']))
              print("HC: FSI_config['RESTART_ITER'] = {}".format(FSI_config['RESTART_ITER']))
 
@@ -69,7 +110,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
           sys.exit("Good bye!")          
            
            
-    if myid == rootProcess and FSI_config['UNSTEADY_SIMULATION'] == 'YES' and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
+    if myid == rootProcess and (FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK' or FSI_config['CSD_SOLVER'] == 'NITRO') and FSI_config['UNSTEADY_SIMULATION'] == 'YES' and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
        print("\nBlended step length (plus Start Motion Time, in case): {} [sec]".format(t_q + FSI_config['START_MOTION_TIME']))
        print("\nBlended step timesteps nr. (starting from 0): {} [-]".format(( float(FSI_config['BLE_STEP_LENGTH']) )/(float(FSI_config['UNST_TIMESTEP']))))
 
