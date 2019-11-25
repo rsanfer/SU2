@@ -336,9 +336,9 @@ class NITRO:
 
                 #print("Debug NITRO.__computeInterfacePosVel. Node {}, disp: {},{},{}.".format(iPoint,q * self.Flutter_mode_fluid_x[i],q * self.Flutter_mode_fluid_y[i], q * self.Flutter_mode_fluid_z[i] ))
 
-                newVel[0] = q_dot * self.Flutter_mode_fluid_x[i];
-                newVel[1] = q_dot * self.Flutter_mode_fluid_y[i];
-                newVel[2] = q_dot * self.Flutter_mode_fluid_z[i];
+                newVel[0] = q_dot * self.Flutter_mode_fluid_x[iPoint];
+                newVel[1] = q_dot * self.Flutter_mode_fluid_y[iPoint];
+                newVel[2] = q_dot * self.Flutter_mode_fluid_z[iPoint];
                 #print("HD - Marker id {} Coord0[x] Coord0[y] Coord0[z]: {} {} {}".format(iPoint, Coord0[0], Coord0[1], Coord0[2] ))
                 if iPoint == int(FSI_config["TRACKING_NODE"]):
                        
