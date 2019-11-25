@@ -129,7 +129,6 @@ class FSIConfig:
 
                 # string values  MEMO_GEN_FORCE_OUTPUT
                 if case("FREESTREAM_OPTION")          : pass
-                # if case("FSI_MARKER")                 : pass
                 if case("OUTPUT_DIRECTORY")           : pass
                 if case("UNSTEADY_SCHEME")            : pass
                 if case("MEMO_GEN_FORCE_OUTPUT")      : pass
@@ -146,7 +145,6 @@ class FSIConfig:
                 if case("FORMAT_MODES")	              : pass
                 if case("CFD_CONFIG_FILE_NAME")	      : pass
                 if case("CSD_SOLVER")		          : pass
-                #if case("CSD_CONFIG_FILE_NAME")	      : pass
                 if case("RESTART_SOL")		          : pass
                 if case("MATCHING_MESH")	          : pass
                 if case("MESH_INTERP_METHOD")         : pass
