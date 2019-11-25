@@ -906,7 +906,7 @@ class Interface:
                 cl_file.write(str(FluidSolver.Get_LiftCoeff()) + "\n")
                 cl_file.close()
 
-        self.printMeshCoord_bis(FluidSolver, 0)
+        #self.printMeshCoord_bis(FluidSolver, 0)
         self.MPIBarrier()
         self.MPIPrint(' ')
         self.MPIPrint('*************************')
@@ -1024,7 +1024,7 @@ class Interface:
                     #FluidSolver.DynamicMeshUpdate(TimeIter)
                     FluidSolver.Preprocess(TimeIter)
 
-            self.printMeshCoord_bis(FluidSolver, TimeIter)
+            #self.printMeshCoord_bis(FluidSolver, TimeIter)
             # --- Fluid solver call for FSI subiteration --- #
             self.MPIPrint('\nLaunching fluid solver for one single dual-time iteration...')
             self.MPIPrint("Time Iter = {}".format(FluidSolver.GetTime_Iter()))

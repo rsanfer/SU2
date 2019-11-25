@@ -219,9 +219,7 @@ class NITRO:
     newCoord = np.zeros((3,1))
     newVel = np.zeros((3,1))
     rotCoorddot = np.zeros((3,1))
-    
-    #print('DEBUGGING: node 20 position *old*  : {} [m]'.format(self.node[10].GetCoord()))
-     
+
     if not FSI_config['START_MOTION_TIME']:
         FSI_config['START_MOTION_TIME'] = float(0.0)
      
@@ -310,7 +308,8 @@ class NITRO:
         else:    
             q = self.Aq
             q_dot = 0
-         
+
+        ''' 
         print("DEBUG: q = {0:1.20f}".format(q))
         print("DEBUG: FSI_config[K_MAX] = {0:1.20f}".format(FSI_config["K_MAX"]))
         print("DEBUG: VINF = {0:1.20f}".format(FSI_config["V_INF"]))
@@ -319,7 +318,7 @@ class NITRO:
         print("DEBUG: self.Flutter_mode_fluid_x[i] = {0:1.20f}".format(self.Flutter_mode_fluid_x[15114]))
         print("DEBUG: self.Flutter_mode_fluid_y[i] = {0:1.20f}".format(self.Flutter_mode_fluid_y[15114]))
         print("DEBUG: self.Flutter_mode_fluid_z[i] = {0:1.20f}".format(self.Flutter_mode_fluid_z[15114]))
-
+        '''
         '''
         Now, aeropoints to generate the interpolation matrix (query points) are ordered into a vector follwing the list of markers[iMarker]
         so I just need to extract them in order starting from 1 till the end during the cycle for iPoint in vertexList:
@@ -332,8 +331,6 @@ class NITRO:
                 newCoord[0] = Coord0[0]  + q * self.Flutter_mode_fluid_x[iPoint];
                 newCoord[1] = Coord0[1]  + q * self.Flutter_mode_fluid_y[iPoint];
                 newCoord[2] = Coord0[2]  + q * self.Flutter_mode_fluid_z[iPoint];
-
-                #print("Debug NITRO.__computeInterfacePosVel. Node {}, disp: {},{},{}.".format(iPoint,q * self.Flutter_mode_fluid_x[i],q * self.Flutter_mode_fluid_y[i], q * self.Flutter_mode_fluid_z[i] ))
 
                 newVel[0] = q_dot * self.Flutter_mode_fluid_x[iPoint];
                 newVel[1] = q_dot * self.Flutter_mode_fluid_y[iPoint];
@@ -530,9 +527,9 @@ class NITRO:
        #Modes[i].GetMode()[:,0]
        Flutter_mode_str = np.zeros((MLS_Spline.nStructNodes, 6),dtype=np.complex_)  # I need to define numpy matrix as complex
        for i in range(self.nModes):
-          #print('DEBUGGING: Modal coeff {} : {} [m]'.format(i, gen_coord_arr[i]))
+
           Flutter_mode_str = Flutter_mode_str + self.gen_coord_arr[i] * MLS_Spline.Modes[i].GetMode();
-          #print('DEBUGGING: Mode {} : {} [m]'.format(i, Flutter_mode_str[99][3]))
+
          
        self.Flutter_mode_fluid_x =  Interf_matrix.dot(Flutter_mode_str[:,0])   # let's try to evaluate the displacemeny only to sum to the aero boundary nodes
        self.Flutter_mode_fluid_y =  Interf_matrix.dot(Flutter_mode_str[:,1])
