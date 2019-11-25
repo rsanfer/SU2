@@ -44,7 +44,7 @@ import os, sys, shutil, copy
 import fileinput
 
 
-def UnifyFSIConfig(DYN_config,confFile):
+def UnifyingParameters_dynresp(DYN_config,confFile):
     '''This routine reads some info from the dynresp input file and unifies cards in SU2 and FSICoupler files'''
 
     configfile2 = open(confFile + '_temp',"w")
@@ -119,7 +119,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
           print("Simulation {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format('STEADY', confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
 
           
-    if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP' and FSI_config['UNSTEADY_SIMULATION'] == 'YES':                                
+    if (FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK' or FSI_config['CSD_SOLVER'] == 'NITRO') and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP' and FSI_config['UNSTEADY_SIMULATION'] == 'YES':
        # Unsteady timestep suggestion (BLENDED_STEP type)    
        t_q = 3.14*FSI_config['L_REF']/ FSI_config['V_INF']/(FSI_config['K_MAX']/2)
        FSI_config['BLE_STEP_LENGTH'] = t_q
@@ -161,7 +161,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
           sys.exit("Good bye!")          
            
            
-    if myid == rootProcess and FSI_config['UNSTEADY_SIMULATION'] == 'YES' and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
+    if myid == rootProcess and (FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK' or FSI_config['CSD_SOLVER'] == 'NITRO') and FSI_config['UNSTEADY_SIMULATION'] == 'YES' and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
        print("\nBlended step length (plus Start Motion Time, in case): {} [sec]".format(t_q + FSI_config['START_MOTION_TIME']))
        print("\nBlended step timesteps nr. (starting from 0): {} [-]".format(( float(FSI_config['BLE_STEP_LENGTH']) )/(float(FSI_config['UNST_TIMESTEP']))))
 

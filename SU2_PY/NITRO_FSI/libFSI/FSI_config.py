@@ -148,7 +148,7 @@ class FSIConfig:
                 if case("FORMAT_MODES")	              : pass
                 if case("CFD_CONFIG_FILE_NAME")	      : pass
                 if case("CSD_SOLVER")		          : pass
-                if case("CSD_CONFIG_FILE_NAME")	      : pass
+                #if case("CSD_CONFIG_FILE_NAME")	      : pass
                 if case("RESTART_SOL")		          : pass
                 if case("MATCHING_MESH")	          : pass
                 if case("MESH_INTERP_METHOD")         : pass
