@@ -3,20 +3,24 @@
 ## \file NITRO_Tester.py
 #  \brief NITRO Tester solver (for the NITRO approach involving forced moving boundary condition) used for testing the Py wrapper for external FSI coupling.
 #  \author Rocco Bombardieri
-#  \version 5.0.0 "Raven"
+#  \version 7.0.0
 #
-# SU2 Original Developers: Dr. Francisco D. Palacios.
-#                          Dr. Thomas D. Economon.
+# The current SU2 release has been coordinated by the
+# SU2 International Developers Society <www.su2devsociety.org>
+# with selected contributions from the open-source community.
 #
-# SU2 Developers: Prof. Juan J. Alonso's group at Stanford University.
-#                 Prof. Piero Colonna's group at Delft University of Technology.
-#                 Prof. Nicolas R. Gauger's group at Kaiserslautern University of Technology.
-#                 Prof. Alberto Guardone's group at Polytechnic University of Milan.
-#                 Prof. Rafael Palacios' group at Imperial College London.
-#                 Prof. Edwin van der Weide's group at the University of Twente.
-#                 Prof. Vincent Terrapon's group at the University of Liege.
+# The main research teams contributing to the current release are:
+#  - Prof. Juan J. Alonso's group at Stanford University.
+#  - Prof. Piero Colonna's group at Delft University of Technology.
+#  - Prof. Nicolas R. Gauger's group at Kaiserslautern University of Technology.
+#  - Prof. Alberto Guardone's group at Polytechnic University of Milan.
+#  - Prof. Rafael Palacios' group at Imperial College London.
+#  - Prof. Vincent Terrapon's group at the University of Liege.
+#  - Prof. Edwin van der Weide's group at the University of Twente.
+#  - Lab. of New Concepts in Aeronautics at Tech. Institute of Aeronautics.
 #
-# Copyright (C) 2012-2017 SU2, the open-source CFD code.
+# Copyright 2012-2019, Francisco D. Palacios, Thomas D. Economon,
+#                      Tim Albring, and the SU2 contributors.
 #
 # SU2 is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -515,6 +519,15 @@ class NITRO:
     """ Description. """
     Interf_matrix = MLS_Spline.interpolation_matrix;
 
+    # format modes
+    if FSI_config['FORMAT_MODES'] == 'CSHELL':
+       idx = 0; idy = 1; idz = 2;
+    elif FSI_config['FORMAT_MODES'] == 'NASTRANF06':
+       idx = 1;  idy = 2; idz = 3;
+    else:
+       print("Format {} not known !!".format(FORMAT_MODES))
+       sys.exit("Goodbye!")
+
     if FSI_config['CSD_SOLVER'] == 'NITRO':
        self.gen_coord_arr = FSI_config["MODAL_COEFF"]; 
        self.nModes = len(self.gen_coord_arr)
@@ -540,9 +553,9 @@ class NITRO:
        self.mode_fluid_z = np.zeros((self.nPoint,self.nModes))
     
        for i in range(self.nModes):
-          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,0] )   
-          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,1] ) 
-          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,2] ) 
+          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idx] )
+          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idy] )
+          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idz] ) 
        
     else: # int this case I mean NITRO_FRAMEWORK   
        
@@ -563,9 +576,9 @@ class NITRO:
        self.mode_fluid_z = np.zeros((self.nPoint,self.nModes))
 
        for i in range(self.nModes):
-          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,0] )   
-          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,1] ) 
-          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,2] ) 
+          self.mode_fluid_x[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idx] )   
+          self.mode_fluid_y[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idy] ) 
+          self.mode_fluid_z[:,i] = Interf_matrix.dot( MLS_Spline.Modes[i].GetMode()[:,idz] ) 
           
           
     if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':    
@@ -750,6 +763,5 @@ class NITRO:
       outC.write("\t")
       outC.write(str(float(self.mode_fluid_z[iPoint, 0])))
       outC.write("\n")
-
-
+      
       outC.close()

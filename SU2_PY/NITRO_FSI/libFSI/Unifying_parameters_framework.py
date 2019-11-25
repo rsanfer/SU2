@@ -51,7 +51,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
           FSI_config['START_TIME'] = FSI_config['UNST_TIMESTEP']*(FSI_config['RESTART_ITER']); # restart iter is chosen manually 
           FSI_config['UNST_TIME'] = tq_mult*FSI_config['BLE_STEP_LENGTH'] - FSI_config['START_TIME']
           if myid == rootProcess:
-             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, CSD conf file {}, MLS conf file {}\n".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['CSD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] )) 
+             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] )) 
              print("HC: FSI_config['START_TIME'] = {}".format(FSI_config['START_TIME']))
              print("HC: FSI_config['UNST_TIME'] = {}".format(FSI_config['UNST_TIME']))
           
@@ -59,7 +59,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
           FSI_config['START_TIME'] = tq_mult*FSI_config['BLE_STEP_LENGTH'] + FSI_config['UNST_TIMESTEP'] ; 
           FSI_config['RESTART_ITER'] = int(tq_mult*FSI_config['BS_TIMESTEP_2'] )  #(the total number of the old simulation is tq_mult*FSI_config['BS_TIMESTEP_2'] (the first timetep is always 0))
           if myid == rootProcess:
-             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, CSD conf file {}, MLS conf file {}".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['CSD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))               
+             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))               
              print("HC: FSI_config['START_TIME'] = {}".format(FSI_config['START_TIME']))
              print("HC: FSI_config['RESTART_ITER'] = {}".format(FSI_config['RESTART_ITER']))
 

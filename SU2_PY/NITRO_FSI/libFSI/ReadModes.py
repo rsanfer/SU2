@@ -5,18 +5,22 @@
 #  \author Rocco Bombardieri
 #  \version 7.0.0
 #
-# SU2 Original Developers: Dr. Francisco D. Palacios.
-#                          Dr. Thomas D. Economon.
+# The current SU2 release has been coordinated by the
+# SU2 International Developers Society <www.su2devsociety.org>
+# with selected contributions from the open-source community.
 #
-# SU2 Developers: Prof. Juan J. Alonso's group at Stanford University.
-#                 Prof. Piero Colonna's group at Delft University of Technology.
-#                 Prof. Nicolas R. Gauger's group at Kaiserslautern University of Technology.
-#                 Prof. Alberto Guardone's group at Polytechnic University of Milan.
-#                 Prof. Rafael Palacios' group at Imperial College London.
-#                 Prof. Edwin van der Weide's group at the University of Twente.
-#                 Prof. Vincent Terrapon's group at the University of Liege.
+# The main research teams contributing to the current release are:
+#  - Prof. Juan J. Alonso's group at Stanford University.
+#  - Prof. Piero Colonna's group at Delft University of Technology.
+#  - Prof. Nicolas R. Gauger's group at Kaiserslautern University of Technology.
+#  - Prof. Alberto Guardone's group at Polytechnic University of Milan.
+#  - Prof. Rafael Palacios' group at Imperial College London.
+#  - Prof. Vincent Terrapon's group at the University of Liege.
+#  - Prof. Edwin van der Weide's group at the University of Twente.
+#  - Lab. of New Concepts in Aeronautics at Tech. Institute of Aeronautics.
 #
-# Copyright (C) 2012-2017 SU2, the open-source CFD code.
+# Copyright 2012-2019, Francisco D. Palacios, Thomas D. Economon,
+#                      Tim Albring, and the SU2 contributors.
 #
 # SU2 is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -31,6 +35,10 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with SU2. If not, see <http://www.gnu.org/licenses/>.
 
+# ----------------------------------------------------------------------
+#  Imports
+# ----------------------------------------------------------------------
+
 
 import pdb
 import os, sys, shutil, copy
@@ -42,10 +50,10 @@ from math import *
 class CModes:  # for modes
 
   def __init__(self):    
-    self.Mode = np.empty((0,6),float)# one row only... to add more lines with vstack
+    self.Mode = np.empty((0,6),float)# one row only... to add more lines
     
   def SetModeLine(self,node_l):
-    self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)   # es. A = numpy.vstack([A, newrow]) 
+    self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)
     
   def GetMode(self):
     return self.Mode  
@@ -58,10 +66,10 @@ class CModes:  # for modes
 class CModes_f06:  # for modes
 
     def __init__(self):
-        self.Mode = np.empty((0, 7), float)  # one row only... to add more lines with vstack
+        self.Mode = np.empty((0, 7), float)  # one row only... to add more lines
 
     def SetModeLine(self, node_l):
-        self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)  # es. A = numpy.vstack([A, newrow])
+        self.Mode = np.append(self.Mode, np.array([node_l]), axis=0)
 
     def GetMode(self):
         return self.Mode
@@ -69,6 +77,10 @@ class CModes_f06:  # for modes
     def GetL(self):
         a = self.Mode.shape()[0]
         return a
+
+    def OrderMode(self):
+        # order the modes in ascending order with respect of the node grid
+      self.Mode = self.Mode[self.Mode[:,0].argsort()]
 
 def ReadModes(Modes, Mode_file, FORMAT_MODES, nModes):
     index = -1
@@ -128,11 +140,15 @@ def ReadModes(Modes, Mode_file, FORMAT_MODES, nModes):
                     line = modefile.readline()
                line = modefile.readline()
         else:
-           print("Format not known !!".format(FORMAT_MODES))
+           print("Format {} not known !!".format(FORMAT_MODES))
            sys.exit("Goodbye!")
     nModes.append(int(index))
+    if FORMAT_MODES == 'NASTRANF06':
+        # order modes in asxcending node order (to ensure compatibility with structural grid independently of the reading order)
+        for i in range(0, nModes[0]):
+            Modes[i].OrderMode()
+
     print("Total number of available structural modes from input file is: {}".format(int(nModes[0])))
-    print("WARNING: As for now, number of modes in the F06 file needs to refer to the same ones in the modal coordinate files in output (f18)")
 
 
 '''

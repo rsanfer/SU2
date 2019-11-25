@@ -172,11 +172,14 @@ def main():
     if have_MPI:
         comm.barrier()
 
-        # This allows the calculation of the solid node position in the position occupied at restart which will be used in interfaceMapping
-    if FSI_config['RESTART_SOL'] == 'YES' and myid == rootProcess:
-        # calculation of the modes on the CFD crid
+
+    # calculation of the modes on the CFD crid
+    if myid == rootProcess:
         SolidSolver.EvaluateIntefaceFluidDisplacements(FSI_config,
                                                        MLS)  # Flutter_mode_fluid_x/y/z are stored (root) once and for all
+
+    # This allows the calculation of the solid node position in the position occupied at restart (may be redundant)
+    if FSI_config['RESTART_SOL'] == 'YES' and myid == rootProcess:
         # the restart iter insterted here has to be -1 for the dual_time 1st order and -2 for dual time stepping 2nd order
         if FSI_config['UNSTEADY_SCHEME'] == 'DUAL_TIME_STEPPING-1ST_ORDER':
             # Update the SOlidSolver position of the structural nodes given the current position and the prescribed motion
