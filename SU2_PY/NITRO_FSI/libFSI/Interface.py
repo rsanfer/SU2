@@ -977,6 +977,10 @@ class Interface:
                 self.comm.barrier()
             #self.transferStructuralDisplacements( FluidSolver, SolidSolver)
             #self.getSolidInterfaceDisplacement(SolidSolver)
+            if self.have_MPI == True:
+                self.comm.barrier()
+                # if myid == self.rootProcess:
+                # SolidSolver.updateSolution()
         # If no restart
         else:
             self.MPIPrint('Setting FSI initial conditions')

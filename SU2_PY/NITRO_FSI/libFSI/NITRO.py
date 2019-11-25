@@ -110,7 +110,7 @@ class Point:
 class NITRO:
   """Description"""
 
-  def __init__(self, config_fileName):
+  def __init__(self, config_fileName = None):
     """ Description. """
 
     self.Config_file = config_fileName
@@ -330,9 +330,9 @@ class NITRO:
         for iPoint in range(0, self.nPoint):
                 Coord0 = self.node[iPoint].GetCoord0()
                 Coord = self.node[iPoint].GetCoord()
-                newCoord[0] = Coord0[0]  + q * self.Flutter_mode_fluid_x[i];
-                newCoord[1] = Coord0[1]  + q * self.Flutter_mode_fluid_y[i];
-                newCoord[2] = Coord0[2]  + q * self.Flutter_mode_fluid_z[i];
+                newCoord[0] = Coord0[0]  + q * self.Flutter_mode_fluid_x[iPoint];
+                newCoord[1] = Coord0[1]  + q * self.Flutter_mode_fluid_y[iPoint];
+                newCoord[2] = Coord0[2]  + q * self.Flutter_mode_fluid_z[iPoint];
 
                 #print("Debug NITRO.__computeInterfacePosVel. Node {}, disp: {},{},{}.".format(iPoint,q * self.Flutter_mode_fluid_x[i],q * self.Flutter_mode_fluid_y[i], q * self.Flutter_mode_fluid_z[i] ))
 
