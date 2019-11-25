@@ -126,10 +126,11 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
                     stringalt = 'UNST_RESTART_ITER = '+ str(FSI_config['RESTART_ITER']) + '   \n'
                     configfile2.write(stringalt)
          elif this_param == "TIME_ITER" and FSI_config['UNST_NR'] == 1:
-                    stringalt = 'TIME_ITER = ' + str(int(FSI_config['BS_TIMESTEP_1'] -1)) + '   \n'
+                    stringalt = 'TIME_ITER = ' + str(int(FSI_config['BS_TIMESTEP_1'])) + '   \n'
                     configfile2.write(stringalt)
          elif this_param == "TIME_ITER" and FSI_config['UNST_NR'] == 2:
-                    stringalt = 'TIME_ITER = ' + str(int(FSI_config['BS_TIMESTEP_2'] -1)) + '   \n'
+                    #stringalt = 'TIME_ITER = ' + str(int(FSI_config['BS_TIMESTEP_2'] -1)) + '   \n'
+                    stringalt = 'TIME_ITER = ' + str(int(FSI_config['UNST_TIME']/FSI_config['UNST_TIMESTEP'])) + '   \n'
                     configfile2.write(stringalt)
          elif this_param == "WRT_SOL_FREQ_DUALTIME": 
              if FSI_config['UNSTEADY_SIMULATION'] == 'YES': 
