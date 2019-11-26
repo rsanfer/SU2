@@ -949,14 +949,15 @@ class Interface:
 
         if FSI_config['RESTART_SOL'] == 'YES':
             startTime = FSI_config['START_TIME']
-            NbTimeIter = ((totTime) / deltaT) + 1
+            NbTimeIter = ((totTime) / deltaT)
             time = startTime
             TimeIter = FSI_config['RESTART_ITER']
         else:
-            NbTimeIter = (totTime / deltaT) + 1  # number of time iterations
+            NbTimeIter = (totTime / deltaT)   # number of time iterations
             time = 0.0  # initial time
             TimeIter = 0  # initial time iteration
 
+        NbTimeIter = int(round(NbTimeIter))                        # be sure that NbTimeIter is an integer
         #NbTimeIter = 15 ; print("NbTimeIter = 15 forced")
 
         self.MPIPrint('\n**********************************')
