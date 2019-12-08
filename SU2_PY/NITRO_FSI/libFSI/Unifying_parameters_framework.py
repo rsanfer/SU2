@@ -175,7 +175,8 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
                 if  int(FSI_config['BS_TIMESTEP_1']/10) == 0: 
                    stringalt = 'WRT_SOL_FREQ_DUALTIME = '+ str(1) + '   \n'  
                 else:
-                   stringalt = 'WRT_SOL_FREQ_DUALTIME = '+ str(int(FSI_config['BS_TIMESTEP_1']/10)) + '   \n'  
+                   #stringalt = 'WRT_SOL_FREQ_DUALTIME = '+ str(int(FSI_config['BS_TIMESTEP_1']/10)) + '   \n'
+                   stringalt = 'WRT_SOL_FREQ_DUALTIME = ' + str(1) + '   \n'
                 configfile2.write(stringalt)
                     
          #string values

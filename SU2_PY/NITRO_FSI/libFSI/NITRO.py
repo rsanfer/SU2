@@ -354,6 +354,7 @@ class NITRO:
                 self.node[iPoint].SetCoord((newCoord[0], newCoord[1], newCoord[2]))
                 self.node[iPoint].SetVel((newVel[0], newVel[1], newVel[2]))
 
+    self.printInterFlutterMode()
 
   def initialize_OutputForces(self, NbTimeIter,FSI_config):
     """ Description. """
@@ -583,7 +584,8 @@ class NITRO:
      if maxl < 1.e-16:
          self.Aq = 0
      else:
-         self.Aq = tan(radians(1))*(4*FSI_config["L_REF"]/FSI_config["K_MAX"])/maxl
+         print("DEBUG: Aq set to 100000000*Aq")
+         self.Aq = 100000000*tan(radians(1))*(4*FSI_config["L_REF"]/FSI_config["K_MAX"])/maxl
          #self.Aq = round(self.Aq,5)
      print("Aq = {}".format(self.Aq))
     
@@ -758,3 +760,29 @@ class NITRO:
       outC.write("\n")
       
       outC.close()
+
+  def printInterpolationMatrix(self,MLS):
+      outC = open("./Output/Resume" + ".txt", "w") # MLS_Spline.interpolation_matrix;
+      for i in range(0, MLS.interpolation_matrix.shape[0]):
+          for j in range(0, MLS.interpolation_matrix.shape[1]):
+             outC.write("{:.20f}".format(MLS.interpolation_matrix[i][j]))
+             outC.write("\t")
+
+          outC.write("\n")
+      outC.close()
+
+  def printInterFlutterMode(self):
+      outC = open("./Output/flutter_mode" + ".txt", "w")
+
+      for i in range(0, self.nPoint):
+
+             outC.write("{:.20f}".format(self.Flutter_mode_fluid_x[i]))
+             outC.write("\t")
+             outC.write("{:.20f}".format(self.Flutter_mode_fluid_y[i]))
+             outC.write("\t")
+             outC.write("{:.20f}".format(self.Flutter_mode_fluid_z[i]))
+             outC.write("\n")
+
+      outC.close()
+
+

@@ -565,22 +565,30 @@ void CMeshSolver::ComputeGridVelocity(CGeometry *geometry, CConfig *config){
   su2double TimeStep, GridVel = 0.0;
   unsigned long iPoint;
   unsigned short iDim;
+   
+    ofstream myfile1;ofstream myfile2;ofstream myfile3;ofstream myfile4;ofstream myfile5;
+    myfile1.open ("Grid_Vel.txt");
+    myfile2.open ("Grid_coord.txt");
+    myfile3.open ("Grid_disp_n.txt");
+    myfile4.open ("Grid_disp_nM1.txt");
+    myfile5.open ("Grid_disp_nP1.txt");
+    myfile1.precision(20);myfile2.precision(20);myfile3.precision(20); myfile4.precision(20); myfile5.precision(20);
 
-  /*--- Compute the velocity of each node in the domain of the current rank
-   (halo nodes are not computed as the grid velocity is later communicated) ---*/
-  for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
+    /*--- Compute the velocity of each node in the domain of the current rank
+     (halo nodes are not computed as the grid velocity is later communicated) ---*/
+    for (iPoint = 0; iPoint < nPointDomain; iPoint++) {
 
-    /*--- Coordinates of the current point at n+1, n, & n-1 time levels ---*/
+        /*--- Coordinates of the current point at n+1, n, & n-1 time levels ---*/
 
-    Disp_nM1 = nodes->GetSolution_time_n1(iPoint);
-    Disp_n   = nodes->GetSolution_time_n(iPoint);
-    Disp_nP1 = nodes->GetSolution(iPoint);
+        Disp_nM1 = nodes->GetSolution_time_n1(iPoint);
+        Disp_n = nodes->GetSolution_time_n(iPoint);
+        Disp_nP1 = nodes->GetSolution(iPoint);
 
-    /*--- Unsteady time step ---*/
+        /*--- Unsteady time step ---*/
 
-    TimeStep = config->GetDelta_UnstTimeND();
+        TimeStep = config->GetDelta_UnstTimeND();
 
-    /*--- Compute mesh velocity with 1st or 2nd-order approximation ---*/
+        /*--- Compute mesh velocity with 1st or 2nd-order approximation ---*/
 
     for (iDim = 0; iDim < nDim; iDim++) {
       if (config->GetTime_Marching() == DT_STEPPING_1ST)
@@ -592,10 +600,16 @@ void CMeshSolver::ComputeGridVelocity(CGeometry *geometry, CConfig *config){
       /*--- Store grid velocity for this point ---*/
 
       geometry->node[iPoint]->SetGridVel(iDim, GridVel);
-
     }
+          myfile1 << iPoint << "   " << geometry->node[iPoint]->GetGridVel()[0] << "   " << geometry->node[iPoint]->GetGridVel()[1] << "   " << geometry->node[iPoint]->GetGridVel()[2] << "\n";
+          myfile2 << iPoint << "   " << nodes->GetMesh_Coord(iPoint, 0) << "   " << nodes->GetMesh_Coord(iPoint, 1) <<"   " << nodes->GetMesh_Coord(iPoint, 2) << "\n";
+          myfile3 << iPoint << "   " << Disp_n[0] << "   " << Disp_n[1] << "   "<< Disp_n[2]  << "\n";
+          myfile4 << iPoint << "   " << Disp_nM1[0] << "   " << Disp_nM1[1] << "   "<< Disp_nM1[2]  << "\n";
+          myfile5 << iPoint << "   " << Disp_nP1[0] << "   " << Disp_nP1[1] << "   "<< Disp_nP1[2]  << "\n";
+
   }
 
+  myfile1.close(); myfile2.close(); myfile3.close(); myfile4.close();myfile5.close(); 
   /*--- The velocity was computed for nPointDomain, now we communicate it ---*/
   //geometry->Set_MPI_GridVel(config);
   geometry->InitiateComms(geometry, config, GRID_VELOCITY);

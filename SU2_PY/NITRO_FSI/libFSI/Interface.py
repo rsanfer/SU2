@@ -655,14 +655,13 @@ class Interface:
             for iVertex in range(0, self.nSolidInterfaceNodes):
                 outF.write(str(iVertex))
                 outF.write("\t")
-                outF.write(str(self.globalSolidDispX[iVertex]))
+                outF.write("{:.20f}".format(float(SolidSolver.node[iVertex].GetCoord0()[0]) + self.globalSolidDispX[iVertex]))
                 outF.write("\t")
-                outF.write(str(self.globalSolidDispY[iVertex]))
+                outF.write("{:.20f}".format(float(SolidSolver.node[iVertex].GetCoord0()[1]) + self.globalSolidDispY[iVertex]))
                 outF.write("\t")
-                outF.write(str(self.globalSolidDispZ[iVertex]))
+                outF.write("{:.20f}".format(float(SolidSolver.node[iVertex].GetCoord0()[2]) + self.globalSolidDispZ[iVertex]))
                 outF.write("\n")
             outF.close()
-
 
 
         ################################################################################################################
@@ -676,6 +675,19 @@ class Interface:
             self.globalFluidDispX = self.globalSolidDispX
             self.globalFluidDispY = self.globalSolidDispY
             self.globalFluidDispZ = self.globalSolidDispZ
+
+            outF = open("DispFluidSolver.txt", "w")
+            for iVertex in range(0, self.nFluidInterfacePhysicalNodes):
+                outF.write(str(iVertex))
+                outF.write("\t")
+                outF.write("{:.20f}".format(float(self.globalFluidCoordinates0X[iVertex] + self.globalFluidDispX[iVertex])))
+                outF.write("\t")
+                outF.write("{:.20f}".format(float(self.globalFluidCoordinates0Y[iVertex] + self.globalFluidDispY[iVertex])))
+                outF.write("\t")
+                outF.write("{:.20f}".format(float(self.globalFluidCoordinates0Z[iVertex] + self.globalFluidDispZ[iVertex])))
+                outF.write("\n")
+            outF.close()
+
 
         # ---> Output: self.globalFluidDispX, self.globalFluidDispY, self.globalFluidDispZ
 
@@ -741,7 +753,6 @@ class Interface:
             # Store them in the mesh displacement routine
             FluidSolver.SetMeshDisplacement(self.fluidInterfaceIdentifier, int(iVertex), localFluidDispX[localIndex],
                                             localFluidDispY[localIndex], localFluidDispZ[localIndex])
-
             #FluidSolver.SetVertexCoordX(self.fluidInterfaceIdentifier, int(iVertex), localFluidCoord0X[localIndex] + localFluidDispX[localIndex])
             #FluidSolver.SetVertexCoordY(self.fluidInterfaceIdentifier, int(iVertex), localFluidCoord0Y[localIndex] + localFluidDispY[localIndex])
             #FluidSolver.SetVertexCoordZ(self.fluidInterfaceIdentifier, int(iVertex), localFluidCoord0Z[localIndex] + localFluidDispZ[localIndex])
@@ -889,8 +900,9 @@ class Interface:
         self.MPIPrint('\nLaunching solid solver for a static computation and Generalized force evaluation...\n')
         if myid == self.rootProcess:
                 #SolidSolver.printForceDispl(0)
-                SolidSolver.printNode(0, 0)
+                #SolidSolver.printNode(0, 0)
                 SolidSolver.writeSolution(0, 0, FSI_config)
+                SolidSolver.printInterpolationMatrix( MLSSolver)
 
         # Move the restart file to a solution file
         if myid == self.rootProcess:
@@ -906,7 +918,7 @@ class Interface:
                 cl_file.write(str(FluidSolver.Get_LiftCoeff()) + "\n")
                 cl_file.close()
 
-        #self.printMeshCoord_bis(FluidSolver, 0)
+        self.printMeshCoord_bis(FluidSolver, 0)
         self.MPIBarrier()
         self.MPIPrint(' ')
         self.MPIPrint('*************************')
@@ -1025,7 +1037,7 @@ class Interface:
                     #FluidSolver.DynamicMeshUpdate(TimeIter)
                     FluidSolver.Preprocess(TimeIter)
 
-            #self.printMeshCoord_bis(FluidSolver, TimeIter)
+            self.printMeshCoord_bis(FluidSolver, TimeIter)
             # --- Fluid solver call for FSI subiteration --- #
             self.MPIPrint('\nLaunching fluid solver for one single dual-time iteration...')
             self.MPIPrint("Time Iter = {}".format(FluidSolver.GetTime_Iter()))
@@ -1037,8 +1049,8 @@ class Interface:
             # --- Update, monitor and output the fluid solution before the next time step  ---#
             FluidSolver.Update()
             FluidSolver.Monitor(TimeIter)
-            if TimeIter == NbTimeIter:
-               FluidSolver.Output(TimeIter)
+
+            FluidSolver.Output(TimeIter)
             self.MPIBarrier()
 
             # --- Surface fluid loads interpolation and communication --- #
@@ -1051,7 +1063,7 @@ class Interface:
             if myid == self.rootProcess:
                     # --- Output the solid solution before thr next time step --- #
                     #SolidSolver.printForceDispl(TimeIter)
-                    SolidSolver.printNode(TimeIter, 1)
+                    #SolidSolver.printNode(TimeIter, 1)
                     SolidSolver.writeSolution(TimeIter, time, FSI_config)
 
             if myid == self.rootProcess and FSI_config['REAL_TIME_TRACKING'] == 'YES':
@@ -1061,10 +1073,10 @@ class Interface:
             if myid == self.rootProcess:
 
 
-                #new_name_flow = "./Output/flow_"  + str(TimeIter).zfill(5) + ".vtk"
-                #new_name_surf = "./Output/surface_flow_" + str(TimeIter).zfill(5) + ".vtk"
-                #shutil.move("flow_" + str(0).zfill(5) + ".vtk", new_name_flow)
-                #shutil.move("surface_flow_" + str(0).zfill(5) + ".vtk", new_name_surf)
+                new_name_flow = "./Output/flow_"  + str(TimeIter).zfill(5) + ".vtk"
+                new_name_surf = "./Output/surface_flow_" + str(TimeIter).zfill(5) + ".vtk"
+                shutil.move("flow_" + str(TimeIter).zfill(5) + ".vtk", new_name_flow)
+                shutil.move("surface_flow_" + str(TimeIter).zfill(5) + ".vtk", new_name_surf)
                 #os.remove("surface_flow_" + str(TimeIter).zfill(5) + ".vtk")
                 #os.remove("flow_" + str(TimeIter).zfill(5) + ".vtk")
                 cd_file = open("history_CD.dat", "a")
@@ -1179,11 +1191,11 @@ class Interface:
         for iVertex in self.localFluidInterface_vertex_indices:
                 outC.write(str(int(iVertex)))
                 outC.write("\t")
-                outC.write(str(float(FluidSolver.GetVertexCoordX(self.fluidInterfaceIdentifier, int(iVertex)))))
+                outC.write("{:.20f}".format(FluidSolver.GetVertexCoordX(self.fluidInterfaceIdentifier, int(iVertex))))
                 outC.write("\t")
-                outC.write(str(float(FluidSolver.GetVertexCoordY(self.fluidInterfaceIdentifier, int(iVertex)))))
+                outC.write("{:.20f}".format(FluidSolver.GetVertexCoordY(self.fluidInterfaceIdentifier, int(iVertex))))
                 outC.write("\t")
-                outC.write(str(float(FluidSolver.GetVertexCoordZ(self.fluidInterfaceIdentifier, int(iVertex)))))
+                outC.write("{:.20f}".format(FluidSolver.GetVertexCoordZ(self.fluidInterfaceIdentifier, int(iVertex))))
                 outC.write("\n")
 
 
