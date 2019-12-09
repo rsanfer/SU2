@@ -74,6 +74,7 @@ class DYNData:
     def readConfig(self):
         length = 8
         input_file = open(self.ConfigFileName)
+        print(input_file)
         while 1:
             line = input_file.readline()
             #print(line)
@@ -101,8 +102,17 @@ class DYNData:
                            chunks[i] = chunks[i][:posx] + 'e' + chunks[i][posx:]
                    else:
                        continue
-               self._ConfigContent['TW0'] = float(chunks[2].strip())
-               self._ConfigContent['TWF'] = float(chunks[3].strip())
+
+               if chunks[2].strip():
+                  self._ConfigContent['TW0'] = float(chunks[2].strip())
+               else:
+                  self._ConfigContent['TW0'] = float(0)
+
+               if chunks[3].strip():
+                  self._ConfigContent['TWF'] = float(chunks[3].strip())
+               else:
+                  self._ConfigContent['TWF'] = float(0)
+
                self._ConfigContent['DT'] = float(chunks[4].strip())
 
             if line[0:7].strip() == 'AERO':
@@ -132,12 +142,14 @@ class DYNData:
                else:
                    self._ConfigContent['NMODE'] = int(chunks[1].strip())
 
-               if len(chunks) >= 4:
+               if len(chunks) >= 4 and chunks[3].strip():
                   self._ConfigContent['MLIST1'] = int(chunks[3].strip())
+               else:
+                  self._ConfigContent['MLIST1'] = None
 
 
         # If there is a list of modes to eliminate (MLIST1)
-        if self._ConfigContent['MLIST1']:
+        if self._ConfigContent['MLIST1'] is not None:
            next_line = True
            modes = []
            input_file.seek(0)
@@ -174,9 +186,11 @@ class DYNData:
 
                else:
                    continue
-        print(modes)
-        self.Meliminated = modes
+           self.Meliminated = modes
+        else:
+           self.Meliminated = []
 
+'''
 if __name__ == "__main__":
 
       DYNConfig = None;
@@ -192,3 +206,4 @@ if __name__ == "__main__":
       print("Dyn_config[NMODE] = {}".format(Dyn_config['NMODE']))
       print("Dyn_config[MLIST1] = {}".format(Dyn_config['MLIST1']))
       print("Dyn_config[.Neliminated = {}".format(Dyn_config.Meliminated))
+'''

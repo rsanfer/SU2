@@ -98,7 +98,7 @@ class FSIConfig:
 
             for case in switch(this_param):
                 # integer values
-                if case("DYN_COUPLED_TIMESTEP_NR")	: pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
+                if case("DYN_COUPLED_TIMESTEP_NR")	: pass  # in case: CSD_SOLVER = DYNRESP_CFD_COUPLED
                 if case("BS_NR")		: pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
                 if case("NMODES")		      : pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
                 if case("MODE_TO_SIMULATE")	      : pass  # in case: CSD_SOLVER = NITRO_FRAMEWORK
@@ -129,6 +129,7 @@ class FSIConfig:
                     break
 
                 # string values  MEMO_GEN_FORCE_OUTPUT
+                if case("DYNRESP_CONFIG")             : pass
                 if case("MODAL_DISPLACEMENT")         : pass
                 if case("MODAL_DISPLACEMENT_FORMAT")  : pass
                 if case("FREESTREAM_OPTION")          : pass
@@ -166,6 +167,9 @@ class FSIConfig:
                     break
                 # end for
 
+        # Defining some default variables
+        if self._ConfigContent["CSD_SOLVER"] == 'DYNRESP_CFD_SEQUENTIAL' or self._ConfigContent["CSD_SOLVER"] == 'DYNRESP_CFD_COUPLED':
+            self._ConfigContent["MOTION_TYPE"] = 'DYNRESP'
         if self._ConfigContent["CSD_SOLVER"] == 'NITRO':
              array = []
              decomp_coeff_read(self,array)

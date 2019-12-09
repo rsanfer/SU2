@@ -708,7 +708,7 @@ class NITRO:
            self.mode_fluid_z[:, i] = Interf_matrix.dot(MLS_Spline.Modes[i].GetMode()[:, idz])
 
 
-  if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
+    if FSI_config['MOTION_TYPE'] == 'BLENDED_STEP':
 
      # the amplitude of the modal shape displacements is scaled in order to reduced the appearent velocity given by the mode (Romanelli)
      conc = np.concatenate((np.absolute(self.Flutter_mode_fluid_x),np.absolute(self.Flutter_mode_fluid_y),np.absolute(self.Flutter_mode_fluid_z)) , axis=0)

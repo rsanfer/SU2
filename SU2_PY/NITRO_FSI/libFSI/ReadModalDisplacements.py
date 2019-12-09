@@ -74,10 +74,13 @@ def ReadModalDisplacements_Coupled(SolidSolver):
     # after reading it's time to delete the file
     os.remove("MODES.TXT")
 
+    ## Add check to confirm it is deleted otherwise it is paused
+
 
 def ReadModalDisplacements_Sequential(FSIConfig,SolidSolver):
     T0 = FSIConfig['START_TIME']
     TF = FSIConfig['UNST_TIME']
+    DT = FSIConfig['UNST_TIMESTEP']
     TW = TF - T0
     #DT = FSIConfig['UNST_TIMESTEP']
     NT = TW / DT + 1

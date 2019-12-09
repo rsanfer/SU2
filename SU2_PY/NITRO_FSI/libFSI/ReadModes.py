@@ -116,7 +116,6 @@ def ReadModes(Modes, Mode_file, FORMAT_MODES, nModes):
                pos = line.find('R E A L   E I G E N V E C T O R   N O .')
                if pos != -1:
                   # Memorize the mode
-                  print(line)
                   ModeNr = int( line.split('R E A L   E I G E N V E C T O R   N O .',1)[1] )
                   # now go ahead till you find
                   if index < ModeNr:
@@ -130,10 +129,8 @@ def ReadModes(Modes, Mode_file, FORMAT_MODES, nModes):
                   line = modefile.readline()
                   # starting with the modes
                   while line.find('  G  ') != -1:
-                    print(line)
                     line = line.split()
                     node_disp = [float(line[0]), float(line[2]), float(line[3]), float(line[4]), float(line[5]), float(line[6]), float(line[7])]
-                    print(node_disp)
                     Modes[index-1].SetModeLine(node_disp)
                     if not line:
                        break

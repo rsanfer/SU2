@@ -110,27 +110,20 @@ def main():
    temp.write(string2 + '\n')
       
    # Command to execute the following unsteady simulation
-  
-   for i in range(1, FSI_config['UNST_TOTAL_SIMUL_NUMBER'] +1  ):
-     if i==1:
-       index = ''
-     else:
-         index = str(i)
-     string3 = 'mpirun -np ' +  str(options.partitions) + ' run_fsi_dynresp.py -f ' + filename_unsteady[0:-4] + index + '.cfg' + ' -d ' + filename_dynresp + ' --parallel ... | tee ' + FSI_config['OUTPUT_DIRECTORY'] + '/' + options.echo + '_unsteady' + str(i)
-     string3_bis= 'mv ' + 'zrestart_flow_' +str(tq_mult*int(FSI_config['BS_TIMESTEP_1'])-1).zfill(5) + '.dat   '  + 'zrestart_flow_' + str(tq_mult*int(FSI_config['BS_TIMESTEP_2'])-1).zfill(5) + '.dat'
-     temp.write(string3 + '\n')
-     if i != FSI_config['UNST_TOTAL_SIMUL_NUMBER']:
-        temp.write(string3_bis + '\n')
-  
+   string3 = 'mpirun -np ' + str(options.partitions) + ' run_fsi_dynresp.py -f ' + filename_unsteady[
+                                                                                   0:-4]  + '.cfg' + ' -d ' + filename_dynresp + ' --parallel ... | tee ' + \
+             FSI_config['OUTPUT_DIRECTORY'] + '/' + options.echo + '_unsteady'
+   temp.write(string3 + '\n')
+
    temp.close()
 
    command = 'bash   ' + Command_file
   
-   #command_del = 'rm ' + Command_file
+   ###command_del = 'rm ' + Command_file
   
-   os.system (command)
+   #os.system (command)
   
-   #os.system (command_del)
+   ###os.system (command_del)
 
 
 

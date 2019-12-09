@@ -70,18 +70,18 @@ def UnifyingParameters_dynresp(DYN_config,confFile):
          if this_param == "V_INF":
                     stringalt = 'V_INF = '+ str(DYN_config['V']) + '   \r\n'
                     configfile2.write(stringalt)
-         if this_param == "FREESTREAM_DENSITY":
+         elif this_param == "FREESTREAM_DENSITY":
                     stringalt = 'FREESTREAM_DENSITY = '+ str(DYN_config['RHO']) + '   \r\n'
                     configfile2.write(stringalt)
 
          #float values
-         if this_param == "START_TIME":
+         elif this_param == "START_TIME":
                     stringalt = 'START_TIME = '+ str(DYN_config['TW0']) + '   \r\n'
                     configfile2.write(stringalt)
-         if this_param == "UNST_TIME":
+         elif this_param == "UNST_TIME":
                     stringalt = 'UNST_TIME = '+ str(DYN_config['TWF']) + '   \r\n'
                     configfile2.write(stringalt)
-         if this_param == "UNST_TIMESTEP":
+         elif this_param == "UNST_TIMESTEP":
                     stringalt = 'UNST_TIMESTEP = '+ str(DYN_config['DT']) + '   \r\n'
                     configfile2.write(stringalt)
 
@@ -102,7 +102,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
     FREESTREAM_TEMPERATURE_default_SU2= 288.15 # [K]
     GAMMA_VALUE_default_SU2= 1.4
     GAS_CONSTANT_default_SU2= 287.058 # [J/kg*K]
-    if FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK':
+    if FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK' or FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_SEQUENTIAL' or FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_COUPLED':
         sound_speed = sqrt(GAMMA_VALUE_default_SU2*FSI_config['FREESTREAM_PRESSURE']/FSI_config['FREESTREAM_DENSITY'])
     else:    
        sound_speed = sqrt(GAMMA_VALUE_default_SU2*GAS_CONSTANT_default_SU2*FREESTREAM_TEMPERATURE_default_SU2) #[m/s]
@@ -284,16 +284,13 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
                     stringalt = 'MESH_OUT_FILENAME = ' + FSI_config['OUTPUT_DIRECTORY'] + '/mesh_out.su2'        + '   \n'              
                     configfile2.write(stringalt)     
          #For the NITRO_FRAMEWORK approach it is important to set correctly the pressure and density for the standard air                    
-         elif this_param == "FREESTREAM_OPTION": 
-                    if FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK': 
+         elif this_param == "FREESTREAM_OPTION":
                        stringalt = 'FREESTREAM_OPTION = ' + FSI_config['FREESTREAM_OPTION']        + '   \n'              
                        configfile2.write(stringalt)  
-         elif this_param == "FREESTREAM_PRESSURE":  
-                    if FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK': 
+         elif this_param == "FREESTREAM_PRESSURE":
                        stringalt = 'FREESTREAM_PRESSURE = ' + str(FSI_config['FREESTREAM_PRESSURE'])        + '   \n'              
                        configfile2.write(stringalt)                     
          elif this_param == "FREESTREAM_DENSITY":
-                    if FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK': 
                        stringalt = 'FREESTREAM_DENSITY = ' + str(FSI_config['FREESTREAM_DENSITY'])        + '   \n'   
                        configfile2.write(stringalt)
          else:

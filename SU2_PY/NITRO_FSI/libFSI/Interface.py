@@ -1157,7 +1157,7 @@ class Interface:
         self.MPIBarrier()
 
 
-    def SteadyFSI_dyn(self, FSI_config, FluidSolver, SolidSolver, MLSSolver):
+    def SteadyFSI_dyn(self, FSI_config, FluidSolver, SolidSolver, MLS_Spline):
         """
         Runs the steady FSI computation from dynresp
         Synchronizes the fluid and solid solver with data exchange at the f/s interface.
@@ -1169,10 +1169,6 @@ class Interface:
 
         # Recover the process and the size of the parallelization
         myid, MPIsize = self.checkMPI()
-
-        # --- Set some general variables for the steady computation --- #
-        NbIter = FSI_config['NB_EXT_ITER']  # number of fluid iteration at each FSI step
-
 
         self.MPIPrint('\n********************************')
         self.MPIPrint('* Begin steady FSI computation *')
@@ -1186,9 +1182,9 @@ class Interface:
         if myid == self.rootProcess:
             # first it is necessary to read the modal displacement file
             if CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL':
-               ReadModalDisplacements_Sequential(FSIConfig,SolidSolver)
+               ReadModalDisplacements_Sequential(FSI_config,SolidSolver)
             elif CSD_Solver == 'DYNRESP_CFD_COUPLED':
-               ReadModalDisplacements_Coupled(FSIConfig,SolidSolver)
+               ReadModalDisplacements_Coupled(FSI_config,SolidSolver)
             else:
                 print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
                 sys.exit("Goodbye!")

@@ -103,9 +103,9 @@ def ReadStructMesh(Mesh_file, Mesh_format, node, nPoint):
                line = Meshfile.readline()
                if not line:
                   break
-               pos = line.find('GRID')  
+               pos = line[0:4].find('GRID')
                if pos != -1:                  
-                  while line.find('GRID') !=-1:
+                  while line[0:4].find('GRID') !=-1:
                        #line1 = line.split()
                        iPoint = iPoint +1
                        node.append(Point())

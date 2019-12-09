@@ -141,6 +141,11 @@ class MLS_Spline:
 
         interpolation_matrix_std = Spline.DoubleVector(self.nAeroNodes * self.nStructNodes)
         norm_err_std = Spline.DoubleVector(self.nAeroNodes)
+
+        # check
+        if MLS_conf['POINTS'] > self.nStructNodes:
+           print("Warning! Nr. of query points requested for MLS is {}. Nr. of availavle points is {}. Set POINTS to {}".format(MLS_conf['POINTS'],self.nStructNodes,self.nStructNodes ))
+           MLS_conf['POINTS'] = self.nStructNodes
         '''
         /print("str_Matrix = {}".format(StructNodes))
         print("Aero_Matrix = {}".format(AeroNodes))
