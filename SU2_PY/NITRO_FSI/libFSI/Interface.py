@@ -1211,7 +1211,7 @@ class Interface:
         self.MPIPrint('\nLaunching solid solver for a static computation and Generalized force evaluation...\n')
         if myid == self.rootProcess:
                 #SolidSolver.printForceDispl(0)
-                SolidSolver.printNode(0, 0)
+                #SolidSolver.printNode(0, 0)
                 SolidSolver.writeSolution(0, 0, FSI_config)
 
         # Move the restart file to a solution file
@@ -1228,7 +1228,7 @@ class Interface:
                 cl_file.write(str(FluidSolver.Get_LiftCoeff()) + "\n")
                 cl_file.close()
 
-        self.printMeshCoord_bis(FluidSolver, 0)
+        #self.printMeshCoord_bis(FluidSolver, 0)
         self.MPIBarrier()
         self.MPIPrint(' ')
         self.MPIPrint('*************************')
@@ -1241,7 +1241,8 @@ class Interface:
 	Run the unsteady FSI computation by synchronizing the fluid and solid solvers.
 	F/s interface data are exchanged through interface mapping and interpolation (if non mathcing meshes).
 	"""
-        print('Not Ready yet!')
+        CSD_Solver = FSI_config['CSD_SOLVER']
+
         if self.have_MPI == True:
             myid = self.comm.Get_rank()
             numberPart = self.comm.Get_size()
@@ -1289,9 +1290,9 @@ class Interface:
         if myid == self.rootProcess:
             # first it is necessary to read the modal displacement file
             if CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL':
-                ReadModalDisplacements_Sequential(FSIConfig, SolidSolver)
+                ReadModalDisplacements_Sequential(FSI_config, SolidSolver)
             elif CSD_Solver == 'DYNRESP_CFD_COUPLED':
-                ReadModalDisplacements_Coupled(FSIConfig, SolidSolver)
+                ReadModalDisplacements_Coupled(FSI_config, SolidSolver)
             else:
                 print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
                 sys.exit("Goodbye!")
@@ -1352,7 +1353,7 @@ class Interface:
                     #FluidSolver.DynamicMeshUpdate(TimeIter)
                     FluidSolver.Preprocess(TimeIter)
 
-            self.printMeshCoord_bis(FluidSolver, TimeIter)
+            #self.printMeshCoord_bis(FluidSolver, TimeIter)
             # --- Fluid solver call for FSI subiteration --- #
             self.MPIPrint('\nLaunching fluid solver for one single dual-time iteration...')
             self.MPIPrint("Time Iter = {}".format(FluidSolver.GetTime_Iter()))
@@ -1377,7 +1378,7 @@ class Interface:
             if myid == self.rootProcess:
                     # --- Output the solid solution before thr next time step --- #
                     #SolidSolver.printForceDispl(TimeIter)
-                    SolidSolver.printNode(TimeIter, 1)
+                    #SolidSolver.printNode(TimeIter, 1)
                     SolidSolver.writeSolution(TimeIter, time, FSI_config)
 
             if myid == self.rootProcess and FSI_config['REAL_TIME_TRACKING'] == 'YES':
@@ -1385,8 +1386,6 @@ class Interface:
 
             # Move the restart file to a solution file
             if myid == self.rootProcess:
-
-
                 new_name_flow = "./Output/flow_"  + str(TimeIter).zfill(5) + ".vtk"
                 new_name_surf = "./Output/surface_flow_" + str(TimeIter).zfill(5) + ".vtk"
                 #shutil.move("flow_" + str(0).zfill(5) + ".vtk", new_name_flow)
@@ -1410,14 +1409,9 @@ class Interface:
             ## --- Solid solver call for FSI subiteration --- #
             self.MPIPrint('\nEvaluating the solid displacement for the considerd time-step')
             if myid == self.rootProcess:
-                # It is necessary to read the modal displacement file
-                if CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL':
-                    ReadModalDisplacements_Sequential(FSIConfig, SolidSolver)
-                elif CSD_Solver == 'DYNRESP_CFD_COUPLED':
-                    ReadModalDisplacements_Coupled(FSIConfig, SolidSolver)
-                else:
-                    print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
-                    sys.exit("Goodbye!")
+                # It is necessary to read the new modal displacement file only if DYNRESP_COUPLED
+                if CSD_Solver == 'DYNRESP_CFD_COUPLED':
+                    ReadModalDisplacements_Coupled(FSI_config, SolidSolver)
 
                 SolidSolver.run(time, FSI_config, MLS_Spline,TimeIter)
             #self.transferStructuralDisplacements(FluidSolver, SolidSolver)

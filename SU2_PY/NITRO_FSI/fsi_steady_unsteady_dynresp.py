@@ -121,7 +121,7 @@ def main():
   
    ###command_del = 'rm ' + Command_file
   
-   #os.system (command)
+   os.system (command)
   
    ###os.system (command_del)
 

@@ -78,6 +78,9 @@ def UnifyingParameters_dynresp(DYN_config,confFile):
          elif this_param == "START_TIME":
                     stringalt = 'START_TIME = '+ str(DYN_config['TW0']) + '   \r\n'
                     configfile2.write(stringalt)
+         elif this_param == "START_MOTION_TIME":
+                    stringalt = 'START_MOTION_TIME = '+ str(DYN_config['TW0']) + '   \r\n'
+                    configfile2.write(stringalt)
          elif this_param == "UNST_TIME":
                     stringalt = 'UNST_TIME = '+ str(DYN_config['TWF']) + '   \r\n'
                     configfile2.write(stringalt)
@@ -93,6 +96,8 @@ def UnifyingParameters_dynresp(DYN_config,confFile):
     # the file is now replaced
     os.remove(confFile)
     os.rename(confFile + '_temp', confFile)
+    print("Warning: For use with Dynresp only implemented option is that TWO = 0 in card TIMEF.")
+    print("START_TIME in SU2 is set to DT if simulation is unsteady restarting from steady one.\n")
 
 def UnifyingParameters_framework(FSI_config,confFile,myid ):
           
@@ -111,14 +116,25 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
     
     tq_mult = 3
     
-    # Restart options
+    ##### ======== Restart options
     
     if FSI_config['UNSTEADY_SIMULATION'] == 'NO':
        FSI_config['RESTART_SOL'] = 'NO'
        if myid == rootProcess:
           print("Simulation {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format('STEADY', confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
 
-          
+    # Dynresp needs to restart at timestep 1 after steady (only possibility for now)
+    if (FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_SEQUENTIAL' or FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_COUPLED') and FSI_config['UNSTEADY_SIMULATION'] == 'YES':
+       if FSI_config['RESTART_SOL'] == 'YES':
+           FSI_config['RESTART_ITER'] = int(1)
+           FSI_config['START_TIME'] = FSI_config['UNST_TIMESTEP'] * (FSI_config['RESTART_ITER']);  # restart iter is chosen manually
+           if myid == rootProcess:
+             print("FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format( confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
+             print("HC: FSI_config['START_TIME'] = {}".format(FSI_config['START_TIME']))
+             print("HC: FSI_config['UNST_TIME'] = {}".format(FSI_config['UNST_TIME']))
+
+
+    # This is only valid for Blended step
     if (FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK' or FSI_config['CSD_SOLVER'] == 'NITRO') and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP' and FSI_config['UNSTEADY_SIMULATION'] == 'YES':
        # Unsteady timestep suggestion (BLENDED_STEP type)    
        t_q = 3.14*FSI_config['L_REF']/ FSI_config['V_INF']/(FSI_config['K_MAX']/2)
@@ -224,15 +240,14 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
                     #stringalt = 'TIME_ITER = ' + str(int(FSI_config['BS_TIMESTEP_2'] -1)) + '   \n'
                     stringalt = 'TIME_ITER = ' + str(int(FSI_config['UNST_TIME']/FSI_config['UNST_TIMESTEP'])) + '   \n'
                     configfile2.write(stringalt)
-         elif this_param == "WRT_SOL_FREQ_DUALTIME": 
-             if FSI_config['UNSTEADY_SIMULATION'] == 'YES': 
-                #if   FSI_config['UNST_NR']  == 1:
-                if  int(FSI_config['BS_TIMESTEP_1']/10) == 0: 
-                   stringalt = 'WRT_SOL_FREQ_DUALTIME = '+ str(1) + '   \n'  
-                else:
-                   stringalt = 'WRT_SOL_FREQ_DUALTIME = '+ str(int(FSI_config['BS_TIMESTEP_1']/10)) + '   \n'  
-                configfile2.write(stringalt)
-                    
+         #elif this_param == "WRT_SOL_FREQ_DUALTIME":
+         #    if FSI_config['UNSTEADY_SIMULATION'] == 'YES':
+         #       #if   FSI_config['UNST_NR']  == 1:
+         #       if  int(FSI_config['BS_TIMESTEP_1']/10) == 0:
+         #          stringalt = 'WRT_SOL_FREQ_DUALTIME = '+ str(1) + '   \n'
+         #       else:
+         #          stringalt = 'WRT_SOL_FREQ_DUALTIME = '+ str(int(FSI_config['BS_TIMESTEP_1']/10)) + '   \n'
+         #       configfile2.write(stringalt)
          #string values
          elif this_param == "TIME_MARCHING":
                     if str(FSI_config['UNSTEADY_SIMULATION']) == 'YES':

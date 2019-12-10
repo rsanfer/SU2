@@ -74,10 +74,9 @@ class DYNData:
     def readConfig(self):
         length = 8
         input_file = open(self.ConfigFileName)
-        print(input_file)
+
         while 1:
             line = input_file.readline()
-            #print(line)
             # commented line
             if not line:
                 break
@@ -165,7 +164,6 @@ class DYNData:
             # Look for SET1 card with MLIST1 index
             if line[0:7].strip() == 'SET1':
                chunks = [line[i:i + length] for i in range(0, len(line), length)]
-               print(chunks)
                # if this is the SET1 card I'm looking for I read the modes
                if int(chunks[1].strip()) == self._ConfigContent['MLIST1']:
                   # reading modes

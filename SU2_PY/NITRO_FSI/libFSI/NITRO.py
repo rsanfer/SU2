@@ -220,12 +220,11 @@ class NITRO:
     newCoord = np.zeros((3,1))
     newVel = np.zeros((3,1))
     rotCoorddot = np.zeros((3,1))
-    
-    #print('DEBUGGING: node 20 position *old*  : {} [m]'.format(self.node[10].GetCoord()))
-     
+    CSD_Solver = FSI_config['CSD_SOLVER']  # CSD solver
+
     if not FSI_config['START_MOTION_TIME']:
         FSI_config['START_MOTION_TIME'] = float(0.0)
-     
+
     if (time < FSI_config['START_MOTION_TIME'] or MLS_Spline == None):  #self.startTime:
       if FSI_config['RESTART_SOL'] == 'NO': 
         #print(self.markers.keys())
@@ -311,7 +310,7 @@ class NITRO:
         else:    
             q = self.Aq
             q_dot = 0
-         
+        ''' 
         print("DEBUG: q = {0:1.20f}".format(q))
         print("DEBUG: FSI_config[K_MAX] = {0:1.20f}".format(FSI_config["K_MAX"]))
         print("DEBUG: VINF = {0:1.20f}".format(FSI_config["V_INF"]))
@@ -320,7 +319,7 @@ class NITRO:
         print("DEBUG: self.Flutter_mode_fluid_x[i] = {0:1.20f}".format(self.Flutter_mode_fluid_x[15114]))
         print("DEBUG: self.Flutter_mode_fluid_y[i] = {0:1.20f}".format(self.Flutter_mode_fluid_y[15114]))
         print("DEBUG: self.Flutter_mode_fluid_z[i] = {0:1.20f}".format(self.Flutter_mode_fluid_z[15114]))
-
+        '''
         '''
         Now, aeropoints to generate the interpolation matrix (query points) are ordered into a vector follwing the list of markers[iMarker]
         so I just need to extract them in order starting from 1 till the end during the cycle for iPoint in vertexList:
@@ -365,6 +364,8 @@ class NITRO:
         Simulated_mode_x = np.zeros(self.nPoint)
         Simulated_mode_y = np.zeros(self.nPoint)
         Simulated_mode_z = np.zeros(self.nPoint)
+
+        print("Debug. TimeStep {} -- modal displacement {}".format(TimeStep,self.mod_displ[:,TimeStep]))
 
         for i in range(self.nModes):
             Simulated_mode_x += self.mode_fluid_x[:, i] * self.mod_displ[i,TimeStep]
@@ -427,8 +428,8 @@ class NITRO:
 
     #self.__temporalIteration()  NOT NEEDED ANYMORE AS THE DISPLACEMENT IS IMPOSED
 
-    print("Time")#\tDisp 1\tDisp2\tVel 1\tVel2\tAcc 1\tAcc 2")
-    print(str(time))# + '\t' + str(float(self.q[0])) + '\t' + str(float(self.q[1])) + '\t' + str(float(self.qdot[0])) + '\t' + str(float(self.qdot[1])) + '\t' + str(float(self.qddot[0])) + '\t' + str(float(self.qddot[1])))
+    print("Time = {}".format(float(time)))#\tDisp 1\tDisp2\tVel 1\tVel2\tAcc 1\tAcc 2")
+    #print(str(time))# + '\t' + str(float(self.q[0])) + '\t' + str(float(self.q[1])) + '\t' + str(float(self.qdot[0])) + '\t' + str(float(self.qdot[1])) + '\t' + str(float(self.qddot[0])) + '\t' + str(float(self.qddot[1])))
 
     self.__computeInterfacePosVel(time,FSI_config, MLS_Spline, TimeStep)
 
@@ -452,8 +453,7 @@ class NITRO:
   def writeSolution(self, time_iter, time, FSI_config):  #TimeIter, NbTimeIter):
     """ Description. """
     #wait = input("PRESS ENTER TO CONTINUE.")
-    
-    cont_time_iter = time_iter - FSI_config['RESTART_ITER']
+
     if FSI_config['CSD_SOLVER']	== 'IMPOSED': # at the moment can't be used (towards unification: IMPOSED works for airfoil pitching and  plunging)
      a=0
      #if time == 0:
@@ -464,7 +464,8 @@ class NITRO:
      #  histFile.write(str(time) + '\t' + str(float(self.q[0])) + '\t' + str(float(self.q[1])) + '\t' + str(float(self.qdot[0])) + '\t' + str(float(self.qdot[1])) + '\t' + str(float(self.qddot[0])) + '\t' + str(float(self.qddot[1])) + '\t' + str(float(self.a[0])) + '\t' + str(float(self.a[1])) + '\n')
      #histFile.close()
     elif ((FSI_config['CSD_SOLVER'] == 'NITRO' or FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK') and FSI_config['UNSTEADY_SIMULATION'] == 'YES'  ):
-     if FSI_config['WRITE_FORCE_OUTPUT'] == 'YES':   
+     cont_time_iter = time_iter - FSI_config['RESTART_ITER']
+     if FSI_config['WRITE_FORCE_OUTPUT'] == 'YES':
         # Opens the force file and writes the header 
         histFile = open(FSI_config['NODAL_FORCE_FILE'] + '_' + str(time_iter) + '.dat' , "w")   
         histFile.write("Node\tTime\tForce x\tForce y\tForce z\n")
@@ -574,6 +575,11 @@ class NITRO:
           # Generalized forces
           Generalized_force_i = Generalized_force_i + Force[0] * self.mode_fluid_x[iPoint, mode] + Force[1] * self.mode_fluid_y[iPoint, mode] + Force[2] * self.mode_fluid_z[iPoint, mode]
 
+      # It is important to transform the number into a string
+      Generalized_force_str = str(float(Generalized_force_i))
+      Generalized_force_str = Generalized_force_str[0:8]
+
+      print("Generalized_force_i = {}".format(Generalized_force_i))
       if FSI_config['UNSTEADY_SIMULATION'] == 'NO':
           # ==== Writing
           genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat', "w")
@@ -581,7 +587,7 @@ class NITRO:
           genForceHistFile.write("$--1---><--2---><--3---><--4---><--5---><--6---><--7---><--8---><--9---><--10-->\n")
           genForceHistFile.write("TABLED1 {0:8d}                                                        {1}\n".format(4000 + mode, '   +GenF'))
           # write generalized force
-          genForceHistFile.write("   +GenF{0:8f}".format(Generalized_force_i))
+          genForceHistFile.write("   +GenF{}".format(Generalized_force_str))
           genForceHistFile.close()
 
       else: # FSI_config['UNSTEADY_SIMULATION'] == 'YES'
@@ -600,11 +606,11 @@ class NITRO:
           else:
               genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat', "a")
               if ((time_iter+1) % 8 == 0):
-                  genForceHistFile.write("{0:8f}".format(floatGeneralized_force_i))
+                  genForceHistFile.write("{}".format(Generalized_force_str))
                   genForceHistFile.write("{}".format('   +GenF\n'))
                   genForceHistFile.write("{}".format('   +GenF'))
               else:
-                  genForceHistFile.write("{0:8f}".format(float(Generalized_force_i)))
+                  genForceHistFile.write("{}".format(Generalized_force_str))
               genForceHistFile.close()
 
   def writeGenForceFileDynrespCoupled(self, time_iter, time, FSI_config, mode):
