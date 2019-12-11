@@ -1187,7 +1187,7 @@ class Interface:
             if CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL':
                ReadModalDisplacements_Sequential(FSI_config,SolidSolver)
             elif CSD_Solver == 'DYNRESP_CFD_COUPLED':
-               ReadModalDisplacements_Coupled(FSI_config,SolidSolver)
+               ReadModalDisplacements_Coupled(SolidSolver)
             else:
                 print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
                 sys.exit("Goodbye!")
@@ -1296,7 +1296,7 @@ class Interface:
             if CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL':
                 ReadModalDisplacements_Sequential(FSI_config, SolidSolver)
             elif CSD_Solver == 'DYNRESP_CFD_COUPLED':
-                ReadModalDisplacements_Coupled(FSI_config, SolidSolver)
+                ReadModalDisplacements_Coupled( SolidSolver)
             else:
                 print('CSD_Solver neither DYNRESP_CFD_SEQUENTIAL nor DYNRESP_CFD_COUPLED. Cannot proceed.')
                 sys.exit("Goodbye!")
@@ -1405,7 +1405,7 @@ class Interface:
                 cl_file.close()
 
             # Forced condition
-            if TimeIter == (FSI_config['RESTART_ITER'] - 1): # in this case iter 1 corresponds to 0
+            if TimeIter == (FSI_config['DYN_COUPLED_TIMESTEP_NR'] + 1): # in this case iter 1 corresponds to 0
                 break
 
             TimeIter += 1
@@ -1416,7 +1416,7 @@ class Interface:
             if myid == self.rootProcess:
                 # It is necessary to read the new modal displacement file only if DYNRESP_COUPLED
                 if CSD_Solver == 'DYNRESP_CFD_COUPLED':
-                    ReadModalDisplacements_Coupled(FSI_config, SolidSolver)
+                    ReadModalDisplacements_Coupled( SolidSolver)
 
                 SolidSolver.run(time, FSI_config, MLS_Spline,TimeIter)
             #self.transferStructuralDisplacements(FluidSolver, SolidSolver)

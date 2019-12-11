@@ -41,6 +41,7 @@ import time as timer
 from math import *	# use mathematical expressions
 from optparse import OptionParser	# use a parser for configuration
 import subprocess
+import signal
 # -------------------------------------------------------------------
 #  Main
 # -------------------------------------------------------------------
@@ -74,26 +75,34 @@ def main():
     # Format: dynresp_exe  dynresp_file
     # (thhe locatino needs to be changed according to the machine)
     dynresp_location = '/media/rocco/290CF0EB732D1122/Technion_project/Dynresp/Linux_Exe/bin/dynrespCFD'
-    command_dynresp =  dynresp_locatison + '   ' + filename_dynresp
+    command_dynresp =  dynresp_location + '   ' + filename_dynresp
 
     # SU2
     # Format: fsi_steady_unsteady_dynresp.py -d GWTS_CFD_1_.inp -c FSICoupler_config.cfg -n 22 -e echo
     command_SU2 = 'fsi_steady_unsteady_dynresp.py ' + ' -d ' + filename_dynresp + ' -c ' + filename_unsteady + ' -n ' + str(options.partitions) + ' -e ' + options.echo
 
+
+    # Now launching the programs
+    print('Initializing Dynresp...')
+    print(command_dynresp)
+    proc1 = subprocess.Popen([command_dynresp],shell=True,preexec_fn=os.setsid)
+    pid1 = proc1.pid
+    #os.system(command_dynresp)
+    timer.sleep(1)
+    print('Initializing SU2...')
+    print(command_SU2)
+    proc2 = subprocess.Popen([command_SU2], shell=True,preexec_fn=os.setsid)
+    pid2 = proc2.pid
+     #os.system(command_SU2)
+
     try:
-       # Now launching the programs
-       print('Initializing Dynresp...')
-       print(command_dynresp)
-       proc1 = subprocess.Popen([command_dynresp],shell=True)
-       #os.system(command_dynresp)
-       timer.sleep(1)
-       print('Initializing SU2...')
-       print(command_SU2)
-       proc2 = subprocess.Popen([command_SU2], shell=True)
-       #os.system(command_SU2)
+       proc1.wait(); proc2.wait()
     except KeyboardInterrupt:
-       proc1.terminate()  # <-- terminate the process 1
-       proc2.terminate()  # <-- terminate the process 2
+
+       # Tip: if I give a negative pid it kills all the children associated with the parent absolute pid!
+       os.kill(-pid1, signal.SIGINT)
+       os.kill(-pid2, signal.SIGINT)
+
 
 
 # -------------------------------------------------------------------

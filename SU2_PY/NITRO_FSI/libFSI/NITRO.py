@@ -390,6 +390,8 @@ class NITRO:
          Simulated_mode_y = np.zeros(self.nPoint)
          Simulated_mode_z = np.zeros(self.nPoint)
 
+         print("Debug. TimeStep {} -- modal displacement {}".format(TimeStep, self.mod_displ[:, 0]))
+
          for i in range(self.nModes):
              Simulated_mode_x += self.mode_fluid_x[:, i] * self.mod_displ[i, 0]
              Simulated_mode_y += self.mode_fluid_y[:, i] * self.mod_displ[i, 0]
@@ -515,22 +517,16 @@ class NITRO:
            self.writeGenForceFile( time_iter, time, FSI_config, mode)
 
     # This is done independently than the option in FSI  WRITE_GEN_FORCE_OUTPUT
-    elif FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_COUPLED' :
-       self.writeGenForceFileDynrespCoupled(time_iter, time, FSI_config)
+    if FSI_config['CSD_SOLVER'] == 'DYNRESP_CFD_COUPLED' :
+       self.writeGenForceFileDynrespCoupled()
 
   def writeGenForceFile(self, time_iter, time, FSI_config, mode):
-    if FSI_config['CSD_SOLVER']	== 'IMPOSED': # at the moment can't be used (towards unification: IMPOSED works for airfoil pitching and  plunging)
-     a=0
-    elif ((FSI_config['CSD_SOLVER'] == 'NITRO' or FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK') and FSI_config['UNSTEADY_SIMULATION'] == 'YES'  ):
+
+    if ( FSI_config['UNSTEADY_SIMULATION'] == 'YES'  ):
      # Opens the generalized force file and writes the header 
      if time_iter == 0:
            genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat' , "w") 
            genForceHistFile.write("Time\tGeneralized Force\n")
-     elif time_iter == 2 and FSI_config['MOTION_TYPE'] == 'BLENDED_STEP' and FSI_config['RESTART_SOL'] == 'YES' and FSI_config['RESTART_ITER'] == 2:
-           genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat' , "r+")
-           genForceHistFile.readline(); line_to_get = genForceHistFile.readline().split(); # the second line is the one to be repeated
-           Generalized_force_i = line_to_get[1]         
-           genForceHistFile.write(str(float(FSI_config['UNST_TIMESTEP'])) +'\t' + str(  float(  Generalized_force_i) ) + '\n' ) # we extend the force on the first timestep and we start the movement here  
      else:
            genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat' , "a")     
 
@@ -546,7 +542,7 @@ class NITRO:
      genForceHistFile.write( str(float(time) ) +'\t' + str( float( Generalized_force_i)  ) + '\n' )  
      genForceHistFile.close()
         
-    elif ((FSI_config['CSD_SOLVER'] == 'NITRO' or FSI_config['CSD_SOLVER'] == 'NITRO_FRAMEWORK') and FSI_config['UNSTEADY_SIMULATION'] == 'NO'  ): 
+    elif ( FSI_config['UNSTEADY_SIMULATION'] == 'NO'  ):
      # Opens the generalized force file and writes the header 
      if time_iter == 0: # forced to be zero in input in case of steady simulation
            genForceHistFile = open(FSI_config['GENERALIZED_FORCE_FILE'] + str(mode) + '.dat' , "w") 
@@ -613,7 +609,7 @@ class NITRO:
                   genForceHistFile.write("{}".format(Generalized_force_str))
               genForceHistFile.close()
 
-  def writeGenForceFileDynrespCoupled(self, time_iter, time, FSI_config, mode):
+  def writeGenForceFileDynrespCoupled(self):
 
       file = "ELEMENT_FORCES.TXT"
 
@@ -727,6 +723,9 @@ class NITRO:
          self.Aq = tan(radians(1))*(4*FSI_config["L_REF"]/FSI_config["K_MAX"])/maxl
          #self.Aq = round(self.Aq,5)
      print("Aq = {}".format(self.Aq))
+
+    else:
+     self.Aq = 1
     
   def updateSolution(self):
     """ Description. """

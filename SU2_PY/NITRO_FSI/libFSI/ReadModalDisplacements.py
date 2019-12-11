@@ -50,6 +50,7 @@ def ReadModalDisplacements_Coupled(SolidSolver):
     file_path = "MODES.TXT"
 
     # Wait for the file to be found
+    print("Waiting for generalized displacements...")
     try:
        while not os.path.exists(file_path):
            timer.sleep(1)
@@ -58,9 +59,9 @@ def ReadModalDisplacements_Coupled(SolidSolver):
 
     # When file is found just read it
     # Make sure the file is completed
-    timer.sleep(2)
+    timer.sleep(1)
     # reading the file
-    fid = open(fileName, 'r')
+    fid = open(file_path, 'r')
     line = fid.readline()
     # crtLine has the modal displacements for every mode at the considered timestep
     if not line:
