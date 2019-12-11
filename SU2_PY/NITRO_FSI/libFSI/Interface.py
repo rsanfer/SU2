@@ -556,6 +556,7 @@ class Interface:
         #     print("Drag coefficient: ", FluidSolver.Get_DragCoeff())
         #     print("Lift coefficient: ", FluidSolver.Get_LiftCoeff())
         #
+            '''
             outF = open("loadsFlow.txt", "w")
             index = 0
             for i in self.globalFluidLoadX:
@@ -583,6 +584,7 @@ class Interface:
                 outF.write("\n")
                 index += 1
             outF.close()
+            '''
         #
         # exit()
 
@@ -609,10 +611,11 @@ class Interface:
             self.MPIPrint('Solid side (Fx, Fy, Fz) = ({}, {}, {})'.format(FX, FY, FZ))
             self.MPIPrint('Fluid side (Fx, Fy, Fz) = ({}, {}, {})'.format(FFX, FFY, FFZ))
 
+            '''
             force_file = open("history_forces.dat", "a")
             force_file.write(str(FFX) + "\t" + str(FFY) + "\t" + str(FFZ) + "\n" + str(FX) + "\t" + str(FY) + "\t" + str(FZ) + "\n")
             force_file.close()
-
+            '''
             #f = open('pyBeam_Loads_Iter' + str(self.FSIIter) + '.dat', "w+")
             #for iVertex in range(0, self.nSolidInterfaceNodes):
             #    f.write('beam.SetLoads(' + str(iVertex) +',' + str(self.globalSolidLoadX[iVertex]) +',' + str(self.globalSolidLoadY[iVertex]) +',' + str(self.globalSolidLoadZ[iVertex]) + ')\n' )
@@ -652,7 +655,7 @@ class Interface:
                 self.globalSolidDispX[iVertex] = dispX
                 self.globalSolidDispY[iVertex] = dispY
                 self.globalSolidDispZ[iVertex] = dispZ
-
+            '''
             outF = open("DispStr.txt", "w")
             for iVertex in range(0, self.nSolidInterfaceNodes):
                 outF.write(str(iVertex))
@@ -664,7 +667,7 @@ class Interface:
                 outF.write(str(self.globalSolidDispZ[iVertex]))
                 outF.write("\n")
             outF.close()
-
+            '''
 
 
         ################################################################################################################
@@ -1235,8 +1238,9 @@ class Interface:
         self.MPIPrint('*  End FSI computation  *')
         self.MPIPrint('*************************')
         self.MPIPrint(' ')
+        self.MPIBarrier()
 
-    def UnsteadyFSI_dyn_sequential(self, FSI_config, FluidSolver, SolidSolver, MLS_Spline):
+    def UnsteadyFSI_dyn(self, FSI_config, FluidSolver, SolidSolver, MLS_Spline):
         """
 	Run the unsteady FSI computation by synchronizing the fluid and solid solvers.
 	F/s interface data are exchanged through interface mapping and interpolation (if non mathcing meshes).
@@ -1386,12 +1390,13 @@ class Interface:
 
             # Move the restart file to a solution file
             if myid == self.rootProcess:
-                new_name_flow = "./Output/flow_"  + str(TimeIter).zfill(5) + ".vtk"
-                new_name_surf = "./Output/surface_flow_" + str(TimeIter).zfill(5) + ".vtk"
+                #new_name_flow = "./Output/flow_"  + str(TimeIter).zfill(5) + ".vtk"
+                #new_name_surf = "./Output/surface_flow_" + str(TimeIter).zfill(5) + ".vtk"
                 #shutil.move("flow_" + str(0).zfill(5) + ".vtk", new_name_flow)
                 #shutil.move("surface_flow_" + str(0).zfill(5) + ".vtk", new_name_surf)
                 os.remove("surface_flow_" + str(TimeIter).zfill(5) + ".vtk")
                 os.remove("flow_" + str(TimeIter).zfill(5) + ".vtk")
+                os.remove("restart_flow_" + str(TimeIter).zfill(5) + ".dat")
                 cd_file = open("history_CD.dat", "a")
                 cd_file.write(str(FluidSolver.Get_DragCoeff()) + "\n")
                 cd_file.close()

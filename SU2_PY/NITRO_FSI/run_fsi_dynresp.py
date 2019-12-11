@@ -212,23 +212,9 @@ def main():
         comm.Barrier()
 
     # --- Launch a steady or unsteady FSI computation --- #
-    if FSI_config['UNSTEADY_SIMULATION'] == "YES" and (CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL'):
+    if FSI_config['UNSTEADY_SIMULATION'] == "YES" :
         try:
-           FSIInterface.UnsteadyFSI_dyn_sequential(FSI_config, FluidSolver, SolidSolver, MLS)
-        except NameError as exception:
-           if myid == rootProcess:
-              print('An NameError occured in FSIInterface.UnsteadyFSI : ',exception)
-        except TypeError as exception:
-           if myid == rootProcess:
-              print('A TypeError occured in FSIInterface.UnsteadyFSI : ',exception)
-        except KeyboardInterrupt as exception :
-           if myid == rootProcess:
-              print('A KeyboardInterrupt occured in FSIInterface.UnsteadyFSI : ',exception)
-
-    # --- Launch a steady or unsteady FSI computation --- #
-    elif FSI_config['UNSTEADY_SIMULATION'] == "YES" and (CSD_Solver == 'DYNRESP_CFD_COUPLED'):
-        try:
-           FSIInterface.UnsteadyFSI_dyn_coupled(FSI_config, FluidSolver, SolidSolver, MLS)
+           FSIInterface.UnsteadyFSI_dyn(FSI_config, FluidSolver, SolidSolver, MLS)
         except NameError as exception:
            if myid == rootProcess:
               print('An NameError occured in FSIInterface.UnsteadyFSI : ',exception)
@@ -240,7 +226,7 @@ def main():
               print('A KeyboardInterrupt occured in FSIInterface.UnsteadyFSI : ',exception)
 
 
-    elif FSI_config['UNSTEADY_SIMULATION'] == "NO" and (CSD_Solver == 'DYNRESP_CFD_SEQUENTIAL' or CSD_Solver == 'DYNRESP_CFD_COUPLED'):
+    elif FSI_config['UNSTEADY_SIMULATION'] == "NO" :
         try:
             FSIInterface.SteadyFSI_dyn(FSI_config, FluidSolver, SolidSolver, MLS)
             print()

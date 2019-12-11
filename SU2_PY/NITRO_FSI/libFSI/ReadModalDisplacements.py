@@ -34,7 +34,7 @@
 
 import pdb
 import os, os.path, sys, shutil, copy
-import time
+import time as timer
 import math
 import numpy as np
 from numpy import float32, float64, int32, int64, product
@@ -52,13 +52,13 @@ def ReadModalDisplacements_Coupled(SolidSolver):
     # Wait for the file to be found
     try:
        while not os.path.exists(file_path):
-           time.sleep(1)
+           timer.sleep(1)
     except KeyboardInterrupt as exception:
            print('A KeyboardInterrupt occured in ReadModalDisplacements_Coupled : ', exception)
 
     # When file is found just read it
     # Make sure the file is completed
-    time.sleep(1)
+    timer.sleep(2)
     # reading the file
     fid = open(fileName, 'r')
     line = fid.readline()
@@ -71,10 +71,13 @@ def ReadModalDisplacements_Coupled(SolidSolver):
         for i in range (0,SolidSolver.nModes):
             SolidSolver.mod_displ[i][0] = line[i]
 
-    # after reading it's time to delete the file
-    os.remove("MODES.TXT")
-
-    ## Add check to confirm it is deleted otherwise it is paused
+    # after reading it's time to delete the file.
+    try:
+       while os.path.exists(file_path):
+           timer.sleep(1)
+           os.remove("MODES.TXT")
+    except KeyboardInterrupt as exception:
+           print('A KeyboardInterrupt occured in ReadModalDisplacements_Coupled : ', exception)
 
 
 def ReadModalDisplacements_Sequential(FSIConfig,SolidSolver):

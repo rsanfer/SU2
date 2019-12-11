@@ -629,6 +629,7 @@ class NITRO:
        # writing the file
       genForceHistFile = open(file, "w")
       for mode in range(self.nModes):
+         print("Generalized_force_i = {}".format(Generalized_force_i[mode][0]))
          genForceHistFile.write("{0:15.6f}".format(float(Generalized_force_i[mode][0])))
          genForceHistFile.write("    ")
       genForceHistFile.write("\n")
