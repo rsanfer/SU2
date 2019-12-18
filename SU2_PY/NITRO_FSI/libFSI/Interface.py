@@ -913,6 +913,7 @@ class Interface:
         self.MPIPrint('*  End FSI computation  *')
         self.MPIPrint('*************************')
         self.MPIPrint(' ')
+        self.MPIPrint(' IKES!!')
 
     def UnsteadyFSI(self, FSI_config, FluidSolver, SolidSolver, MLS_Spline):
         """

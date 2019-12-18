@@ -75,27 +75,27 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
        #if myid == rootProcess: print("FSI_config['BLE_STEP_LENGTH'] = {}".format(FSI_config['BLE_STEP_LENGTH']))
        if FSI_config['UNST_NR'] == 1:
           FSI_config['UNST_TIMESTEP'] = t_q/(FSI_config['BS_TIMESTEP_1'])
-          if myid == rootProcess: print("HC: FSI_config['UNST_TIMESTEP'] = {}".format(FSI_config['UNST_TIMESTEP']))
        elif FSI_config['UNST_NR'] == 2:   
           FSI_config['UNST_TIMESTEP'] = t_q/(FSI_config['BS_TIMESTEP_2'])
        else:   
           print('ERROR: More than two simulations are not implemented yet: change UNST_NR and/or UNST_TOTAL_SIMUL_NUMBER ')
           sys.exit("Good bye!")       
-       
+       '''
        # If we have unsteady and blended step and restart and second order and restart iter =2 then we start the movement at the first timestep 
        if FSI_config['RESTART_SOL'] == 'YES' and FSI_config['UNSTEADY_SCHEME'] == 'DUAL_TIME_STEPPING-2ND_ORDER':
           # start motion time for blended step depends on the dual time method chosen (1st-2nd)  
           FSI_config['START_MOTION_TIME'] = FSI_config['UNST_TIMESTEP']*1    
-            
+       '''
     # we have to play in two different time advancing lines cause the timestep is different  
        if FSI_config['RESTART_SOL'] == 'YES' and FSI_config['UNST_NR'] == 1: 
           FSI_config['START_TIME'] = FSI_config['UNST_TIMESTEP']*(FSI_config['RESTART_ITER']); # restart iter is chosen manually 
           FSI_config['UNST_TIME'] = tq_mult*FSI_config['BLE_STEP_LENGTH'] - FSI_config['START_TIME']
           if myid == rootProcess:
-             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}\n".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
+             print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
              print("HC: FSI_config['START_TIME'] = {}".format(FSI_config['START_TIME']))
              print("HC: FSI_config['UNST_TIME'] = {}".format(FSI_config['UNST_TIME']))
-          
+             print("HC: FSI_config['UNST_TIMESTEP'] = {}".format(FSI_config['UNST_TIMESTEP']))
+
        elif FSI_config['RESTART_SOL'] == 'YES' and FSI_config['UNST_NR'] == 2:
           FSI_config['START_TIME'] = tq_mult*FSI_config['BLE_STEP_LENGTH'] + FSI_config['UNST_TIMESTEP'] ; 
           FSI_config['RESTART_ITER'] = int(tq_mult*FSI_config['BS_TIMESTEP_2'] )  #(the total number of the old simulation is tq_mult*FSI_config['BS_TIMESTEP_2'] (the first timetep is always 0))
@@ -103,6 +103,7 @@ def UnifyingParameters_framework(FSI_config,confFile,myid ):
              print("Simulation number {}, FSI conf file {}, SU2 conf file {}, MLS conf file {}".format(FSI_config['UNST_NR'], confFile,FSI_config['CFD_CONFIG_FILE_NAME'],FSI_config['MLS_CONFIG_FILE_NAME'] ))
              print("HC: FSI_config['START_TIME'] = {}".format(FSI_config['START_TIME']))
              print("HC: FSI_config['RESTART_ITER'] = {}".format(FSI_config['RESTART_ITER']))
+             print("HC: FSI_config['UNST_TIMESTEP'] = {}".format(FSI_config['UNST_TIMESTEP']))
 
           # unsteady time is given manually and corresponds to the end of the simulation
        else:   
@@ -163,8 +164,8 @@ def UnifyFluid(FSI_config, FREESTREAM_TEMPERATURE_default_SU2, GAMMA_VALUE_defau
          elif this_param == "MAX_TIME":
                     stringalt = 'MAX_TIME = '+ str(FSI_config['UNST_TIME']) + '   \n'
                     configfile2.write(stringalt)
-         elif this_param == "UNST_RESTART_ITER":
-                    stringalt = 'UNST_RESTART_ITER = '+ str(FSI_config['RESTART_ITER']) + '   \n'
+         elif this_param == "RESTART_ITER":
+                    stringalt = 'RESTART_ITER = '+ str(FSI_config['RESTART_ITER']) + '   \n'
                     configfile2.write(stringalt)
          elif this_param == "TIME_ITER":
                     stringalt = 'TIME_ITER = ' + str(int(round(FSI_config['UNST_TIME']/FSI_config['UNST_TIMESTEP']))) + '   \n'
