@@ -216,7 +216,6 @@ def main():
     else:
         try:
             FSIInterface.SteadyFSI(FSI_config, FluidSolver, SolidSolver, MLS)
-            print()
         except NameError as exception:
             if myid == rootProcess:
                 print('An NameError occured in FSIInterface.SteadyFSI : ', exception)
